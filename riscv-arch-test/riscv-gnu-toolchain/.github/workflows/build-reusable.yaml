@@ -1,0 +1,332 @@
+name: Build
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        description: "Named identifier for the artifact, optional"
+        type: string
+      os:
+        description: "OS list"
+        type: string
+        default: '["ubuntu-22.04","ubuntu-24.04"]'
+      mode:
+        description: "Mode list"
+        type: string
+        default: '["newlib","linux","musl","uclibc"]'
+      target:
+        description: "Target list"
+        type: string
+        default: '["rv32gc-ilp32d","rv64gc-lp64d"]'
+      compiler:
+        description: "Compiler list"
+        type: string
+        default: '["gcc","llvm"]'
+      cmodel:
+        description: "C model list"
+        type: string
+        default: '[""]'
+      languages:
+        description: "Languages list"
+        type: string
+        default: '[""]'
+      strip:
+        description: "Options to build unstripped, stripped or both, must be one of 'unstripped', 'stripped', 'both'"
+        type: string
+        default: 'unstripped'
+      report:
+        description: "Generate build report"
+        type: boolean
+        default: true
+      sim:
+        description: "Simulator"
+        type: string
+        default: '[""]'
+      build-sim:
+        description: "Build simulator and include in the toolchain"
+        type: boolean
+        default: false
+
+env:
+  submodule_paths: |
+    binutils
+    dejagnu
+    gcc
+    gdb
+    glibc
+    llvm
+    musl
+    newlib
+    pk
+    qemu
+    spike
+    uclibc-ng
+    .git/modules
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report inputs
+        run: |
+          echo "Artifact name:  ${{ inputs.artifact-name }}"
+          echo "OS list:        ${{ inputs.os }}"
+          echo "Mode list:      ${{ inputs.mode }}"
+          echo "Target list:    ${{ inputs.target }}"
+          echo "Compiler list:  ${{ inputs.compiler }}"
+          echo "C model list:   ${{ inputs.cmodel }}"
+          echo "Report:         ${{ inputs.report }}"
+          echo "Languages list: ${{ inputs.languages }}"
+          echo "Strip:          ${{ inputs.strip }}"
+          echo "Simulator:      ${{ inputs.sim }}"
+
+  validate_inputs:
+    name: Validate inputs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check strip input
+        run: |
+          if [[ "${{ inputs.strip }}" != "unstripped" && "${{ inputs.strip }}" != "stripped" && "${{ inputs.strip }}" != "both" ]]; then
+            echo "Invalid strip option: ${{ inputs.strip }}. Must be one of 'unstripped', 'stripped', 'both'."
+            exit 1
+          fi
+
+  submodule_cache:
+    name: Initialize submodule cache
+    needs: [validate_inputs]
+    runs-on: ubuntu-latest
+    outputs:
+      key: ${{ steps.keygen.outputs.smcache_key }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Remove unneeded frameworks to recover disk space
+        run: sudo ./.github/cleanup-rootfs.sh
+
+      - name: Generate submodule cache key
+        id: keygen
+        run: echo "smcache_key=smcache-$(printf $(git submodule | sha1sum))" >> $GITHUB_OUTPUT
+
+      - name: Setup submodule cache
+        id: smcache
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.submodule_paths }}
+          key: ${{ steps.keygen.outputs.smcache_key }}
+
+      - name: Checkout required submodules
+        if: steps.smcache.outputs.cache-hit != 'true'
+        run: |
+          git submodule update --init dejagnu
+          git submodule update --init -j $(nproc) --depth 1 $(git submodule | awk '$2 != "dejagnu" {print $2}')
+
+      - name: Storage size optimization
+        if: steps.smcache.outputs.cache-hit != 'true'
+        run: |
+          git submodule foreach 'git maintenance run'
+
+  build:
+    runs-on: ${{ matrix.os }}
+    needs: [submodule_cache,validate_inputs]
+    env:
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_COMPILERCHECK: content
+      CCACHE_DIR: /mnt/ccache
+      CCACHE_MAXSIZE: 2G
+      smcache_key: ${{ needs.submodule_cache.outputs.key }}
+    strategy:
+      matrix:
+        os: ${{ fromJSON(inputs.os) }}
+        mode: ${{ fromJSON(inputs.mode) }}
+        target: ${{ fromJSON(inputs.target) }}
+        compiler: ${{ fromJSON(inputs.compiler) }}
+        sim: ${{ fromJSON(inputs.sim) }}
+        cmodel: ${{ fromJSON(inputs.cmodel) }}
+        languages: ${{ fromJSON(inputs.languages) }}
+        report:
+          - ${{ inputs.report }}
+        build-sim:
+          - ${{ inputs.build-sim }}
+
+        exclude:
+          - mode: uclibc
+            compiler: llvm
+    outputs:
+      toolchain-name: ${{ steps.toolchain-name-generator.outputs.TOOLCHAIN_NAME }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Remove unneeded frameworks to recover disk space
+        run: sudo ./.github/cleanup-rootfs.sh
+
+      - name: Configure swap space
+        run: |
+          # Hopefully improves CI stability under peak memory pressure.
+          echo "Memory before swap:"
+          free -h
+          swapon --show
+          # GitHub-hosted runners already ship with an active /swapfile, so
+          # disable and remove it before allocating a larger replacement.
+          if swapon --noheadings --show=NAME | grep -qx /swapfile; then
+            sudo swapoff /swapfile
+          fi
+          sudo rm -f /swapfile
+          sudo fallocate -l 8G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          echo "Memory after swap:"
+          free -h
+          swapon --show
+
+      - name: install dependencies
+        run: sudo ./.github/setup-apt.sh
+
+      - name: Enable ccache compiler wrappers
+        run: echo "/usr/lib/ccache" >> "${GITHUB_PATH}"
+
+      - name: Prepare ccache directory
+        run: |
+          sudo mkdir -p "${CCACHE_DIR}"
+          sudo chown runner:runner "${CCACHE_DIR}"
+
+      - name: Restore ccache
+        id: ccache-restore
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-v1-${{ matrix.os }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-v1-${{ matrix.os }}-
+
+      - name: Load submodule cache
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ env.submodule_paths }}
+          key: ${{ env.smcache_key }}
+
+      - name: Initialize ccache
+        run: |
+          ccache -M "${CCACHE_MAXSIZE}"
+          ccache -z
+          ccache -s
+
+      - name: build toolchain
+        run: |
+          TARGET_TUPLE=($(echo ${{ matrix.target }} | tr "-" "\n"))
+          BUILD_TOOLCHAIN="./configure --prefix=/mnt/riscv --with-arch=${TARGET_TUPLE[0]} --with-abi=${TARGET_TUPLE[1]}"
+          ARGS=""
+          if [ "${{ matrix.compiler }}" == "llvm" ]; then # build toolchain with llvm
+            ARGS="$ARGS --enable-llvm"
+          fi
+          if [ -n "${{ matrix.sim }}" ]; then
+            ARGS="$ARGS --with-sim=${{ matrix.sim }}"
+          fi
+          if [ -n "${{ matrix.cmodel }}" ]; then
+            ARGS="$ARGS --with-cmodel=${{ matrix.cmodel }}"
+          fi
+          if [ -n "${{ matrix.languages }}" ]; then
+            ARGS="$ARGS --with-languages=${{ matrix.languages }}"
+          fi
+          if [ "${{ matrix.strip }}" = "true" ]; then
+            ARGS="$ARGS --enable-strip"
+          fi
+          $BUILD_TOOLCHAIN $ARGS
+          sudo mkdir /mnt/riscv
+          sudo chown runner:runner /mnt/riscv
+          make -j $(nproc) ${{ matrix.mode }}
+      - name: build simulator
+        if: |
+          matrix.build-sim == true
+        run: |
+          make -j $(nproc) build-sim
+      - name: make report
+        if: |
+          matrix.os == 'ubuntu-24.04'
+          && (matrix.mode == 'linux' || matrix.mode == 'newlib')
+          && matrix.compiler == 'gcc'
+          && matrix.report == true
+        run: |
+          make report-${{ matrix.mode }} -j $(nproc)
+
+      - name: Show ccache statistics
+        if: always()
+        run: ccache -s
+
+      - name: Save ccache
+        if: |
+          always()
+          && !cancelled()
+          && github.event_name != 'pull_request'
+          && matrix.mode == 'linux'
+          && matrix.target == 'rv64gc-lp64d'
+          && matrix.compiler == 'llvm'
+          && matrix.sim == ''
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-v1-${{ matrix.os }}-${{ github.run_id }}
+
+      - name: generate prebuilt toolchain name
+        id:   toolchain-name-generator
+        run: |
+          if [[ "${{ matrix.target }}" == *"32"* ]]; then BITS=32; else BITS=64; fi
+          case "${{ matrix.mode }}" in
+            "linux")
+              MODE="glibc";;
+            "musl")
+              MODE="musl";;
+            "uclibc")
+              MODE="uclibc-ng";;
+            *)
+              MODE="elf";;
+          esac
+          ARTIFACT_NAME=${{ inputs.artifact-name }}
+          if [ -n "$ARTIFACT_NAME" ]; then
+            ARTIFACT_NAME="-${ARTIFACT_NAME}"
+          fi
+          BASE_NAME="riscv$BITS-$MODE-${{ matrix.os }}-${{ matrix.compiler }}"
+          echo "TOOLCHAIN_NAME=${BASE_NAME}${ARTIFACT_NAME}" >> $GITHUB_OUTPUT
+          echo "TOOLCHAIN_NAME_STRIPPED=${BASE_NAME}-stripped${ARTIFACT_NAME}" >> $GITHUB_OUTPUT
+      - name: Remove build trees before packaging
+        run: |
+          rm -rf build-* stamps install-host-gcc install-newlib-nano
+      - name: tarball build unstripped
+        if: ${{ inputs.strip == 'unstripped' || inputs.strip == 'both' }}
+        run: |
+          du -s -h /mnt/riscv
+          ./.github/dedup-dir.sh /mnt/riscv/
+          XZ_OPT="-e -T0" tar cJvf riscv.tar.xz -C /mnt/ riscv/
+          mv riscv.tar.xz ${{ steps.toolchain-name-generator.outputs.TOOLCHAIN_NAME }}.tar.xz
+      - name: strip binaries
+        run: |
+          # Strip all ELF binaries in the toolchain
+          # finds all of the files in /mnt/riscv, checks if they are ELF files, and strips them
+          # strip itself would be fine running on any files, it will just complain if they are
+          # not valid binaries. But that would capture the `.a` archives as well,
+          # which we do not want to strip. Doing so would make linking them later problematic.
+          # The logic:
+          # 1. Find all files under /mnt/riscv
+          # 2. For each file, run `file` command to check its type
+          # 3. If the output of `file` contains "ELF", it is an ELF binary
+          # 4. Strip that file
+          # 5. Ignore others
+          find /mnt/riscv -type f -exec sh -c 'file "$1" | grep -q "ELF" && strip "$1"' _ {} \;
+      - name: tarball build stripped
+        if: ${{ inputs.strip == 'stripped' || inputs.strip == 'both' }}
+        run: |
+          du -s -h /mnt/riscv
+          XZ_OPT="-e -T0" tar cJvf riscv-stripped.tar.xz -C /mnt/ riscv/
+          mv riscv-stripped.tar.xz ${{ steps.toolchain-name-generator.outputs.TOOLCHAIN_NAME_STRIPPED }}.tar.xz
+      - uses: actions/upload-artifact@v7
+        if: ${{ inputs.strip == 'unstripped' || inputs.strip == 'both' }}
+        with:
+          name: ${{ steps.toolchain-name-generator.outputs.TOOLCHAIN_NAME }}
+          path: ${{ steps.toolchain-name-generator.outputs.TOOLCHAIN_NAME }}.tar.xz
+          compression-level: 0
+      - uses: actions/upload-artifact@v7
+        if: ${{ inputs.strip == 'stripped' || inputs.strip == 'both' }}
+        with:
+          name: ${{ steps.toolchain-name-generator.outputs.TOOLCHAIN_NAME_STRIPPED }}
+          path: ${{ steps.toolchain-name-generator.outputs.TOOLCHAIN_NAME_STRIPPED }}.tar.xz
+          compression-level: 0
