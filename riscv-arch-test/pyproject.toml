@@ -1,0 +1,58 @@
+# pyproject.toml
+# Top-level python project configuration file for riscv-arch-test
+# Jordan Carlin jcarlin@hmc.edu October 2025
+# SPDX-License-Identifier: Apache-2.0
+
+[tool.uv]
+exclude-newer = "7 days"
+
+[tool.uv.workspace]
+members = ["framework", "generators/testgen", "generators/coverage"]
+
+[dependency-groups]
+dev = ["pyright==1.1.411", "ruff==0.15.22"]
+
+###### RUFF CONFIG #####
+[tool.ruff]
+line-length = 120
+extend-exclude = [
+  "docs/docs-resources",
+  "generators/testgen/scripts", # Old scripts that still need to be updated
+]
+
+[tool.ruff.lint]
+preview = true
+
+# Extra rules to enable beyond the default set
+extend-select = [
+  "ANN", # type annotation rules
+  "A",   # shadow builtins
+  "SIM", # Simplifications
+  "TID", # Tidy imports
+  "PTH", # Use Pathlib
+  "I",   # Import related rules (isort)
+  "ISC", # Implicit string concatenation
+]
+
+ignore = [
+  "RET504", # Unnecessary assignment to {name} before return statement
+  "N",      # Naming requirements
+]
+
+[tool.ty.src]
+exclude = [
+  "generators/testgen/scripts", # Old scripts that still need to be updated
+]
+
+##### PYRIGHT CONFIG #####
+[tool.pyright]
+exclude = [
+  "**/__pycache__",
+  "**/node_modules",
+  "**/.*",
+  ".venv",
+  "docs/docs-resources",
+  "generators/testgen/scripts", # Old scripts that still need to be updated
+]
+typeCheckingMode = "standard"
+pythonVersion = "3.10"

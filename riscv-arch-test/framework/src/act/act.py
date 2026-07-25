@@ -1,0 +1,185 @@
+##################################
+# act.py
+#
+# jcarlin@hmc.edu 14 Sept 2025
+# SPDX-License-Identifier: Apache-2.0
+#
+# Main entry point for RISC-V architecture verification framework
+##################################
+
+from __future__ import annotations
+
+import os
+import sys
+from pathlib import Path
+from typing import Annotated
+
+import typer
+from rich import print as rprint
+
+from act.build import build, prune_empty_dirs
+from act.build_plan import generate_build_plan
+from act.build_types import BuildTask
+from act.config import CoverageSimulator
+from act.coverreport import print_coverage_summary
+from act.parse_test_constraints import TestYamlHeaderError, generate_test_dict
+from act.select_tests import prepare_configs_and_select_tests
+
+# CLI interface setup
+act_app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
+
+
+@act_app.command()
+def run_act(
+    config_files: Annotated[
+        list[Path], typer.Argument(exists=True, file_okay=True, dir_okay=False, help="Path to configuration file(s)")
+    ],
+    test_dir: Annotated[
+        Path, typer.Option("--test-dir", "-t", exists=True, file_okay=False, help="Path to tests directory")
+    ] = Path("tests"),
+    coverpoint_dir: Annotated[
+        Path, typer.Option("--coverpoint-dir", "-c", exists=True, file_okay=False, help="Path to coverpoint directory")
+    ] = Path("coverpoints"),
+    workdir: Annotated[
+        Path | None,
+        typer.Option("--workdir", "-w", file_okay=False, help="Path to working directory", show_default="./work"),
+    ] = None,
+    extensions: Annotated[
+        str,
+        typer.Option("--extensions", "-e", help="Comma-separated list of extensions to generate tests for"),
+    ] = "all",
+    exclude: Annotated[
+        str,
+        typer.Option("--exclude", "-x", help="Comma-separated list of extensions to exclude from test generation"),
+    ] = "",
+    jobs: Annotated[
+        int,
+        typer.Option("--jobs", "-j", help="Parallel build jobs (0 = auto-detect CPU count)"),
+    ] = 0,
+    *,
+    coverage: Annotated[bool, typer.Option(help="Enable coverage generation")] = False,
+    debug: Annotated[bool, typer.Option(help="Enable debug output (signature objdump and trace files)")] = False,
+    fast: Annotated[bool, typer.Option(help="Disable objdump generation for faster builds")] = False,
+    clean_intermediates: Annotated[bool, typer.Option(help="Delete intermediate build/ dirs")] = False,
+    verbose: Annotated[
+        bool, typer.Option(help="Implies --debug, serializes builds (jobs=1), and prints each command as it runs")
+    ] = False,
+    keep_going: Annotated[bool, typer.Option("--keep-going", "-k", help="Continue building after failures")] = False,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", "-n", help="Show what would be built without executing")
+    ] = False,
+    coverage_simulator: Annotated[
+        CoverageSimulator,
+        typer.Option(help="Coverage simulator backend", case_sensitive=False),
+    ] = CoverageSimulator.QUESTA,
+) -> None:
+
+    # Parse options
+    if verbose:
+        debug = True
+        jobs = 1
+
+    if debug and fast:
+        raise typer.BadParameter("--debug and --fast cannot be used together")
+
+    if debug and clean_intermediates:
+        raise typer.BadParameter("--debug and --clean-intermediates cannot be used together")
+
+    if workdir is None:
+        workdir = Path.cwd() / "work"
+
+    if jobs <= 0:
+        jobs = os.cpu_count() or 1
+
+    # Resolve paths
+    test_dir = test_dir.absolute()
+    coverpoint_dir = coverpoint_dir.absolute()
+    workdir = workdir.absolute()
+
+    # Generate test list
+    try:
+        full_test_dict = generate_test_dict(test_dir, extensions, exclude)
+    except TestYamlHeaderError as e:
+        e.print()
+        raise typer.Exit(1) from None
+
+    config_names: list[str] = []
+    tasks: list[BuildTask] = []
+
+    # Load all configs and prepare every DUT's generated files
+    # (extensions.txt, rvtest_config.{h,svh}, and rvmodel_macros.svh) in
+    # one parallel UDB pass, then select tests per config.
+    for config, config_params, selected_tests in prepare_configs_and_select_tests(
+        config_files, full_test_dict, workdir, jobs=jobs, verbose=verbose
+    ):
+        mxlen = config_params["MXLEN"]
+        if not isinstance(mxlen, int):
+            raise TypeError(f"MXLEN must be an integer, got {type(mxlen)}: {mxlen!r}")
+
+        config_names.append(config.name)
+        tasks.extend(
+            generate_build_plan(
+                config,
+                mxlen,
+                selected_tests,
+                test_dir,
+                coverpoint_dir,
+                workdir,
+                coverage,
+                coverage_simulator,
+                debug,
+                fast,
+                verbose,
+            )
+        )
+
+    # Run all tasks to compile ELFs
+    result = build(
+        tasks,
+        jobs=jobs,
+        cache_root=workdir,
+        keep_going=keep_going,
+        dry_run=dry_run,
+        verbose=verbose,
+        clean_intermediates=clean_intermediates,
+    )
+
+    # Print summary
+    parts = []
+    if result.succeeded:
+        parts.append(f"[green]{result.succeeded} succeeded[/]")
+    if result.skipped:
+        parts.append(f"[dim]{result.skipped} up-to-date[/]")
+    if result.failed:
+        parts.append(f"[bold red]{result.failed} failed[/]")
+    summary = ", ".join(parts)
+
+    if result.errors:
+        rprint(f"\n[bold red]✗ Build failed:[/] {summary}", file=sys.stderr)
+        if len(result.errors) > 1:
+            rprint(f"  [red]{len(result.errors)} task(s) failed (see details above):[/]", file=sys.stderr)
+            for error in result.errors:
+                rprint(f"    - {error.task_name}", file=sys.stderr)
+        sys.exit(1)
+    rprint(f"[bold green]✓ Build complete:[/] {summary}")
+
+    # Prune empty build directories if requested
+    if clean_intermediates and not dry_run:
+        for name in config_names:
+            prune_empty_dirs(workdir / name / "build")
+
+    # Always print coverage summaries when coverage is enabled, even if up-to-date
+    if coverage:
+        for name in config_names:
+            overall_summary = workdir / name / "reports" / "_overall_summary.txt"
+            if overall_summary.exists():
+                print()
+                print_coverage_summary(overall_summary, name)
+
+
+def main() -> None:
+    act_app()
+
+
+if __name__ == "__main__":
+    main()

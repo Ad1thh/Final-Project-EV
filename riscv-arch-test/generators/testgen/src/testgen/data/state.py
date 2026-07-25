@@ -1,0 +1,261 @@
+##################################
+# test_data.py
+#
+# jcarlin@hmc.edu 5 Oct 2025
+# SPDX-License-Identifier: Apache-2.0
+##################################
+
+from __future__ import annotations
+
+import re
+from typing import Literal
+
+from testgen.data.config import TestConfig
+from testgen.data.random import random_int
+from testgen.data.registers import FloatRegisterFile, IntegerRegisterFile, VectorRegisterFile
+from testgen.data.test_chunk import TestChunk
+
+# Pre-compiled regex patterns for label normalization in add_testcase()
+_LABEL_INVALID_CHARS = re.compile(r"[^a-zA-Z0-9_]")
+_LABEL_MULTI_UNDERSCORE = re.compile(r"_+")
+
+
+class TestData:
+    """
+    Context and state for test generation. Created per test file (instruction for unpriv, feature for priv).
+
+    This class manages mutable state during test generation, including register
+    file allocation and the active TestChunk. The immutable configuration
+    (xlen, flen, etc.) is stored in a TestConfig object.
+
+    Attributes:
+        config: Immutable test configuration (xlen, flen, register file type)
+        instr_name: Instruction this test is exercising
+        int_regs: Integer register file for allocation
+        float_regs: Floating-point register file for allocation
+        test_count: Running count of testcases generated
+        test_chunk: Active TestChunk for generated code/sigupds/etc.
+    """
+
+    def __init__(self, test_config: TestConfig, instr_name: str | None = None) -> None:
+        """
+        Initialize test data with configuration and empty state.
+
+        Args:
+            test_config: Immutable test configuration
+            instr_name: Instruction name this test is exercising. Optional for priv/extension-level tests.
+        """
+        self._config = test_config
+        self._instr_name = instr_name
+        self._int_regs = IntegerRegisterFile(test_config.E_ext)
+        self._float_regs = FloatRegisterFile()
+        self._vec_regs = VectorRegisterFile()
+        self._test_count = 0
+        self._current_testcase_label = ""
+        self._fp_load_size: Literal["single", "double", "half", "quad"] | None = None
+        self.test_chunk: TestChunk | None = None
+        self._vector_labels: dict[str, tuple[list[int], int]] = {}
+
+    def __repr__(self) -> str:
+        return f"TestData(config={self._config}, int_regs={self._int_regs}, float_regs={self._float_regs}, test_count={self._test_count})"
+
+    # Configuration accessor
+    @property
+    def config(self) -> TestConfig:
+        """Get the immutable test configuration."""
+        return self._config
+
+    # Testsuite and instruction name accessors
+    @property
+    def instr_name(self) -> str:
+        """Get the instruction name this test is exercising."""
+        if self._instr_name is None:
+            raise ValueError("Instruction name is not set in TestData.")
+        return self._instr_name
+
+    @property
+    def fp_load_size(self) -> Literal["single", "double", "half", "quad"]:
+        """Get the floating point load size based on the instruction."""
+        if self._fp_load_size is not None:
+            return self._fp_load_size
+        if self.instr_name.endswith("q"):
+            result = "quad"
+        elif self.instr_name.endswith("d") or self.instr_name in ("c.fsdsp", "c.fldsp"):
+            result = "double"
+        elif self.instr_name.endswith(("s", "w")) or self.instr_name in ("c.fswsp", "c.flwsp"):
+            result = "single"
+        elif self.instr_name.endswith(("h", "bf16")):
+            result = "half"
+        else:
+            raise ValueError(
+                f"Unknown floating point load size for instruction {self.instr_name}. Modify {__file__} as needed."
+            )
+        self._fp_load_size = result
+        return result
+
+    # Register file accessors
+    @property
+    def int_regs(self) -> IntegerRegisterFile:
+        return self._int_regs
+
+    @property
+    def float_regs(self) -> FloatRegisterFile:
+        return self._float_regs
+
+    @property
+    def vec_regs(self) -> VectorRegisterFile:
+        return self._vec_regs
+
+    @property
+    def current_testcase_label(self) -> str:
+        """Get the current testcase label."""
+        return self._current_testcase_label
+
+    # Read-only properties delegated to config
+    @property
+    def testsuite(self) -> str:
+        """Get the testsuite name."""
+        return self._config.testsuite
+
+    @property
+    def xlen(self) -> int:
+        return self._config.xlen
+
+    @property
+    def xlen_log2(self) -> int:
+        return self._config.xlen.bit_length() - 1
+
+    @property
+    def flen(self) -> int:
+        return self._config.flen
+
+    @property
+    def flen_log2(self) -> int:
+        return self._config.flen.bit_length() - 1
+
+    @property
+    def xlen_format_str(self) -> str:
+        return self._config.xlen_format_str
+
+    @property
+    def flen_format_str(self) -> str:
+        return self._config.flen_format_str
+
+    # Test count management
+    @property
+    def test_count(self) -> int:
+        """Get the current test count."""
+        return self._test_count
+
+    @property
+    def vector_labels(self) -> dict[str, tuple[list[int], int]]:
+        return self._vector_labels
+
+    def increment_test_count(self) -> None:
+        """Increment the test count by 1."""
+        self._test_count += 1
+
+    def begin_test_chunk(self, split_name: str | None = None) -> TestChunk:
+        """Create and set a new active TestChunk.
+
+        Snapshots the current signature/data pointer register assignments so
+        that if this chunk ends up as the first chunk of a non-initial test
+        file, the generator can emit code to re-establish those pointers (which
+        would otherwise only live in the default registers set by
+        RVTEST_BEGIN).
+
+        Args:
+            split_name: Optional named-split marker (see TestChunk.split_name).
+        """
+        self.test_chunk = TestChunk(
+            start_sig_reg=self._int_regs.sig_reg,
+            start_data_reg=self._int_regs.data_reg,
+            split_name=split_name,
+        )
+        return self.test_chunk
+
+    def end_test_chunk(self) -> TestChunk:
+        """Return the completed TestChunk and clear the active one.
+
+        Snapshots the current signature/data pointer register assignments so
+        that the writer can emit code to restore the default pointer registers
+        at the end of a test file (the teardown code assumes the defaults).
+        """
+        assert self.test_chunk is not None, "No active test chunk to end"
+        tc = self.test_chunk
+        tc.end_sig_reg = self._int_regs.sig_reg
+        tc.end_data_reg = self._int_regs.data_reg
+        self.test_chunk = None
+        return tc
+
+    def add_testcase(self, bin_name: str, coverpoint: str, covergroup: str | None = None) -> str:
+        """
+        Add a test data string and return the testcase label line. Also increments test count.
+
+        Args:
+            bin_name: Bin name to append to the coverpoint name.
+            coverpoint: The coverpoint name
+            covergroup: Optional covergroup name. Defaults to '{extension}_{instr_name}_cg'.
+
+        Returns:
+            Label line string in format '{covergroup}_{coverpoint}_{bin_name}:'
+        """
+        self.increment_test_count()
+
+        if covergroup is None:
+            covergroup = f"{self.testsuite}_{self.instr_name}_cg"
+
+        # Construct full coverpoint name
+        full_name = f"{covergroup}_{coverpoint}_{bin_name}"
+
+        # Normalize full_name to a valid assembly label
+        label = full_name.replace("-", "m")
+        label = _LABEL_INVALID_CHARS.sub("_", label)
+        label = _LABEL_MULTI_UNDERSCORE.sub("_", label)  # Collapse consecutive underscores
+        label = label.strip("_")
+
+        # Add testcase string to the active TestChunk
+        assert self.test_chunk is not None, "No active test chunk — call begin_test_chunk() first"
+        self.test_chunk.data_strings.append(
+            f'{label}_str: .string "\\"test: {self.test_count}; cg: {covergroup}; cp: {coverpoint}; bin: {bin_name}\\""'
+        )
+        self.test_chunk.num_testcases += 1
+
+        # Return label
+        self._current_testcase_label = label
+        return f"{label}:"
+
+    def destroy(self) -> None:
+        """Clean up resources used by TestData."""
+        self._int_regs.destroy()
+        self._float_regs.destroy()
+        self._vec_regs.destroy()
+
+    def register_vector_data(
+        self, label: str, sew: int, *, elements: list[int] | None = None, random_elements: int | None = None
+    ) -> None:
+        """
+        Registers a label and sew pair to be emitted in the data section. Used in vector tests to not be wasteful
+        by incrementing the data pointer in every test.
+
+        Exactly one of two optional arguments must be passed:
+            elements: List of SEW-wide elements to be emitted in that order in the data section
+            random_elements: Integer number of random elements to be emitted in the data section
+        """
+        assert (elements is None) ^ (random_elements is None), (
+            "Exactly one of elements and random_elements must be set for register_vector_data"
+        )
+
+        if random_elements is not None:
+            elements = []
+            for _ in range(random_elements):
+                elements.append(random_int(sew))
+
+        assert elements is not None, "Unreachable Case: Bytes is guaranteed to be set at this point"
+
+        if label in self._vector_labels and self._vector_labels[label] != (elements, sew):
+            raise ValueError(
+                f"Cannot overwrite data for label {label}, previous was {(self._vector_labels[label])}, attempted to write {(elements, sew)}"
+            )
+
+        self._vector_labels[label] = (elements, sew)

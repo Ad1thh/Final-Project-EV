@@ -1,0 +1,15 @@
+Instruction,Type,RV32,RV64,cp_asm_count,cp_rs1,cp_rs2,cp_rd,cp_rs1_edges,cp_rs2_edges,cr_rs1_rs2_edges,cmp_rs1_rs2,cmp_rd_rs1,cmp_rd_rs2,cmp_rd_rs1_rs2
+sha256sig0,I1,x,x,x,x,,x,x,,,,x,,
+sha256sig1,I1,x,x,x,x,,x,x,,,,x,,
+sha256sum0,I1,x,x,x,x,,x,x,,,,x,,
+sha256sum1,I1,x,x,x,x,,x,x,,,,x,,
+sha512sig0,I1,,x,x,x,,x,x,,,,x,,
+sha512sig0h,R,x,,x,x,x,x,x,x,x,x,x,x,x
+sha512sig0l,R,x,,x,x,x,x,x,x,x,x,x,x,x
+sha512sig1,I1,,x,x,x,,x,x,,,,x,,
+sha512sig1h,R,x,,x,x,x,x,x,x,x,x,x,x,x
+sha512sig1l,R,x,,x,x,x,x,x,x,x,x,x,x,x
+sha512sum0,I1,,x,x,x,,x,x,,,,x,,
+sha512sum0r,R,x,,x,x,x,x,x,x,x,x,x,x,x
+sha512sum1,I1,,x,x,x,,x,x,,,,x,,
+sha512sum1r,R,x,,x,x,x,x,x,x,x,x,x,x,x

@@ -1,0 +1,7 @@
+Instruction,Type,RV32,RV64,cp_asm_count,cp_rs1,cp_rd,cp_rs1_edges,cmp_rd_rs1,cp_uimm
+csrrc,CSR,x,x,x,x,x,x,x,
+csrrci,CSRI,x,x,x,,x,,,5
+csrrs,CSR,x,x,x,x,x,x,x,
+csrrsi,CSRI,x,x,x,,x,,,5
+csrrw,CSR,x,x,x,x,x,x,x,
+csrrwi,CSRI,x,x,x,,x,,,5

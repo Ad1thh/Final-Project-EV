@@ -1,0 +1,105 @@
+##################################
+# coverpoints/registry.py
+#
+# jcarlin@hmc.edu Oct 2025
+# SPDX-License-Identifier: Apache-2.0
+##################################
+
+"""Coverpoint generator registry with automatic discovery."""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from pathlib import Path
+from random import seed
+
+from testgen.asm.helpers import comment_banner, reproducible_hash
+from testgen.constants import SKIP_COVERPOINTS
+from testgen.data.state import TestData
+from testgen.data.test_chunk import TestChunk
+from testgen.discovery import discover_and_import_modules
+from testgen.exceptions import MissingRegistryItemError
+
+# Type alias for coverpoint generator functions
+# The generator function takes:
+# - instr_name: str
+# - instr_type: str
+# - coverpoint: str
+# - test_data: TestData
+# and returns a list of TestChunk objects
+CoverpointGenerator = Callable[[str, str, str, TestData], list[TestChunk]]
+
+
+class MissingCoverpointGeneratorError(MissingRegistryItemError):
+    """Raised when no coverpoint generator is registered for a given coverpoint."""
+
+    def __init__(self, coverpoint: str, available_patterns: list[str] | None = None) -> None:
+        registry_location = Path(__file__).parent
+        super().__init__(
+            coverpoint,
+            available_patterns,
+            item_type="coverpoint generator",
+            registry_location=registry_location,
+        )
+        self.coverpoint = coverpoint
+
+
+# Registry: list of (pattern, generator) tuples sorted by pattern length (longest first)
+_COVERPOINT_GENERATORS: list[tuple[str, CoverpointGenerator]] = []
+
+
+def add_coverpoint_generator(*patterns: str) -> Callable[[CoverpointGenerator], CoverpointGenerator]:
+    """
+    Decorator to register a generator for one or more coverpoint patterns.
+
+    Args:
+        patterns: One or more coverpoint prefixes this generator can process
+    """
+
+    def decorator(func: CoverpointGenerator) -> CoverpointGenerator:
+        for pattern in patterns:
+            # Insert in sorted position (longest patterns first)
+            # This ensures the most specific generator is matched
+            pattern_len = len(pattern)
+            insert_pos = 0
+            for i, (existing_pattern, _) in enumerate(_COVERPOINT_GENERATORS):
+                if pattern_len > len(existing_pattern):
+                    insert_pos = i
+                    break
+                insert_pos = i + 1
+            _COVERPOINT_GENERATORS.insert(insert_pos, (pattern, func))
+        return func
+
+    return decorator
+
+
+# Discover and import coverpoint generators at module load
+discover_and_import_modules(Path(__file__).parent, "testgen.coverpoints", exclude=Path(__file__))
+
+
+def _select_coverpoint_generator(coverpoint: str) -> CoverpointGenerator:
+    """Select generator using longest-prefix matching."""
+    for pattern, generator in _COVERPOINT_GENERATORS:
+        if coverpoint.startswith(pattern):
+            return generator
+    available_patterns = [pattern for pattern, _ in _COVERPOINT_GENERATORS]
+    raise MissingCoverpointGeneratorError(coverpoint, available_patterns)
+
+
+def generate_tests_for_coverpoint(
+    instr_name: str, instr_type: str, coverpoint: str, test_data: TestData
+) -> list[TestChunk]:
+    """Generate test chunks for a specific coverpoint."""
+    if coverpoint in SKIP_COVERPOINTS:
+        return []
+
+    generator = _select_coverpoint_generator(coverpoint)
+    hashval = reproducible_hash(instr_name + coverpoint)
+    seed(hashval)
+    test_chunks = generator(instr_name, instr_type, coverpoint, test_data)
+
+    # Set section banner on first TestChunk
+    if test_chunks:
+        test_chunks[0].section_header = comment_banner(coverpoint)
+
+    return test_chunks

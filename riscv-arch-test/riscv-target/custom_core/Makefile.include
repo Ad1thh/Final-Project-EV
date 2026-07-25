@@ -1,0 +1,16 @@
+# Custom Core Makefile Integration for riscv-arch-test
+
+XLEN ?= 32
+RISCV_PREFIX ?= riscv64-unknown-elf-
+RISCV_GCC ?= $(RISCV_PREFIX)gcc
+RISCV_OBJCOPY ?= $(RISCV_PREFIX)objcopy
+
+# Target execution commands called per compliance test
+RUN_TARGET = \
+    $(RISCV_GCC) $(2) -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles \
+    -I$(ROOT_DIR)/riscv-arch-test/riscv-test-suite/env \
+    -I$(TARGETDIR)/$(RISCV_TARGET)/device/rv32i_m/I \
+    -T$(TARGETDIR)/$(RISCV_TARGET)/device/rv32i_m/I/link.ld \
+    $(1) -o $(work_dir_full)/$(test_name).elf; \
+    $(RISCV_OBJCOPY) -O verilog --verilog-data-width=4 $(work_dir_full)/$(test_name).elf $(work_dir_full)/$(test_name).hex; \
+    $(ROOT_DIR)/sim/run_sim.sh $(work_dir_full)/$(test_name).hex +SIG_FILE=$(work_dir_full)/$(test_name).signature.output

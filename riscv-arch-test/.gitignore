@@ -1,0 +1,47 @@
+# Ignore editor backup files
+*~
+*.swp
+
+# Log files
+*.log
+
+#ignore Mac file system artifacts
+*.DS_Store
+
+# IDE settings
+.vscode/
+
+# virtualenv
+.venv
+
+# Bundler
+.bundle/
+
+# Linter and type checker caches
+.mypy_cache/
+.ruff_cache/
+
+# Python
+__pycache__
+
+# Work directories
+work/
+
+# vector tests
+tests/rv32i/V*
+tests/rv32i/Zv*
+tests/rv64i/V*
+tests/rv64i/Zv*
+
+# priv tests
+tests/priv/headers
+tests/priv/**/*.S
+!tests/priv/pmp/**/*.S
+!tests/priv/*Sv*/**/*.S
+
+# docs
+docs/ctp/mismatch_report.txt
+docs/crd/build
+coverpoints/norm/norm-rules.json
+coverpoints/norm/yaml/new
+coverpoints/norm/yaml/chapters

@@ -1,0 +1,37 @@
+[[manual:ctp,RISC-V Certification Test Plan]]
+= RISC-V Certification Test Plan
+:description: Certification Test Plan
+:testplansdir: testplans
+include::../../common/adoc_common.adoc[]
+
+_Contributors to all versions of the spec in alphabetical order_
+
+* Allen Baum
+* Jordan Carlin
+* James Kaden Cassidy
+* David Harris
+* Georgia Tai
+* Mike Thompson
+
+_This document is released under a Creative Commons Attribution 4.0 International License._
+
+This Certification Test Plan (CTP) is a work in progress.  It describes the coverpoints and tests
+being developed by the RISC-V Certification Steering Committee.  It is intended to be read in
+conjunction with the Certification Requirements Documents (CRDs) defining the features in each
+certificate, and the https://github.com/riscv/riscv-arch-test[riscv-arch-test] repository
+that contains information about how to use and contribute to the tests.
+
+include::intro.adoc[]
+include::cert.adoc[]
+include::profiles.adoc[]
+include::strategy.adoc[]
+include::req.adoc[]
+include::abstraction.adoc[]
+include::coverage.adoc[]
+include::ref.adoc[]
+
+include::unpriv.adoc[]
+include::priv.adoc[]
+include::nonisa.adoc[]
+include::params.adoc[]
+include::examples.adoc[]
