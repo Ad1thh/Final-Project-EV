@@ -48,17 +48,21 @@ package riscv_pkg;
         FUNCT3_BGEU = 3'b111
     } funct3_branch_e;
 
-    // Load/Store Operations
+    // Load Operations
     typedef enum logic [2:0] {
         FUNCT3_LB  = 3'b000,
         FUNCT3_LH  = 3'b001,
         FUNCT3_LW  = 3'b010,
         FUNCT3_LBU = 3'b100,
-        FUNCT3_LHU = 3'b101,
+        FUNCT3_LHU = 3'b101
+    } funct3_load_e;
+
+    // Store Operations
+    typedef enum logic [2:0] {
         FUNCT3_SB  = 3'b000,
         FUNCT3_SH  = 3'b001,
         FUNCT3_SW  = 3'b010
-    } funct3_mem_e;
+    } funct3_store_e;
 
     // ------------------------------------------------------------------------
     // ALU CONTROL ENUM

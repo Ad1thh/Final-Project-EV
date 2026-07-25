@@ -16,6 +16,9 @@ module alu #(
     output logic                  zero
 );
 
+    logic [63:0] sra_ext;
+    assign sra_ext = {{32{a[31]}}, a} >> b[4:0];
+
     always_comb begin
         case (alu_op)
             ALU_ADD:    result = a + b;
@@ -25,7 +28,7 @@ module alu #(
             ALU_XOR:    result = a ^ b;
             ALU_SLL:    result = a << b[4:0];
             ALU_SRL:    result = a >> b[4:0];
-            ALU_SRA:    result = $signed(a) >>> b[4:0];
+            ALU_SRA:    result = sra_ext[31:0];
             ALU_SLT:    result = ($signed(a) < $signed(b)) ? 32'd1 : 32'd0;
             ALU_SLTU:   result = (a < b) ? 32'd1 : 32'd0;
             ALU_PASS_B: result = b;

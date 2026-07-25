@@ -1,0 +1,23 @@
+[TB] Loading hex program: tests/stress_test.hex
+WARNING: tb/tb_riscv_core_top.sv:102: $readmemh(tests/stress_test.hex): Not enough words in the file for the requested range [0:8191].
+[TB] Reset released. Processor running...
+[TB] TRAP/EBREAK detected at PC=0x000025e8. Simulation Completed.
+[TB] Dumping signature region [0x00000100 : 0x00000200] -> sim/dut.signature
+[TB] Signature dump completed successfully.
+=================================================
+ VERIFICATION REPORT
+=================================================
+ Final PC Debug : 0x000025ec
+ Reg x1 (ra)    : 0x00000001
+ Reg x2 (sp)    : 0x000005a9
+ Reg x3 (gp)    : 0x00000000
+ Reg x4 (tp)    : 0xf8500000
+ Reg x5 (t0)    : 0xfffffa52
+ Reg x6 (t1)    : 0x00000000
+ Reg x8 (s0)    : 0x00000000
+ Reg x9 (s1)    : 0x00000000
+ Reg x10 (a0)   : 0x00000000
+ Reg x13 (a3)   : 0x00000000
+=================================================
+ >>> RESULT: TEST PASSED <<<
+tb/tb_riscv_core_top.sv:168: $finish called at 24305000 (1ps)

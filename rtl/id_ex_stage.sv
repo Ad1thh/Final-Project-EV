@@ -62,9 +62,9 @@ module id_ex_stage #(
     assign opcode   = instr_id[6:0];
     assign funct3   = instr_id[14:12];
     assign funct7   = instr_id[31:25];
-    assign rd_addr  = instr_id[11:8];  // 4-bit register specifier for RV32E
-    assign rs1_addr = instr_id[18:15]; // 4-bit register specifier for RV32E
-    assign rs2_addr = instr_id[22:19]; // 4-bit register specifier for RV32E
+    assign rd_addr  = instr_id[10:7];  // Bits [11:7] sliced to 4 bits for RV32E (x0-x15)
+    assign rs1_addr = instr_id[18:15]; // Bits [19:15] sliced to 4 bits for RV32E (x0-x15)
+    assign rs2_addr = instr_id[23:20]; // Bits [24:20] sliced to 4 bits for RV32E (x0-x15)
 
     // ------------------------------------------------------------------------
     // IMMEDIATE GENERATOR

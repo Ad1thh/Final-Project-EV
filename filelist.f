@@ -1,0 +1,10 @@
+rtl/riscv_pkg.sv
+rtl/alu.sv
+rtl/control_unit.sv
+rtl/hazard_unit.sv
+rtl/id_ex_stage.sv
+rtl/if_stage.sv
+rtl/regfile.sv
+rtl/riscv_core_top.sv
+rtl/wb_stage.sv
+tb/tb_riscv_core_top.sv
