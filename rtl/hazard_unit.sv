@@ -1,65 +1,65 @@
 // ============================================================================
 // File: hazard_unit.sv
 // Description: Hazard Detection & Forwarding Unit.
-//              Handles WB-to-ID/EX data forwarding, load-use stall insertion,
-//              and branch/jump mispredict pipeline flushing.
+//              Resolves data hazards via forwarding and load-use hazards
+//              via pipeline stalling. Handles branch misprediction flushing.
 // Standards: SystemVerilog-2012 / Cadence Genus Synthesizable
 // ============================================================================
 
 module hazard_unit #(
     parameter int ADDR_WIDTH = 4
 )(
-    // Register Address Inputs
+    // Data Hazard Inputs (from Decode)
     input  logic [ADDR_WIDTH-1:0] id_rs1,
     input  logic [ADDR_WIDTH-1:0] id_rs2,
+    
+    // Load-Use Hazard Inputs (from Execute)
     input  logic [ADDR_WIDTH-1:0] id_ex_rd,
     input  logic                  id_ex_mem_read,
     
-    input  logic [ADDR_WIDTH-1:0] wb_rd,
-    input  logic                  wb_reg_write,
-    
-    // Control Hazard Inputs
+    // Control Hazard Inputs (from Execute/Branch)
     input  logic                  branch_or_jump_taken,
     
-    // Hazard Output Signals
-    output logic                  forward_a,      // WB -> ID/EX RS1 forwarding
-    output logic                  forward_b,      // WB -> ID/EX RS2 forwarding
-    output logic                  stall_if,       // Freeze PC & IF/ID stage
-    output logic                  flush_if_id,    // Flush IF/ID stage (branch/jump)
-    output logic                  flush_id_ex     // Insert bubble into ID/EX stage (load-use stall)
+    // Hazard Resolution Outputs
+    output logic                  stall_if,
+    output logic                  flush_if_id,
+    output logic                  flush_id_ex
 );
 
     // ------------------------------------------------------------------------
-    // DATA FORWARDING LOGIC (WB Stage -> ID/EX Stage)
+    // LOAD-USE HAZARD DETECTION
     // ------------------------------------------------------------------------
+    // Condition: Execute stage instruction is a LOAD, and its destination
+    // register matches either source register of the current Decode instruction.
+    logic load_use_hazard;
+    
     always_comb begin
-        forward_a = 1'b0;
-        forward_b = 1'b0;
-
-        if (wb_reg_write && (wb_rd != '0)) begin
-            if (wb_rd == id_rs1) forward_a = 1'b1;
-            if (wb_rd == id_rs2) forward_b = 1'b1;
+        load_use_hazard = 1'b0;
+        if (id_ex_mem_read && (id_ex_rd != '0)) begin
+            if ((id_ex_rd == id_rs1) || (id_ex_rd == id_rs2)) begin
+                load_use_hazard = 1'b1;
+            end
         end
     end
 
     // ------------------------------------------------------------------------
-    // LOAD-USE STALL & CONTROL FLUSH LOGIC
+    // CONTROL HAZARD DETECTION
     // ------------------------------------------------------------------------
-    always_comb begin
-        stall_if    = 1'b0;
-        flush_if_id = 1'b0;
-        flush_id_ex = 1'b0;
+    // Condition: Branch or Jump is taken in the Execute stage.
+    // The instructions in IF and ID stages must be flushed.
+    logic control_hazard;
+    assign control_hazard = branch_or_jump_taken;
 
-        // 1. Load-Use Hazard Detection (Stall 1 cycle)
-        if (id_ex_mem_read && (id_ex_rd != '0) && ((id_ex_rd == id_rs1) || (id_ex_rd == id_rs2))) begin
-            stall_if    = 1'b1;
-            flush_id_ex = 1'b1; // Convert EX stage instruction to bubble NOP
-        end
-
-        // 2. Control Hazard (Branch / Jump taken in EX stage)
-        if (branch_or_jump_taken) begin
-            flush_if_id = 1'b1; // Flush fetched instruction in IF/ID register
-        end
-    end
+    // ------------------------------------------------------------------------
+    // PIPELINE CONTROL SIGNAL GENERATION
+    // ------------------------------------------------------------------------
+    // Stall IF stage if load-use hazard (prevents PC update)
+    assign stall_if = load_use_hazard;
+    
+    // Flush IF/ID on branch taken (override load-use if both happen)
+    assign flush_if_id = control_hazard;
+    
+    // Flush ID/EX on load-use hazard OR branch taken
+    assign flush_id_ex = load_use_hazard | control_hazard;
 
 endmodule

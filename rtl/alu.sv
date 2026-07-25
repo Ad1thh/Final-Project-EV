@@ -11,7 +11,7 @@ module alu #(
 )(
     input  logic [DATA_WIDTH-1:0] a,
     input  logic [DATA_WIDTH-1:0] b,
-    input  alu_op_e               alu_op,
+    input  logic [3:0]            alu_op,
     output logic [DATA_WIDTH-1:0] result,
     output logic                  zero
 );
@@ -20,20 +20,18 @@ module alu #(
     assign sra_ext = {{32{a[31]}}, a} >> b[4:0];
 
     always_comb begin
-        case (alu_op)
-            ALU_ADD:    result = a + b;
-            ALU_SUB:    result = a - b;
-            ALU_AND:    result = a & b;
-            ALU_OR:     result = a | b;
-            ALU_XOR:    result = a ^ b;
-            ALU_SLL:    result = a << b[4:0];
-            ALU_SRL:    result = a >> b[4:0];
-            ALU_SRA:    result = sra_ext[31:0];
-            ALU_SLT:    result = ($signed(a) < $signed(b)) ? 32'd1 : 32'd0;
-            ALU_SLTU:   result = (a < b) ? 32'd1 : 32'd0;
-            ALU_PASS_B: result = b;
-            default:    result = '0;
-        endcase
+        result = '0;
+        if (alu_op == ALU_ADD)     result = a + b;
+        else if (alu_op == ALU_SUB)    result = a - b;
+        else if (alu_op == ALU_AND)    result = a & b;
+        else if (alu_op == ALU_OR)     result = a | b;
+        else if (alu_op == ALU_XOR)    result = a ^ b;
+        else if (alu_op == ALU_SLL)    result = a << b[4:0];
+        else if (alu_op == ALU_SRL)    result = a >> b[4:0];
+        else if (alu_op == ALU_SRA)    result = sra_ext[31:0];
+        else if (alu_op == ALU_SLT)    result = ($signed(a) < $signed(b)) ? 32'd1 : 32'd0;
+        else if (alu_op == ALU_SLTU)   result = (a < b) ? 32'd1 : 32'd0;
+        else if (alu_op == ALU_PASS_B) result = b;
     end
 
     assign zero = (result == '0);

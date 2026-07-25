@@ -44,6 +44,29 @@ The testbench interacts directly with `riscv_core_top.sv`. The signal declaratio
 | `dmem_rdata` | Input | 32-bit | Data Memory Read Data (returned to core during load instructions) |
 | `pc_debug` | Output | 32-bit | Current PC trace for testbench monitoring and assertion checking |
 | `trap` | Output | 1-bit | Exception/Halt Flag (Asserts on illegal instruction, `ECALL`, or `EBREAK`) |
+| `tmr_mode_pin` | Input | 1-bit | External override to force TMR mode (1 = TMR, 0 = Simplex unless overridden by SW) |
+| `fi_reg_en` | Input | 1-bit | Fault Injection: Regfile enable (injects on rising edge) |
+| `fi_reg_addr` | Input | 4-bit | Fault Injection: Regfile target address (1-15) |
+| `fi_reg_bit` | Input | 6-bit | Fault Injection: Regfile target bit position in 39-bit codeword (0-38) |
+| `fi_alu_en` | Input | 1-bit | Fault Injection: ALU combinational output fault enable |
+| `fi_alu_sel` | Input | 2-bit | Fault Injection: ALU instance select (0, 1, or 2) |
+| `fi_alu_bit` | Input | 5-bit | Fault Injection: ALU result bit position (0-31) |
+| `ecc_sec_1` | Output | 1-bit | Status: Regfile Port 1 single error corrected |
+| `ecc_ded_1` | Output | 1-bit | Status: Regfile Port 1 double error detected |
+| `ecc_sec_2` | Output | 1-bit | Status: Regfile Port 2 single error corrected |
+| `ecc_ded_2` | Output | 1-bit | Status: Regfile Port 2 double error detected |
+| `tmr_mismatch` | Output | 1-bit | Status: TMR voter mismatch detected this cycle |
+
+### Fault Tolerance & Mode Control
+
+1. **Selective TMR Mode**:
+   - The ALU execution unit features Selective Triple Modular Redundancy (TMR).
+   - Mode is controlled by the logical OR of the external pin `tmr_mode_pin` and a memory-mapped software register.
+   - The memory-mapped register is located at address `0xFFFF_FFF0`. Writing a `1` (bit 0) enables TMR.
+
+2. **Fault Injection Hooks**:
+   - **Regfile Fault Injection (`fi_reg_en`)**: Assert high for exactly 1 clock cycle. The specified bit (`fi_reg_bit`) in the 39-bit SEC-DED codeword of the target register (`fi_reg_addr`) is flipped on the rising edge.
+   - **ALU Fault Injection (`fi_alu_en`)**: Assert high for exactly 1 clock cycle. The specified bit (`fi_alu_bit`) of the combinational result from the selected ALU instance (`fi_alu_sel`) is flipped. The effect is transient for that single cycle.
 
 ### Memory Access & Alignment Rules
 

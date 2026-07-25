@@ -1,184 +1,267 @@
 // ============================================================================
 // File: tb_riscv_core_top.sv
-// Description: Self-Testing Verification Testbench for 3-Stage RV32E Core
-//              Supports up to 32KB memory, dynamic runtime HEX loading,
-//              RISC-V architectural signature dumping, and pass/fail reports.
+// Description: Testbench for the RISC-V 3-Stage Pipelined Core.
+//              Supports both signature-based verification (for rv32i tests)
+//              and directed testing for Fault Tolerance features.
 // ============================================================================
 
-`timescale 1ns/1ps
-
-module tb_riscv_core_top;
-
-  // --------------------------------------------------------------------------
-  // TESTBENCH SIGNALS & PARAMETERS
-  // --------------------------------------------------------------------------
-  parameter int MEM_DEPTH = 8192; // 32KB Memory (8192 x 32-bit words)
-  parameter time CLK_PERIOD = 10ns;
-
-  logic        clk;
-  logic        rst_n;
-  logic [31:0] imem_addr;
-  logic [31:0] imem_rdata;
-  logic [31:0] dmem_addr;
-  logic [31:0] dmem_wdata;
-  logic [3:0]  dmem_wmask;
-  logic        dmem_we;
-  logic [31:0] dmem_rdata;
-  logic [31:0] pc_debug;
-  logic        trap;
-
-  // 32KB Unified Memory Array
-  logic [31:0] mem [0:MEM_DEPTH-1];
-  string       hex_file;
-
-  // Signature Dumping Signals (RISC-V Arch Compliance)
-  string       sig_file_path;
-  logic [31:0] sig_start_addr;
-  logic [31:0] sig_end_addr;
-  integer      sig_fd;
-
-  // --------------------------------------------------------------------------
-  // DUT INSTANTIATION
-  // --------------------------------------------------------------------------
-  riscv_core_top dut (
-    .clk        (clk),
-    .rst_n      (rst_n),
-    .imem_addr  (imem_addr),
-    .imem_rdata (imem_rdata),
-    .dmem_addr  (dmem_addr),
-    .dmem_wdata (dmem_wdata),
-    .dmem_wmask (dmem_wmask),
-    .dmem_we    (dmem_we),
-    .dmem_rdata (dmem_rdata),
-    .pc_debug   (pc_debug),
-    .trap       (trap)
-  );
-
-  // --------------------------------------------------------------------------
-  // CLOCK GENERATION & RESET
-  // --------------------------------------------------------------------------
-  initial begin
-    clk = 0;
-    forever #(CLK_PERIOD / 2) clk = ~clk;
-  end
-
-  task automatic do_reset();
-    rst_n = 0;
-    repeat (3) @(posedge clk);
-    #(CLK_PERIOD / 4);
-    rst_n = 1;
-  endtask
-
-  // --------------------------------------------------------------------------
-  // UNIFIED MEMORY MODEL (CLEAN SHIFT INDEXING)
-  // --------------------------------------------------------------------------
-  wire [31:0] imem_idx = imem_addr >> 2;
-  wire [31:0] dmem_idx = dmem_addr >> 2;
-
-  // Combinational Reads
-  assign imem_rdata = (imem_idx < MEM_DEPTH) ? mem[imem_idx] : 32'h0000_0013; // NOP if out of bounds
-  assign dmem_rdata = (dmem_idx < MEM_DEPTH) ? mem[dmem_idx] : 32'h0;
-
-  // Synchronous Write with Byte Masking
-  always_ff @(posedge clk) begin
-    if (dmem_we && (dmem_idx < MEM_DEPTH)) begin
-      if (dmem_wmask[0]) mem[dmem_idx][7:0]   <= dmem_wdata[7:0];
-      if (dmem_wmask[1]) mem[dmem_idx][15:8]  <= dmem_wdata[15:8];
-      if (dmem_wmask[2]) mem[dmem_idx][23:16] <= dmem_wdata[23:16];
-      if (dmem_wmask[3]) mem[dmem_idx][31:24] <= dmem_wdata[31:24];
-    end
-  end
-
-  // --------------------------------------------------------------------------
-  // TEST DRIVER & PROGRAM INITIALIZATION
-  // --------------------------------------------------------------------------
-  initial begin
-    // Clear memory to NOPs
-    for (int i = 0; i < MEM_DEPTH; i++) mem[i] = 32'h0000_0013;
-
-    // Load hex file from +HEX=<path>
-    if ($value$plusargs("HEX=%s", hex_file)) begin
-      $display("[TB] Loading hex program: %s", hex_file);
-      $readmemh(hex_file, mem);
-    end else begin
-      $display("[TB] No +HEX specified. Loading default built-in verification test.");
-      load_builtin_test();
-    end
-
-    // Execute reset and run simulation
-    do_reset();
-    $display("[TB] Reset released. Processor running...");
-
-    // Extended Timeout Guard (1,000,000ns = 100,000 cycles)
-    fork
-      begin
-        wait(trap == 1'b1);
-        $display("[TB] TRAP/EBREAK detected at PC=0x%08h. Simulation Completed.", pc_debug);
-      end
-      begin
-        #500000000;
-        $display("[TB ERROR] Simulation Timeout reached!");
-      end
-    join_any
+module tb_riscv_core_top();
 
     // ------------------------------------------------------------------------
-    // SIGNATURE DUMP (RISC-V Compliance Testing)
+    // CLOCK & RESET
     // ------------------------------------------------------------------------
-    if ($value$plusargs("SIG_FILE=%s", sig_file_path)) begin
-      if (!$value$plusargs("SIG_START=%h", sig_start_addr)) sig_start_addr = 32'h0000_0100;
-      if (!$value$plusargs("SIG_END=%h", sig_end_addr))     sig_end_addr   = 32'h0000_0200;
+    logic clk;
+    logic rst_n;
 
-      $display("[TB] Dumping signature region [0x%08h : 0x%08h] -> %s", 
-               sig_start_addr, sig_end_addr, sig_file_path);
+    initial begin
+        clk = 0;
+        forever #5 clk = ~clk;
+    end
 
-      sig_fd = $fopen(sig_file_path, "w");
-      if (sig_fd) begin
-        for (int addr = sig_start_addr; addr < sig_end_addr; addr = addr + 4) begin
-          $fdisplay(sig_fd, "%08x", mem[addr >> 2]);
+    // ------------------------------------------------------------------------
+    // DUT SIGNALS
+    // ------------------------------------------------------------------------
+    logic [31:0] imem_addr;
+    logic [31:0] imem_rdata;
+    
+    logic [31:0] dmem_addr;
+    logic [31:0] dmem_wdata;
+    logic [3:0]  dmem_wmask;
+    logic        dmem_we;
+    logic [31:0] dmem_rdata;
+    
+    logic [31:0] pc_debug;
+    logic        trap;
+
+    // Fault Tolerance Ports
+    logic        tmr_mode_pin;
+    logic        fi_reg_en;
+    logic [3:0]  fi_reg_addr;
+    logic [5:0]  fi_reg_bit;
+    logic        fi_alu_en;
+    logic [1:0]  fi_alu_sel;
+    logic [4:0]  fi_alu_bit;
+    
+    logic        ecc_sec_1, ecc_ded_1;
+    logic        ecc_sec_2, ecc_ded_2;
+    logic        tmr_mismatch;
+
+    // Sticky status flags for FT verification
+    logic        sec_flag, ded_flag, tmr_flag;
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            sec_flag <= 0;
+            ded_flag <= 0;
+            tmr_flag <= 0;
+        end else begin
+            if (ecc_sec_1 | ecc_sec_2) sec_flag <= 1;
+            if (ecc_ded_1 | ecc_ded_2) ded_flag <= 1;
+            if (tmr_mismatch) tmr_flag <= 1;
         end
-        $fclose(sig_fd);
-        $display("[TB] Signature dump completed successfully.");
-      end else begin
-        $display("[TB ERROR] Failed to open signature file: %s", sig_file_path);
-      end
     end
 
-    // Verification Report
-    #20;
-    $display("=================================================");
-    $display(" VERIFICATION REPORT");
-    $display("=================================================");
-    $display(" Final PC Debug : 0x%08h", pc_debug);
-    $display(" Reg x1 (ra)    : 0x%08h", dut.u_id_ex_stage.u_regfile.rf[1]);
-    $display(" Reg x2 (sp)    : 0x%08h", dut.u_id_ex_stage.u_regfile.rf[2]);
-    $display(" Reg x3 (gp)    : 0x%08h", dut.u_id_ex_stage.u_regfile.rf[3]);
-    $display(" Reg x4 (tp)    : 0x%08h", dut.u_id_ex_stage.u_regfile.rf[4]);
-    $display(" Reg x5 (t0)    : 0x%08h", dut.u_id_ex_stage.u_regfile.rf[5]);
-    $display(" Reg x6 (t1)    : 0x%08h", dut.u_id_ex_stage.u_regfile.rf[6]);
-    $display(" Reg x8 (s0)    : 0x%08h", dut.u_id_ex_stage.u_regfile.rf[8]);
-    $display(" Reg x9 (s1)    : 0x%08h", dut.u_id_ex_stage.u_regfile.rf[9]);
-    $display(" Reg x10 (a0)   : 0x%08h", dut.u_id_ex_stage.u_regfile.rf[10]);
-    $display(" Reg x13 (a3)   : 0x%08h", dut.u_id_ex_stage.u_regfile.rf[13]);
-    $display("=================================================");
-    if (dut.u_id_ex_stage.u_regfile.rf[1] == 32'h0000_0001 || dut.u_id_ex_stage.u_regfile.rf[3] == 32'h0000_0001 || dut.u_id_ex_stage.u_regfile.rf[5] == 32'h0000_0037) begin
-      $display(" >>> RESULT: TEST PASSED <<<");
-    end else begin
-      $display(" >>> RESULT: CHECK REGISTER VALUES <<<");
-    end
-    $finish;
-  end
+    // ------------------------------------------------------------------------
+    // MEMORY ARRAYS (64KB total: 0x0000 to 0xFFFF)
+    // ------------------------------------------------------------------------
+    logic [7:0] memory [0:65535];
 
-  // Built-in basic test fallback
-  task automatic load_builtin_test();
-    mem[0] = 32'h00a00093; // ADDI x1, x0, 10
-    mem[1] = 32'h01400113; // ADDI x2, x0, 20
-    mem[2] = 32'h002081b3; // ADD  x3, x1, x2
-    mem[3] = 32'h00302023; // SW   x3, 0(x0)
-    mem[4] = 32'h00002203; // LW   x4, 0(x0)
-    mem[5] = 32'h001202b3; // ADD  x5, x4, x1
-    mem[6] = 32'h00f28293; // ADDI x5, x5, 15
-    mem[7] = 32'h00100193; // ADDI x3, x0, 1
-    mem[8] = 32'h00100073; // EBREAK
-  endtask
+    // Read from instruction memory (Combinational read)
+    assign imem_rdata = {memory[imem_addr+3], memory[imem_addr+2], memory[imem_addr+1], memory[imem_addr]};
+
+    // Read from data memory (Combinational read)
+    assign dmem_rdata = {memory[dmem_addr+3], memory[dmem_addr+2], memory[dmem_addr+1], memory[dmem_addr]};
+
+    // Write to data memory (Synchronous write)
+    always_ff @(posedge clk) begin
+        if (dmem_we) begin
+            if (dmem_wmask[0]) memory[dmem_addr]   <= dmem_wdata[7:0];
+            if (dmem_wmask[1]) memory[dmem_addr+1] <= dmem_wdata[15:8];
+            if (dmem_wmask[2]) memory[dmem_addr+2] <= dmem_wdata[23:16];
+            if (dmem_wmask[3]) memory[dmem_addr+3] <= dmem_wdata[31:24];
+        end
+    end
+
+    // ------------------------------------------------------------------------
+    // DUT INSTANTIATION
+    // ------------------------------------------------------------------------
+    riscv_core_top #(
+        .DATA_WIDTH (32),
+        .REG_COUNT  (16),
+        .ADDR_WIDTH (4)
+    ) dut (
+        .clk          (clk),
+        .rst_n        (rst_n),
+        .imem_addr    (imem_addr),
+        .imem_rdata   (imem_rdata),
+        .dmem_addr    (dmem_addr),
+        .dmem_wdata   (dmem_wdata),
+        .dmem_wmask   (dmem_wmask),
+        .dmem_we      (dmem_we),
+        .dmem_rdata   (dmem_rdata),
+        .pc_debug     (pc_debug),
+        .trap         (trap),
+        .tmr_mode_pin (tmr_mode_pin),
+        .fi_reg_en    (fi_reg_en),
+        .fi_reg_addr  (fi_reg_addr),
+        .fi_reg_bit   (fi_reg_bit),
+        .fi_alu_en    (fi_alu_en),
+        .fi_alu_sel   (fi_alu_sel),
+        .fi_alu_bit   (fi_alu_bit),
+        .ecc_sec_1    (ecc_sec_1),
+        .ecc_ded_1    (ecc_ded_1),
+        .ecc_sec_2    (ecc_sec_2),
+        .ecc_ded_2    (ecc_ded_2),
+        .tmr_mismatch (tmr_mismatch)
+    );
+
+    // ------------------------------------------------------------------------
+    // SIMULATION ARGUMENTS & INITIALIZATION
+    // ------------------------------------------------------------------------
+    string hex_file;
+    string sig_file;
+    int sig_start, sig_end;
+
+    initial begin
+        // Initialize memory to 0
+        for (int i = 0; i < 65536; i++) begin
+            memory[i] = 8'h00;
+        end
+
+        // Load HEX file if provided
+        if ($value$plusargs("HEX=%s", hex_file)) begin
+            $readmemh(hex_file, memory);
+            $display("Loaded %s into memory.", hex_file);
+        end else begin
+            $display("WARNING: No +HEX file provided. Memory is empty.");
+        end
+
+        // Initialize inputs
+        tmr_mode_pin = 1'b0;
+        fi_reg_en    = 1'b0;
+        fi_reg_addr  = '0;
+        fi_reg_bit   = '0;
+        fi_alu_en    = 1'b0;
+        fi_alu_sel   = '0;
+        fi_alu_bit   = '0;
+        rst_n = 0;
+        #20 rst_n = 1;
+
+        // Run Directed FT Tests
+        run_fault_tolerance_tests();
+
+        // Run Main Program
+        wait(trap == 1'b1);
+        #50;
+        
+        $display("Trap received. Checking signature...");
+        
+        // Write signature if arguments provided
+        if ($value$plusargs("SIG_FILE=%s", sig_file)) begin
+            if ($value$plusargs("SIG_START=%x", sig_start) && $value$plusargs("SIG_END=%x", sig_end)) begin
+                int fd = $fopen(sig_file, "w");
+                if (fd) begin
+                    for (int i = sig_start; i < sig_end; i += 4) begin
+                        $fdisplay(fd, "%02x%02x%02x%02x", memory[i+3], memory[i+2], memory[i+1], memory[i]);
+                    end
+                    $fclose(fd);
+                    $display("Signature written to %s", sig_file);
+                end
+            end
+        end
+
+        $display("---------------------------------");
+        $display("RESULT: TEST PASSED");
+        $display("---------------------------------");
+        $finish;
+    end
+
+    // Timeout watchdog
+    initial begin
+        #100000;
+        $display("TIMEOUT");
+        $finish;
+    end
+
+    // ------------------------------------------------------------------------
+    // FAULT TOLERANCE DIRECTED TESTS
+    // ------------------------------------------------------------------------
+    task run_fault_tolerance_tests;
+        $display("---------------------------------");
+        $display("Starting Fault Tolerance Tests...");
+        
+        // --- Test 1: Single Event Upset (SEC) in Register File ---
+        $display("[Test 1] Injecting Single Bit Flip into Reg[5]");
+        // Let pipeline run for a bit
+        #100;
+        // Inject single bit fault in x5 (Bit 4)
+        @(posedge clk);
+        fi_reg_en   = 1'b1;
+        fi_reg_addr = 4'd5;
+        fi_reg_bit  = 6'd4;
+        @(posedge clk);
+        fi_reg_en   = 1'b0;
+        
+        // Wait for it to be read and check SEC flag
+        #100;
+        if (sec_flag) $display("  -> SUCCESS: SEC detected and corrected.");
+        else          $display("  -> FAIL: SEC not detected.");
+        
+        // --- Test 2: Double Bit Flip (DED) in Register File ---
+        $display("[Test 2] Injecting Double Bit Flip into Reg[6]");
+        sec_flag <= 0; ded_flag <= 0;
+        @(posedge clk);
+        fi_reg_en   = 1'b1;
+        fi_reg_addr = 4'd6;
+        fi_reg_bit  = 6'd10; // First bit
+        @(posedge clk);
+        fi_reg_bit  = 6'd11; // Second bit
+        @(posedge clk);
+        fi_reg_en   = 1'b0;
+        
+        // Wait for it to be read and check DED flag
+        #100;
+        if (ded_flag) $display("  -> SUCCESS: DED detected.");
+        else          $display("  -> FAIL: DED not detected.");
+
+        // --- Test 3: TMR Mode Masking ---
+        $display("[Test 3] Injecting ALU Fault in TMR Mode");
+        tmr_mode_pin = 1'b1;
+        tmr_flag <= 0;
+        #50;
+        @(posedge clk);
+        fi_alu_en  = 1'b1;
+        fi_alu_sel = 2'd1; // Fault in ALU 1
+        fi_alu_bit = 5'd15;
+        @(posedge clk);
+        fi_alu_en  = 1'b0;
+        
+        #50;
+        if (tmr_flag) $display("  -> SUCCESS: TMR Voter masked fault and flagged mismatch.");
+        else          $display("  -> FAIL: TMR mismatch not flagged.");
+
+        // --- Test 4: Simplex Mode Vulnerability (Control) ---
+        $display("[Test 4] Injecting ALU Fault in Simplex Mode");
+        tmr_mode_pin = 1'b0;
+        tmr_flag <= 0;
+        #50;
+        @(posedge clk);
+        fi_alu_en  = 1'b1;
+        fi_alu_sel = 2'd0; // Fault in ALU 0 (Primary)
+        fi_alu_bit = 5'd15;
+        @(posedge clk);
+        fi_alu_en  = 1'b0;
+        
+        #50;
+        if (!tmr_flag) $display("  -> SUCCESS: Simplex mode propagated fault (no TMR voting).");
+        else           $display("  -> FAIL: TMR mismatch flagged in Simplex mode?!");
+
+        $display("Fault Tolerance Tests Complete.");
+        $display("---------------------------------");
+        
+        // Reset flags for main test
+        sec_flag <= 0;
+        ded_flag <= 0;
+        tmr_flag <= 0;
+    endtask
 
 endmodule

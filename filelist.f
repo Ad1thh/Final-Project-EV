@@ -6,5 +6,6 @@ rtl/id_ex_stage.sv
 rtl/if_stage.sv
 rtl/regfile.sv
 rtl/riscv_core_top.sv
+rtl/tmr_voter.sv
 rtl/wb_stage.sv
 tb/tb_riscv_core_top.sv

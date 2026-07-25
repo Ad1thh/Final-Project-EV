@@ -14,7 +14,7 @@ module wb_stage #(
     input  logic [DATA_WIDTH-1:0] pc_wb,
     input  logic [DATA_WIDTH-1:0] alu_result_wb,
     input  logic [DATA_WIDTH-1:0] dmem_rdata_raw_wb,
-    input  wb_sel_e               wb_sel_wb,
+    input  logic [1:0]            wb_sel_wb,
     input  logic [2:0]            funct3_wb,
     
     output logic [DATA_WIDTH-1:0] wb_result
@@ -28,38 +28,30 @@ module wb_stage #(
     logic [31:0] formatted_load_data;
 
     always_comb begin
-        case (alu_result_wb[1:0])
-            2'b00: byte_selected = dmem_rdata_raw_wb[7:0];
-            2'b01: byte_selected = dmem_rdata_raw_wb[15:8];
-            2'b10: byte_selected = dmem_rdata_raw_wb[23:16];
-            2'b11: byte_selected = dmem_rdata_raw_wb[31:24];
-        endcase
+        if (alu_result_wb[1:0] == 2'b00)       byte_selected = dmem_rdata_raw_wb[7:0];
+        else if (alu_result_wb[1:0] == 2'b01)  byte_selected = dmem_rdata_raw_wb[15:8];
+        else if (alu_result_wb[1:0] == 2'b10)  byte_selected = dmem_rdata_raw_wb[23:16];
+        else                                   byte_selected = dmem_rdata_raw_wb[31:24];
 
-        case (alu_result_wb[1])
-            1'b0: halfword_selected = dmem_rdata_raw_wb[15:0];
-            1'b1: halfword_selected = dmem_rdata_raw_wb[31:16];
-        endcase
+        if (alu_result_wb[1] == 1'b0)          halfword_selected = dmem_rdata_raw_wb[15:0];
+        else                                   halfword_selected = dmem_rdata_raw_wb[31:16];
 
-        case (funct3_wb)
-            FUNCT3_LB:  formatted_load_data = {{24{byte_selected[7]}}, byte_selected};
-            FUNCT3_LBU: formatted_load_data = {24'b0, byte_selected};
-            FUNCT3_LH:  formatted_load_data = {{16{halfword_selected[15]}}, halfword_selected};
-            FUNCT3_LHU: formatted_load_data = {16'b0, halfword_selected};
-            FUNCT3_LW:  formatted_load_data = dmem_rdata_raw_wb;
-            default:    formatted_load_data = dmem_rdata_raw_wb;
-        endcase
+        if (funct3_wb == FUNCT3_LB)    formatted_load_data = {{24{byte_selected[7]}}, byte_selected};
+        else if (funct3_wb == FUNCT3_LBU) formatted_load_data = {24'b0, byte_selected};
+        else if (funct3_wb == FUNCT3_LH)  formatted_load_data = {{16{halfword_selected[15]}}, halfword_selected};
+        else if (funct3_wb == FUNCT3_LHU) formatted_load_data = {16'b0, halfword_selected};
+        else if (funct3_wb == FUNCT3_LW)  formatted_load_data = dmem_rdata_raw_wb;
+        else                              formatted_load_data = dmem_rdata_raw_wb;
     end
 
     // ------------------------------------------------------------------------
     // WRITEBACK RESULT SELECTION MUX
     // ------------------------------------------------------------------------
     always_comb begin
-        case (wb_sel_wb)
-            WB_SEL_ALU: wb_result = alu_result_wb;
-            WB_SEL_MEM: wb_result = formatted_load_data;
-            WB_SEL_PC4: wb_result = pc_wb + 32'd4;
-            default:    wb_result = alu_result_wb;
-        endcase
+        if (wb_sel_wb == WB_SEL_ALU)   wb_result = alu_result_wb;
+        else if (wb_sel_wb == WB_SEL_MEM) wb_result = formatted_load_data;
+        else if (wb_sel_wb == WB_SEL_PC4) wb_result = pc_wb + 32'd4;
+        else                               wb_result = alu_result_wb;
     end
 
 endmodule
