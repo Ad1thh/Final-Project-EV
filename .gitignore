@@ -1,1 +1,6 @@
 /.agents/
+sim.out
+*.out
+*.vcd
+*.log
+*.jou

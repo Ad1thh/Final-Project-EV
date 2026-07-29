@@ -42,26 +42,8 @@ module regfile #(
         end
     end
 
-    // Asynchronous Read Port 1 (Internal Forwarding for Same-Cycle Read-Write)
-    always_comb begin
-        if (raddr1 == '0) begin
-            rdata1 = '0;
-        end else if (we && (waddr == raddr1)) begin
-            rdata1 = wdata; // Internal bypass/forwarding
-        end else begin
-            rdata1 = rf[raddr1];
-        end
-    end
-
-    // Asynchronous Read Port 2 (Internal Forwarding for Same-Cycle Read-Write)
-    always_comb begin
-        if (raddr2 == '0) begin
-            rdata2 = '0;
-        end else if (we && (waddr == raddr2)) begin
-            rdata2 = wdata; // Internal bypass/forwarding
-        end else begin
-            rdata2 = rf[raddr2];
-        end
-    end
+    // Asynchronous Read Ports (Forwarding handled at pipeline level in id_ex_stage)
+    assign rdata1 = (raddr1 == '0) ? '0 : rf[raddr1];
+    assign rdata2 = (raddr2 == '0) ? '0 : rf[raddr2];
 
 endmodule

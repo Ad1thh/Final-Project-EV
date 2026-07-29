@@ -103,6 +103,8 @@ module id_ex_stage #(
     logic       ctrl_is_jal;
     logic       ctrl_is_jalr;
 
+    logic ctrl_trap;
+
     control_unit u_control_unit (
         .opcode    (opcode),
         .funct3    (funct3),
@@ -117,8 +119,20 @@ module id_ex_stage #(
         .is_branch (ctrl_is_branch),
         .is_jal    (ctrl_is_jal),
         .is_jalr   (ctrl_is_jalr),
-        .trap      (trap)
+        .trap      (ctrl_trap)
     );
+
+    // RV32E Register Index Out-of-Bounds Trap Guard (x16-x31 access prevention)
+    logic uses_rs2;
+    assign uses_rs2 = (opcode == OPCODE_R_TYPE) || (opcode == OPCODE_BRANCH) || (opcode == OPCODE_STORE);
+
+    logic rv32e_out_of_bounds;
+    assign rv32e_out_of_bounds = (REG_COUNT == 16) && (
+        (ctrl_reg_write && instr_id[11]) || 
+        instr_id[19] || 
+        (uses_rs2 && instr_id[24])
+    );
+    assign trap = ctrl_trap | rv32e_out_of_bounds;
 
     // ------------------------------------------------------------------------
     // REGISTER FILE INSTANTIATION
@@ -152,8 +166,6 @@ module id_ex_stage #(
     ) u_hazard_unit (
         .id_rs1               (rs1_addr),
         .id_rs2               (rs2_addr),
-        .id_ex_rd             (rd_wb),          // EX/WB pipeline reg RD
-        .id_ex_mem_read       (reg_write_wb && (wb_sel_wb == WB_SEL_MEM)),
         .wb_rd                (wb_rd),
         .wb_reg_write         (wb_reg_write),
         .branch_or_jump_taken (branch_or_jump_taken),
@@ -235,8 +247,8 @@ module id_ex_stage #(
                 dmem_wdata = op_b_forwarded << (8 * alu_result[1:0]);
             end
             FUNCT3_SH: begin
-                dmem_wmask = 4'b0011 << alu_result[1:0];
-                dmem_wdata = op_b_forwarded << (8 * alu_result[1:0]);
+                dmem_wmask = (alu_result[1]) ? 4'b1100 : 4'b0011;
+                dmem_wdata = (alu_result[1]) ? (op_b_forwarded << 16) : op_b_forwarded;
             end
             FUNCT3_SW: begin
                 dmem_wmask = 4'b1111;

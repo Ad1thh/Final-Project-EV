@@ -1,8 +1,7 @@
 // ============================================================================
 // File: hazard_unit.sv
 // Description: Hazard Detection & Forwarding Unit.
-//              Handles WB-to-ID/EX data forwarding, load-use stall insertion,
-//              and branch/jump mispredict pipeline flushing.
+//              Handles WB-to-ID/EX data forwarding and branch/jump pipeline flushing.
 // Standards: SystemVerilog-2012 / Cadence Genus Synthesizable
 // ============================================================================
 
@@ -12,9 +11,6 @@ module hazard_unit #(
     // Register Address Inputs
     input  logic [ADDR_WIDTH-1:0] id_rs1,
     input  logic [ADDR_WIDTH-1:0] id_rs2,
-    input  logic [ADDR_WIDTH-1:0] id_ex_rd,
-    input  logic                  id_ex_mem_read,
-    
     input  logic [ADDR_WIDTH-1:0] wb_rd,
     input  logic                  wb_reg_write,
     
@@ -24,42 +20,22 @@ module hazard_unit #(
     // Hazard Output Signals
     output logic                  forward_a,      // WB -> ID/EX RS1 forwarding
     output logic                  forward_b,      // WB -> ID/EX RS2 forwarding
-    output logic                  stall_if,       // Freeze PC & IF/ID stage
+    output logic                  stall_if,       // Freeze PC & IF/ID stage (reserved)
     output logic                  flush_if_id,    // Flush IF/ID stage (branch/jump)
-    output logic                  flush_id_ex     // Insert bubble into ID/EX stage (load-use stall)
+    output logic                  flush_id_ex     // Insert bubble into ID/EX stage (reserved)
 );
 
     // ------------------------------------------------------------------------
     // DATA FORWARDING LOGIC (WB Stage -> ID/EX Stage)
     // ------------------------------------------------------------------------
-    always_comb begin
-        forward_a = 1'b0;
-        forward_b = 1'b0;
-
-        if (wb_reg_write && (wb_rd != '0)) begin
-            if (wb_rd == id_rs1) forward_a = 1'b1;
-            if (wb_rd == id_rs2) forward_b = 1'b1;
-        end
-    end
+    assign forward_a = wb_reg_write && (wb_rd != '0) && (wb_rd == id_rs1);
+    assign forward_b = wb_reg_write && (wb_rd != '0) && (wb_rd == id_rs2);
 
     // ------------------------------------------------------------------------
-    // LOAD-USE STALL & CONTROL FLUSH LOGIC
+    // CONTROL HAZARD & FLUSH LOGIC
     // ------------------------------------------------------------------------
-    always_comb begin
-        stall_if    = 1'b0;
-        flush_if_id = 1'b0;
-        flush_id_ex = 1'b0;
-
-        // 1. Load-Use Hazard Detection (Stall 1 cycle)
-        if (id_ex_mem_read && (id_ex_rd != '0) && ((id_ex_rd == id_rs1) || (id_ex_rd == id_rs2))) begin
-            stall_if    = 1'b1;
-            flush_id_ex = 1'b1; // Convert EX stage instruction to bubble NOP
-        end
-
-        // 2. Control Hazard (Branch / Jump taken in EX stage)
-        if (branch_or_jump_taken) begin
-            flush_if_id = 1'b1; // Flush fetched instruction in IF/ID register
-        end
-    end
+    assign flush_if_id = branch_or_jump_taken;
+    assign stall_if    = 1'b0;
+    assign flush_id_ex = 1'b0;
 
 endmodule
