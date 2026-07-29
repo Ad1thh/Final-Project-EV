@@ -1,4 +1,3 @@
-`timescale 1ns/1ps
 // ============================================================================
 // File: regfile.sv
 // Description: 16 x 32-bit Register File for RV32E Architecture.

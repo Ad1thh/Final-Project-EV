@@ -1,4 +1,3 @@
-`timescale 1ns/1ps
 // ============================================================================
 // File: riscv_pkg.sv
 // Description: Package defining RV32E Opcodes, Control Enums, ALU Control,

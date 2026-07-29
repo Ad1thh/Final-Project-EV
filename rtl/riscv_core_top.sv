@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 // ============================================================================
 // File: riscv_core_top.sv
 // Description: Top-Level Module for 3-Stage Pipelined RV32E Core.

@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 // ============================================================================
 // File: if_stage.sv
 // Description: Fetch Stage (Stage 1) for 3-Stage RISC-V Core.

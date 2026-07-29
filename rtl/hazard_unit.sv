@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 // ============================================================================
 // File: hazard_unit.sv
 // Description: Hazard Detection & Forwarding Unit.

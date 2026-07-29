@@ -1,4 +1,3 @@
-`timescale 1ns/1ps
 // ============================================================================
 // File: tmr_voter.sv
 // Description: TMR 3-Input Majority Voter with Mismatch Detection.

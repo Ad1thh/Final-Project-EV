@@ -1,1 +1,26 @@
 /.agents/
+
+# Vivado artifacts
+*.jou
+*.log
+*.pb
+*.str
+*.vcd
+*.wdb
+xsim.dir/
+.Xil/
+
+# Generated directories inside projects
+*.cache/
+*.hw/
+*.ip_user_files/
+*.runs/
+*.sim/
+
+# Root-level simulator outputs
+sim_debug*
+sim_out*
+sim_regfile*
+sim_tmr*
+sim_ft
+sim.out

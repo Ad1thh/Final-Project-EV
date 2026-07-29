@@ -1,4 +1,3 @@
-`timescale 1ns/1ps
 // ============================================================================
 // File: alu.sv
 // Description: 32-bit Arithmetic Logic Unit supporting RV32I base ops.

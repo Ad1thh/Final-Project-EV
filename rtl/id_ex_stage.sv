@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 // ============================================================================
 // File: id_ex_stage.sv
 // Description: Decode & Execute Stage (Stage 2) for 3-Stage RISC-V Core.

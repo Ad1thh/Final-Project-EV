@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 // ============================================================================
 // File: wb_stage.sv
 // Description: Writeback Stage (Stage 3) for 3-Stage RISC-V Core.

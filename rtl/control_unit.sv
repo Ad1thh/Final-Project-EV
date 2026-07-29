@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 // ============================================================================
 // File: control_unit.sv
 // Description: Main Control Unit Decoder for RV32I Base Instruction Set.
