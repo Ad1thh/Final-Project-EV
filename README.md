@@ -1,4 +1,4 @@
-# RV32E 3-Stage Pipelined RISC-V Processor Core (Baseline Baseline-V1.0)
+# RV32E 3-Stage Pipelined RISC-V Processor Core
 **Hardware Target:** Xilinx Nexys 4 FPGA (Artix-7 `XC7A100T-1CSG324C`)  
 **Hardware Verification Status:** **100% CONFIRMED LIVE ON SILICON (`0x80FF` PASS Pattern)**  
 **Toolchain:** AMD/Xilinx Vivado (Non-Interactive Batch Mode) / SystemVerilog-2012  
