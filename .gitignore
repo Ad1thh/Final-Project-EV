@@ -4,3 +4,6 @@ sim.out
 *.vcd
 *.log
 *.jou
+.Xil/
+clockInfo.txt
+dfx_runtime.txt

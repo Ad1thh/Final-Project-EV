@@ -35,7 +35,7 @@ def assemble_file(in_path, out_path):
     for line in raw_lines:
         # Strip comments
         line = re.sub(r'#.*', '', line).strip()
-        if not line:
+        if not line or line.startswith('.'):
             continue
         if ':' in line:
             parts = line.split(':', 1)

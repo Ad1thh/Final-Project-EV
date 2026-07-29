@@ -39,18 +39,20 @@ module fpga_top #(
     );
 
     // ------------------------------------------------------------------------
-    // RESET SYNCHRONIZATION (Button Pressed = Reset Active)
+    // AUTOMATIC POWER-ON & BUTTON RESET GENERATOR (Pin E16 BTNC)
     // ------------------------------------------------------------------------
-    logic rst_n_sync_1;
-    logic rst_n;
+    logic [7:0] por_cnt = 8'h00;
+    logic       rst_n;
 
-    always_ff @(posedge clk_25m or posedge CPU_RESETN) begin
-        if (CPU_RESETN) begin
-            rst_n_sync_1 <= 1'b0;
-            rst_n        <= 1'b0;
+    always_ff @(posedge clk_25m) begin
+        if (CPU_RESETN) begin // Active-high BTNC button pressed
+            por_cnt <= 8'h00;
+            rst_n   <= 1'b0;
+        end else if (por_cnt != 8'hFF) begin // Auto reset for 256 cycles after bitstream flash
+            por_cnt <= por_cnt + 1'b1;
+            rst_n   <= 1'b0;
         end else begin
-            rst_n_sync_1 <= 1'b1;
-            rst_n        <= rst_n_sync_1;
+            rst_n   <= 1'b1; // CPU Running!
         end
     end
 
