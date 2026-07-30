@@ -14,7 +14,7 @@ module tmr_voter #(
     input  logic [WIDTH-1:0] c,
     output logic [WIDTH-1:0] result,
     output logic             mismatch_detected,
-    output logic             no_majority
+    output logic             tmr_fatal_mismatch
 );
 
     // Majority logic: result is majority of three inputs
@@ -24,8 +24,8 @@ module tmr_voter #(
     // Mismatch detected if not all three agree
     assign mismatch_detected = (a != b) | (a != c) | (b != c);
 
-    // No majority if all three differ (impossible with 3 inputs, but included for completeness)
-    // With 3 inputs, there's always a majority unless we consider X/Z
-    assign no_majority = 1'b0;
+    // Fatal mismatch if all three full-word replicas are different
+    // In this case, the bitwise majority output is a fabricated value that matches none of the inputs.
+    assign tmr_fatal_mismatch = (a != b) && (a != c) && (b != c);
 
 endmodule

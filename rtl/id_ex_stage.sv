@@ -64,7 +64,8 @@ module id_ex_stage #(
     output logic                  ecc_ded_1,
     output logic                  ecc_sec_2,
     output logic                  ecc_ded_2,
-    output logic                  tmr_mismatch
+    output logic                  tmr_mismatch,
+    output logic                  tmr_fatal_mismatch
 );
 
     // ------------------------------------------------------------------------
@@ -233,6 +234,7 @@ module id_ex_stage #(
     // TMR Voter
     logic [DATA_WIDTH-1:0] voter_result;
     logic                  voter_mismatch;
+    logic                  voter_fatal_mismatch;
 
     tmr_voter #(.WIDTH(DATA_WIDTH)) u_tmr_voter (
         .a(alu_result_0_fi),
@@ -240,7 +242,7 @@ module id_ex_stage #(
         .c(alu_result_2_fi),
         .result(voter_result),
         .mismatch_detected(voter_mismatch),
-        .no_majority()
+        .tmr_fatal_mismatch(voter_fatal_mismatch)
     );
 
     logic [DATA_WIDTH-1:0] alu_result;
@@ -248,6 +250,7 @@ module id_ex_stage #(
     // Select final output based on mode
     assign alu_result   = (tmr_mode) ? voter_result : alu_result_0_fi;
     assign tmr_mismatch = (tmr_mode) ? voter_mismatch : 1'b0;
+    assign tmr_fatal_mismatch = (tmr_mode) ? voter_fatal_mismatch : 1'b0;
 
     // ------------------------------------------------------------------------
     // BRANCH CONDITION EVALUATION & TARGET CALCULATION

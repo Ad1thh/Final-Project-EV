@@ -50,7 +50,8 @@ module riscv_core_top #(
     output logic        ecc_ded_1,
     output logic        ecc_sec_2,
     output logic        ecc_ded_2,
-    output logic        tmr_mismatch
+    output logic        tmr_mismatch,
+    output logic        tmr_fatal_mismatch
 );
 
     // ------------------------------------------------------------------------
@@ -160,7 +161,8 @@ module riscv_core_top #(
         .ecc_ded_1            (ecc_ded_1),
         .ecc_sec_2            (ecc_sec_2),
         .ecc_ded_2            (ecc_ded_2),
-        .tmr_mismatch         (tmr_mismatch)
+        .tmr_mismatch         (tmr_mismatch),
+        .tmr_fatal_mismatch   (tmr_fatal_mismatch)
     );
 
     // ------------------------------------------------------------------------

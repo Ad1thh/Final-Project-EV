@@ -40,6 +40,7 @@ module tb_fault_tolerance;
     logic        ecc_sec_1, ecc_ded_1;
     logic        ecc_sec_2, ecc_ded_2;
     logic        tmr_mismatch;
+    logic        tmr_fatal_mismatch;
 
     // Memory array
     logic [31:0] mem [0:MEM_DEPTH-1];
@@ -106,7 +107,8 @@ module tb_fault_tolerance;
         .ecc_ded_1    (ecc_ded_1),
         .ecc_sec_2    (ecc_sec_2),
         .ecc_ded_2    (ecc_ded_2),
-        .tmr_mismatch (tmr_mismatch)
+        .tmr_mismatch (tmr_mismatch),
+        .tmr_fatal_mismatch(tmr_fatal_mismatch)
     );
 
     // ========================================================================

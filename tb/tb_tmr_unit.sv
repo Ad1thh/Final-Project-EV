@@ -85,7 +85,7 @@ module tb_tmr_unit;
         .c               (alu_result_2_fi),
         .result          (voter_result),
         .mismatch_detected (voter_mismatch),
-        .no_majority     ()
+        .tmr_fatal_mismatch ()
     );
 
     // Clock
