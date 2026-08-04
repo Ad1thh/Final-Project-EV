@@ -12,6 +12,7 @@
     "@base-ui/react": "^1.6.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.7.0",
+    "animejs": "^3.2.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.43.0",
@@ -27,6 +28,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/animejs": "^3.1.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

@@ -10,27 +10,35 @@ export interface ToastMessage {
   type: "info" | "warning" | "error" | "success";
 }
 
-export interface Register {
-  name: string;
-  value: string;
-  status: "Healthy" | "Locked" | "Corrected" | "Double Error";
+export type LiveMonitorState = 
+  | { type: "IDLE"; value: string }
+  | { type: "SEC_INJECTED"; register: string; bit: string; badValue: string }
+  | { type: "SEC_CORRECTED"; register: string; goodValue: string }
+  | { type: "DED_DETECTED"; register: string }
+  | { type: "ALU_INJECTED"; aluId: number; badValue: string; goodValue: string }
+  | { type: "ALU_RECOVERED"; goodValue: string };
+
+export interface FaultStats {
+  sec: number;
+  ded: number;
+  alu: number;
+  total: number;
 }
 
-export interface ALUState {
-  id: number;
-  result: number;
-  status: "Healthy" | "Faulty";
+export interface FaultHistoryPoint {
+  time: string;
+  sec: number;
+  ded: number;
+  alu: number;
 }
 
 interface DashboardState {
   // System Status
-  processorState: "Running" | "Halted";
+  processorState: "Running" | "Degraded" | "Recovering" | "Halted";
   clock: string;
   currentMode: "Simplex" | "Triple Modular Redundancy";
   
   // 3D Visual State
-  isExploded: boolean;
-  setIsExploded: (v: boolean) => void;
   isHovering: boolean;
   setIsHovering: (v: boolean) => void;
   isRotating: boolean;
@@ -38,22 +46,27 @@ interface DashboardState {
   highlightedModules: string[];
   setHighlightedModules: (modules: string[]) => void;
   toggleHighlightedModule: (module: string) => void;
+  
+  // The actual module that is glowing based on the fault
   activeFaultModule: string | null;
   cameraResetTrigger: number;
   triggerCameraReset: () => void;
+  
+  // Explosion state
+  explosionFactor: number;
+  setExplosionFactor: (v: number) => void;
+  
+  // Live Monitor State
+  liveMonitor: LiveMonitorState;
   
   // Toasts
   toasts: ToastMessage[];
   removeToast: (id: number) => void;
 
-  // Data
-  registers: Register[];
-  alus: ALUState[];
-  voterOutput: number | "Mismatch";
-  secCount: number;
-  dedCount: number;
-  currentSyndrome: string;
-  
+  // Analytics
+  faultStats: FaultStats;
+  faultHistory: FaultHistoryPoint[];
+
   // Actions
   injectFault: (type: FaultType, reg?: string, bit?: string, alu?: string) => void;
   resetDemo: () => void;
@@ -61,46 +74,49 @@ interface DashboardState {
   setIsDemoActive: (v: boolean) => void;
 }
 
-const defaultRegisters: Register[] = Array.from({ length: 16 }).map((_, i) => ({
-  name: `x${i}`,
-  value: "00000000",
-  status: i === 0 ? "Locked" : "Healthy",
-}));
-
 const DashboardContext = createContext<DashboardState | undefined>(undefined);
 
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
-  const [processorState, setProcessorState] = useState<"Running" | "Halted">("Running");
+  const [processorState, setProcessorState] = useState<"Running" | "Degraded" | "Recovering" | "Halted">("Running");
   const [currentMode, setCurrentMode] = useState<"Simplex" | "Triple Modular Redundancy">("Simplex");
   
   // 3D Visual State
-  const [isExploded, setIsExploded] = useState(false);
   const [isHovering, setIsHovering] = useState(true);
   const [isRotating, setIsRotating] = useState(true);
   const [highlightedModules, setHighlightedModules] = useState<string[]>([]);
+  
+  // Fault State
   const [activeFaultModule, setActiveFaultModule] = useState<string | null>(null);
+  const [liveMonitor, setLiveMonitor] = useState<LiveMonitorState>({ type: "IDLE", value: "0x00000000" });
+  
   const [cameraResetTrigger, setCameraResetTrigger] = useState(0);
+  const [explosionFactor, setExplosionFactor] = useState(0);
   
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  
-  const [registers, setRegisters] = useState<Register[]>(defaultRegisters);
-  const [alus, setAlus] = useState<ALUState[]>([
-    { id: 0, result: 15, status: "Healthy" },
-    { id: 1, result: 15, status: "Healthy" },
-    { id: 2, result: 15, status: "Healthy" },
-  ]);
-  const [voterOutput, setVoterOutput] = useState<number | "Mismatch">(15);
-  
-  const [secCount, setSecCount] = useState(0);
-  const [dedCount, setDedCount] = useState(0);
-  const [currentSyndrome, setCurrentSyndrome] = useState("0000000");
-
   const [isDemoActive, setIsDemoActive] = useState(true);
+
+  // Analytics State
+  const [faultStats, setFaultStats] = useState<FaultStats>({ sec: 0, ded: 0, alu: 0, total: 0 });
+  const [faultHistory, setFaultHistory] = useState<FaultHistoryPoint[]>([]);
+
+  // We need to keep track of persistent faults (like DED)
+  const [hasPersistentFault, setHasPersistentFault] = useState(false);
+
+  useEffect(() => {
+    if (!isDemoActive) return;
+    const interval = setInterval(() => {
+      setFaultHistory(prev => {
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+        return [...prev, { time: timeStr, ...faultStats }].slice(-20);
+      });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isDemoActive, faultStats]);
 
   const addToast = (message: string, type: ToastMessage["type"]) => {
     const id = Date.now() + Math.random();
-    setToasts((prev) => [...prev, { id, message, type }].slice(-5)); // keep last 5
-    // auto remove after 4s
+    setToasts((prev) => [...prev, { id, message, type }].slice(-5));
     setTimeout(() => removeToast(id), 4000);
   };
 
@@ -119,74 +135,78 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   };
 
   const resetDemo = () => {
-    setRegisters(defaultRegisters);
-    setAlus([
-      { id: 0, result: 15, status: "Healthy" },
-      { id: 1, result: 15, status: "Healthy" },
-      { id: 2, result: 15, status: "Healthy" },
-    ]);
-    setVoterOutput(15);
-    setSecCount(0);
-    setDedCount(0);
-    setCurrentSyndrome("0000000");
+    setProcessorState("Running");
     setCurrentMode("Simplex");
     setActiveFaultModule(null);
     setHighlightedModules([]);
-    setIsExploded(false);
+    setLiveMonitor({ type: "IDLE", value: "0x00000000" });
+    setHasPersistentFault(false);
+    setExplosionFactor(0);
+    setFaultStats({ sec: 0, ded: 0, alu: 0, total: 0 });
+    setFaultHistory([]);
     triggerCameraReset();
-    addToast("Demo state reset.", "info");
+    addToast("System reset.", "info");
   };
 
   const injectFault = (type: FaultType, reg?: string, bit?: string, alu?: string) => {
+    // If there's an unrecoverable fault, block new faults until reset
+    if (hasPersistentFault && type !== "MODE") return;
+
     if (type === "SEC") {
+      setFaultStats(s => ({ ...s, sec: s.sec + 1, total: s.total + 1 }));
       const targetReg = reg || "x5";
       const targetBit = bit || "7";
-      setRegisters((prev) =>
-        prev.map((r) => (r.name === targetReg ? { ...r, status: "Corrected", value: "DEADBEEF" } : r))
-      );
-      setSecCount((s) => s + 1);
-      setCurrentSyndrome("0001000");
-      setActiveFaultModule("CPU_SEC"); // Special module ID for sec
-      addToast(`ECC corrected single-bit fault in ${targetReg}`, "warning");
+      setActiveFaultModule("CPU_SEC");
+      setLiveMonitor({ type: "SEC_INJECTED", register: targetReg, bit: targetBit, badValue: "0xDEADBEEF" });
       
+      // Simulate correction after 1 frame/tick (we'll use 800ms for visual effect)
       setTimeout(() => {
-        setRegisters((prev) =>
-          prev.map((r) => (r.name === targetReg ? { ...r, status: "Healthy" } : r))
-        );
-        setActiveFaultModule(null);
-      }, 2500);
+        if (!hasPersistentFault) {
+          setLiveMonitor({ type: "SEC_CORRECTED", register: targetReg, goodValue: "0x0000000F" });
+          addToast("ECC corrected single-bit fault", "warning");
+          
+          setTimeout(() => {
+            setLiveMonitor({ type: "IDLE", value: "0x0000000F" });
+            setActiveFaultModule(null);
+          }, 2000);
+        }
+      }, 800);
+      
     } else if (type === "DED") {
+      setFaultStats(s => ({ ...s, ded: s.ded + 1, total: s.total + 1 }));
       const targetReg = reg || "x9";
-      setRegisters((prev) =>
-        prev.map((r) => (r.name === targetReg ? { ...r, status: "Double Error", value: "AABBCCDD" } : r))
-      );
-      setDedCount((d) => d + 1);
-      setCurrentSyndrome("0110000");
+      setProcessorState("Degraded");
+      setHasPersistentFault(true);
       setActiveFaultModule("CPU_DED");
-      addToast(`Double-bit error detected in ${targetReg}!`, "error");
       
-      setTimeout(() => {
-        setRegisters((prev) =>
-          prev.map((r) => (r.name === targetReg ? { ...r, status: "Healthy" } : r))
-        );
-        setActiveFaultModule(null);
-      }, 3000);
+      setLiveMonitor({ type: "DED_DETECTED", register: targetReg });
+      addToast("Double-bit error detected — data unreliable", "error");
+      // Note: This does NOT auto-recover. It persists until resetDemo.
+      
     } else if (type === "ALU") {
+      setFaultStats(s => ({ ...s, alu: s.alu + 1, total: s.total + 1 }));
       const targetAlu = parseInt(alu || "0", 10);
-      setAlus((prev) =>
-        prev.map((a) => (a.id === targetAlu ? { ...a, result: 32783, status: "Faulty" } : a))
-      );
-      setVoterOutput("Mismatch");
       setActiveFaultModule(`ALU_${targetAlu}`);
-      addToast(`ALU${targetAlu} Failure Detected!`, "error");
+      setProcessorState("Recovering");
+      
+      setLiveMonitor({ type: "ALU_INJECTED", aluId: targetAlu, badValue: "0x00007FFF", goodValue: "0x0000000F" });
       
       setTimeout(() => {
-        setAlus((prev) => prev.map((a) => ({ ...a, result: 15, status: "Healthy" })));
-        setVoterOutput(15);
-        setActiveFaultModule("TMR_RECOVER");
-        addToast("TMR masked ALU failure", "success");
-        setTimeout(() => setActiveFaultModule(null), 2000);
-      }, 3000);
+        if (!hasPersistentFault) {
+          setLiveMonitor({ type: "ALU_RECOVERED", goodValue: "0x0000000F" });
+          setActiveFaultModule("TMR_RECOVER");
+          setProcessorState("Healthy" as any); // fallback to Running
+          
+          addToast("TMR masked ALU failure", "success");
+          
+          setTimeout(() => {
+            setProcessorState("Running");
+            setLiveMonitor({ type: "IDLE", value: "0x0000000F" });
+            setActiveFaultModule(null);
+          }, 2000);
+        }
+      }, 1500);
+      
     } else if (type === "MODE") {
       setCurrentMode((prev) => {
         const newMode = prev === "Simplex" ? "Triple Modular Redundancy" : "Simplex";
@@ -197,19 +217,22 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    if (!isDemoActive) return;
+    if (!isDemoActive || hasPersistentFault) return;
     const interval = setInterval(() => {
+      // Don't inject if already recovering
+      if (processorState !== "Running") return;
+      
       if (Math.random() > 0.6) {
-        const faults: FaultType[] = ["SEC", "DED", "ALU", "MODE"];
+        // Bias towards SEC and ALU so it doesn't instantly halt on DED
+        const faults: FaultType[] = ["SEC", "SEC", "ALU", "ALU", "DED"];
         const randomFault = faults[Math.floor(Math.random() * faults.length)];
         const randomReg = `x${Math.floor(Math.random() * 15) + 1}`;
-        const randomBit = `${Math.floor(Math.random() * 32)}`;
         const randomAlu = `${Math.floor(Math.random() * 3)}`;
-        injectFault(randomFault, randomReg, randomBit, randomAlu);
+        injectFault(randomFault, randomReg, "0", randomAlu);
       }
     }, 6000);
     return () => clearInterval(interval);
-  }, [isDemoActive]);
+  }, [isDemoActive, hasPersistentFault, processorState]);
 
   return (
     <DashboardContext.Provider
@@ -217,14 +240,15 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         processorState,
         clock: "100 MHz",
         currentMode,
-        isExploded, setIsExploded,
         isHovering, setIsHovering,
         isRotating, setIsRotating,
         highlightedModules, setHighlightedModules, toggleHighlightedModule,
         activeFaultModule,
         cameraResetTrigger, triggerCameraReset,
+        explosionFactor, setExplosionFactor,
+        liveMonitor,
         toasts, removeToast,
-        registers, alus, voterOutput, secCount, dedCount, currentSyndrome,
+        faultStats, faultHistory,
         injectFault, resetDemo, isDemoActive, setIsDemoActive,
       }}
     >
