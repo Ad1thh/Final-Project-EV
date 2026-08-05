@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 // ============================================================================
 // File: tb_riscv_core_top.sv
 // Description: Testbench for the RISC-V 3-Stage Pipelined Core.
