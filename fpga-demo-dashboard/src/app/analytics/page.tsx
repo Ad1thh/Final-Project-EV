@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from "react";
 import { DashboardProvider, useDashboard } from "@/lib/DashboardContext";
 import Navigation from "@/components/Navigation";
 import { BarChart2, Activity, ShieldAlert, Cpu } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
 import anime from "animejs";
 
 function AnalyticsContent() {
@@ -30,7 +30,7 @@ function AnalyticsContent() {
       <div className="absolute inset-0 bg-radial-gradient from-transparent to-black/80 pointer-events-none" />
 
       {/* Title */}
-      <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10 pointer-events-none text-center flex flex-col items-center">
+      <div className="absolute top-6 left-6 right-[30rem] z-10 pointer-events-none text-center flex flex-col items-center">
         <div className="bg-black/80 px-6 py-3 rounded-xl backdrop-blur-md border border-white/5 shadow-2xl">
           <h1 className="text-xl font-bold tracking-widest text-white/90 uppercase">Fault Tolerant Processor</h1>
           <p className="text-xs font-mono text-orange-500 mt-1 uppercase tracking-widest">Fault Analytics</p>

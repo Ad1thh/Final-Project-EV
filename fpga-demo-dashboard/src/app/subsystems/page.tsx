@@ -3,11 +3,10 @@
 import React, { useRef, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import { DashboardProvider, useDashboard } from "@/lib/DashboardContext";
-import { Layers, Crosshair } from "lucide-react";
+import { Layers } from "lucide-react";
 import anime from "animejs";
 import * as THREE from "three";
 import Navigation from "@/components/Navigation";
-import { SharedScene } from "@/components/SharedScene";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 import { SubsystemsSharedScene } from "@/components/SubsystemsSharedScene";
@@ -72,7 +71,8 @@ function SubsystemsPageContent() {
       <div className="absolute inset-0 bg-radial-gradient from-transparent to-black/80 pointer-events-none" />
 
       {/* Title */}
-      <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10 pointer-events-none text-center flex flex-col items-center">
+      {/* Right inset clears the nav (~28.5rem) so the title never runs under it. */}
+      <div className="absolute top-6 left-6 right-[30rem] z-10 pointer-events-none text-center flex flex-col items-center">
         <div className="bg-black/80 px-6 py-3 rounded-xl backdrop-blur-md border border-white/5 shadow-2xl">
           <h1 className="text-xl font-bold tracking-widest text-white/90 uppercase">Fault Tolerant Processor</h1>
           <p className="text-xs font-mono text-orange-500 mt-1 uppercase tracking-widest">Hardware Subsystems</p>

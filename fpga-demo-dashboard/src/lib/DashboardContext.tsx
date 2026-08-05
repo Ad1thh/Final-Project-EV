@@ -74,6 +74,8 @@ interface DashboardState {
   setIsDemoActive: (v: boolean) => void;
 }
 
+let nextToastId = 0;
+
 const DashboardContext = createContext<DashboardState | undefined>(undefined);
 
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
@@ -115,7 +117,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   }, [isDemoActive, faultStats]);
 
   const addToast = (message: string, type: ToastMessage["type"]) => {
-    const id = Date.now() + Math.random();
+    const id = nextToastId++;
     setToasts((prev) => [...prev, { id, message, type }].slice(-5));
     setTimeout(() => removeToast(id), 4000);
   };
@@ -195,7 +197,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         if (!hasPersistentFault) {
           setLiveMonitor({ type: "ALU_RECOVERED", goodValue: "0x0000000F" });
           setActiveFaultModule("TMR_RECOVER");
-          setProcessorState("Healthy" as any); // fallback to Running
+          setProcessorState("Running"); // fallback to Running
           
           addToast("TMR masked ALU failure", "success");
           
@@ -232,6 +234,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       }
     }, 6000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDemoActive, hasPersistentFault, processorState]);
 
   return (

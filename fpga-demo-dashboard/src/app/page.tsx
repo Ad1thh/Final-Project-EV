@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useRef, useEffect, useMemo } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Environment, ContactShadows } from "@react-three/drei";
+import React, { useRef, useEffect } from "react";
+import { Canvas } from "@react-three/fiber";
 import { DashboardProvider, useDashboard } from "@/lib/DashboardContext";
-import { Activity, Zap, Settings2, RefreshCcw, Power, Pause, Play, Crosshair, Cpu } from "lucide-react";
+import { Activity, Zap, Settings2, RefreshCcw, Pause, Play, Crosshair, Cpu } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as THREE from "three";
 import anime from "animejs";
@@ -113,7 +112,7 @@ function LiveMonitor() {
 }
 
 function LeftPanel() {
-  const { processorState, clock, currentMode, injectFault } = useDashboard();
+  const { processorState, currentMode, injectFault } = useDashboard();
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -328,7 +327,9 @@ export default function Dashboard() {
         <div className="absolute inset-0 bg-radial-gradient from-transparent to-black/80 pointer-events-none" />
 
         {/* Title */}
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10 pointer-events-none text-center flex flex-col items-center">
+        {/* Inset clears the chrome on each side (left panel ~21rem, nav ~28.5rem)
+            so the title centres in the gap instead of running underneath them. */}
+        <div className="absolute top-6 left-[23rem] right-[30rem] z-10 pointer-events-none text-center flex flex-col items-center">
           <div className="bg-black/80 px-6 py-3 rounded-xl backdrop-blur-md border border-white/5 shadow-2xl">
             <h1 className="text-xl font-bold tracking-widest text-white/90 uppercase">Fault Tolerant Processor</h1>
             <p className="text-xs font-mono text-orange-500 mt-1 uppercase tracking-widest">Live Diagnostics</p>

@@ -67,7 +67,11 @@ export function DroneCameraController({ staticExploded = false }: { staticExplod
     };
   }, [gl]);
 
-  useFrame((state, delta) => {
+  useFrame((state, rawDelta) => {
+    // A tab switch or a shader-compile hitch hands us a multi-second delta, which
+    // makes lerp alphas exceed 1 and the camera diverge instead of settling.
+    const delta = Math.min(rawDelta, 1 / 30);
+
     if (!isDragging.current) {
       theta.current += delta * 0.04;
       if (!staticExploded && tgtRadius.current > 7.5) {
@@ -103,7 +107,9 @@ export function FloorGrid() {
 export function SharedScene({ staticExploded = false }: { staticExploded?: boolean }) {
   return (
     <>
-      <color attach="background" args={["transparent"]} />
+      {/* No <color attach="background">: THREE.Color has no "transparent" keyword,
+          so it fell back to white and hid the page behind the canvas. Leaving the
+          background unset keeps the canvas alpha and lets the page show through. */}
       <ambientLight intensity={0.14} />
       <directionalLight position={[10, 10, 5]} intensity={0.75} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} />
       <pointLight position={[4, 5, 3]} intensity={0.55} color="#ffe0c0" />

@@ -1,0 +1,9 @@
+# Scratch files that live in public/ but are not used by the app. Anything in
+# public/ is served at a public URL, so keep local recordings and debug pages out
+# of the deploy.
+public/video.mp4
+public/video.html
+public/inspect.html
+
+# Local screen recordings at the repo root.
+*.mp4

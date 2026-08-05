@@ -8,7 +8,7 @@ import SubsystemsDroneModel from "@/components/SubsystemsDroneModel";
 export function SubsystemsSharedScene({ staticExploded = false }: { staticExploded?: boolean }) {
   return (
     <>
-      <color attach="background" args={["transparent"]} />
+      {/* See SharedScene: "transparent" is not a THREE colour keyword. */}
       <ambientLight intensity={0.14} />
       <directionalLight position={[10, 10, 5]} intensity={0.75} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} />
       <pointLight position={[4, 5, 3]} intensity={0.55} color="#ffe0c0" />

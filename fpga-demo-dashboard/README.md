@@ -1,3 +1,21 @@
+# FPGA Demo Dashboard
+
+Visual interface for demonstrating the fault-tolerant capabilities of the RISC-V processor:
+live fault injection (SEC / DED / ALU), TMR recovery, and a 3D exploded view of the
+processor subsystems.
+
+**Live:** https://drone-dashboard-three.vercel.app
+**📄 [HANDOFF.md](./HANDOFF.md)** — architecture, the exploded-view fix, GLB coordinate
+reference, tuning knobs, and known issues. **Read this before touching the 3D code.**
+
+```bash
+npm install
+npm run dev             # http://localhost:3000
+npm run check:explode   # verify exploded-view geometry after changing any explode constant
+```
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

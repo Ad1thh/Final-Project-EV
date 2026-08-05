@@ -220,7 +220,7 @@ export default function DroneModel({ staticExploded = false }: { staticExploded?
       const b       = new THREE.Box3().setFromObject(obj);
       const centroid = b.getCenter(new THREE.Vector3());
       
-      let cumulativeScale = new THREE.Vector3(1, 1, 1);
+      const cumulativeScale = new THREE.Vector3(1, 1, 1);
       let curr = obj.parent;
       while (curr && curr !== cloned.parent) {
          cumulativeScale.multiply(curr.scale);
@@ -261,7 +261,7 @@ export default function DroneModel({ staticExploded = false }: { staticExploded?
       const isCore = /canopy|frame_spine|electronics|fc|board|cpu|shell|camera/.test(nLower) || 
                      ["CPU_BOARD", "SHELL_TOP", "SHELL_BOTTOM", "CAMERA", "ROOT"].includes(rp.category);
       
-      let trajectory = new THREE.Vector3();
+      const trajectory = new THREE.Vector3();
       
       if (!isCore && rp.category.startsWith("ARM_")) {
         // Procedural radial direction from core to arm centroid
@@ -324,7 +324,9 @@ export default function DroneModel({ staticExploded = false }: { staticExploded?
   const hoverTime = useRef(0);
   const currentExplodeFactor = useRef(0);
 
-  useFrame((state, delta) => {
+  useFrame((state, rawDelta) => {
+    // See DroneCameraController: unclamped deltas push lerp alphas past 1.
+    const delta = Math.min(rawDelta, 1 / 30);
     const targetExplode = staticExploded ? 1.0 : explosionFactor;
     currentExplodeFactor.current = THREE.MathUtils.lerp(
       currentExplodeFactor.current,
