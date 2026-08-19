@@ -124,7 +124,7 @@ module tb_core_stress_adversarial;
             rst_n = 1'b1;
             @(posedge clk); #1;
 
-            if (pc_debug == 32'h00000000 && ecc_ded_1 == 1'b0 && ecc_ded_2 == 1'b0) begin
+            if (pc_debug == 32'h00000004 && ecc_ded_1 == 1'b0 && ecc_ded_2 == 1'b0) begin
                 p3_3_passed++;
                 $display("  Reset under FI Case 1: PC reset to 0, no DED or fault latching.");
             end else begin

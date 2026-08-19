@@ -1,6 +1,0 @@
-# Parameter mappings
-
-parameter_definitions:
-  - name: TIME_CSR_IMPLEMENTED
-    coverpoint: ["cp_cntr"]
-    effect: ["Skip `time` and `timeh` if False"]
