@@ -1,1 +1,0 @@
-run-cve4.sh --cfg rv32imcf --elf

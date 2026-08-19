@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 // ============================================================================
 // File: control_unit.sv
 // Description: Main Control Unit Decoder for RV32I Base Instruction Set.
@@ -40,24 +41,24 @@ module control_unit (
         trap      = 1'b0;
 
         case (opcode)
-            OPCODE_R_TYPE: begin
+OPCODE_R_TYPE: begin
                 reg_write = 1'b1;
                 alu_src_b = 1'b0;
                 wb_sel    = WB_SEL_ALU;
                 case (funct3)
-                    FUNCT3_ADD_SUB: alu_op = alu_op_e'((funct7[5]) ? ALU_SUB : ALU_ADD);
+                    FUNCT3_ADD_SUB: alu_op = (funct7[5]) ? ALU_SUB : ALU_ADD;
                     FUNCT3_SLL:     alu_op = ALU_SLL;
                     FUNCT3_SLT:     alu_op = ALU_SLT;
                     FUNCT3_SLTU:    alu_op = ALU_SLTU;
                     FUNCT3_XOR:     alu_op = ALU_XOR;
-                    FUNCT3_SRL_SRA: alu_op = alu_op_e'((funct7[5]) ? ALU_SRA : ALU_SRL);
+                    FUNCT3_SRL_SRA: alu_op = (funct7[5]) ? ALU_SRA : ALU_SRL;
                     FUNCT3_OR:      alu_op = ALU_OR;
                     FUNCT3_AND:     alu_op = ALU_AND;
                     default:        trap   = 1'b1;
                 endcase
             end
 
-            OPCODE_I_TYPE: begin
+OPCODE_I_TYPE: begin
                 reg_write = 1'b1;
                 alu_src_b = 1'b1;
                 wb_sel    = WB_SEL_ALU;
@@ -69,7 +70,7 @@ module control_unit (
                     FUNCT3_OR:      alu_op = ALU_OR;
                     FUNCT3_AND:     alu_op = ALU_AND;
                     FUNCT3_SLL:     alu_op = ALU_SLL;
-                    FUNCT3_SRL_SRA: alu_op = alu_op_e'((funct7[5]) ? ALU_SRA : ALU_SRL);
+                    FUNCT3_SRL_SRA: alu_op = (funct7[5]) ? ALU_SRA : ALU_SRL;
                     default:        trap   = 1'b1;
                 endcase
             end

@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 // ============================================================================
 // File: riscv_core_top.sv
 // Description: Top-Level Module for 3-Stage Pipelined RV32E Core.
@@ -29,8 +30,47 @@ module riscv_core_top #(
     
     // Debug & Exception Signals
     output logic [31:0] pc_debug,
-    output logic        trap
+    output logic        trap,
+
+    // Fault Tolerance & Mode Control
+    input  logic        tmr_mode_pin,
+    
+    // Regfile Fault Injection
+    input  logic        fi_reg_en,
+    input  logic [3:0]  fi_reg_addr,
+    input  logic [5:0]  fi_reg_bit,
+    
+    // ALU Fault Injection
+    input  logic        fi_alu_en,
+    input  logic [1:0]  fi_alu_sel,
+    input  logic [4:0]  fi_alu_bit,
+    
+    // Status Outputs
+    output logic        ecc_sec_1,
+    output logic        ecc_ded_1,
+    output logic        ecc_sec_2,
+    output logic        ecc_ded_2,
+    output logic        tmr_mismatch,
+    output logic        tmr_fatal_mismatch
 );
+
+    // ------------------------------------------------------------------------
+    // FAULT TOLERANCE MODE CONTROL
+    // ------------------------------------------------------------------------
+    logic sw_tmr_mode_reg;
+    logic tmr_mode;
+
+    // Memory-mapped mode register at 0xFFFF_FFF0
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            sw_tmr_mode_reg <= 1'b0;
+        end else if (dmem_we && (dmem_addr == 32'hFFFF_FFF0)) begin
+            sw_tmr_mode_reg <= dmem_wdata[0];
+        end
+    end
+
+    // Overall TMR mode is OR of external pin and software register
+    assign tmr_mode = tmr_mode_pin | sw_tmr_mode_reg;
 
     // ------------------------------------------------------------------------
     // INTER-STAGE PIPELINE & CONTROL SIGNALS
@@ -109,7 +149,20 @@ module riscv_core_top #(
         .reg_write_wb         (reg_write_wb),
         .wb_sel_wb            (wb_sel_wb),
         .funct3_wb            (funct3_wb),
-        .trap                 (trap)
+        .trap                 (trap),
+        .tmr_mode             (tmr_mode),
+        .fi_reg_en            (fi_reg_en),
+        .fi_reg_addr          (fi_reg_addr),
+        .fi_reg_bit           (fi_reg_bit),
+        .fi_alu_en            (fi_alu_en),
+        .fi_alu_sel           (fi_alu_sel),
+        .fi_alu_bit           (fi_alu_bit),
+        .ecc_sec_1            (ecc_sec_1),
+        .ecc_ded_1            (ecc_ded_1),
+        .ecc_sec_2            (ecc_sec_2),
+        .ecc_ded_2            (ecc_ded_2),
+        .tmr_mismatch         (tmr_mismatch),
+        .tmr_fatal_mismatch   (tmr_fatal_mismatch)
     );
 
     // ------------------------------------------------------------------------

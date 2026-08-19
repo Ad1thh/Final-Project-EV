@@ -1,9 +1,44 @@
-/.agents/
-sim.out
-*.out
-*.vcd
-*.log
+# Antigravity & Agent configs
+# (Keep tracked rules if needed, or ignore local scratch)
+
+# Vivado build artifacts & logs
 *.jou
+*.log
+*.pb
+*.str
+*.vcd
+*.wdb
+xsim.dir/
 .Xil/
 clockInfo.txt
 dfx_runtime.txt
+
+# Vivado project generated folders
+*.cache/
+*.hw/
+*.ip_user_files/
+*.runs/
+*.sim/
+
+# Simulator binaries & compiled outputs
+*.vvp
+*.out
+sim.out
+sim_debug*
+sim_out*
+sim_regfile*
+sim_tmr*
+sim_ft*
+
+# Upstream large toolchains & test suites
+riscv-arch-test/
+riscv-gnu-toolchain/
+
+# Node / Next.js Dashboard
+fpga-demo-dashboard/node_modules/
+fpga-demo-dashboard/.next/
+fpga-demo-dashboard/out/
+
+# OS metadata
+.DS_Store
+Thumbs.db

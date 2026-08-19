@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>GLB Deep Inspector</title>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body style="background:#111;color:#eee;font-family:monospace;padding:20px;white-space:pre-wrap;font-size:10px;">
+<h2>GLB Deep Inspector - Full Tree</h2>
+<div id="output">Loading...</div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const out = document.getElementById('output');
+function log(msg) { out.textContent += msg + '\n'; }
+
+const loader = new GLTFLoader();
+loader.load('/rc_quadcopter_v3.glb', (gltf) => {
+  out.textContent = '';
+  const scene = gltf.scene;
+  scene.updateMatrixWorld(true);
+  
+  log('=== COMPLETE TREE (ALL LEVELS) ===\n');
+  function printTree(obj, depth) {
+    const indent = '  '.repeat(depth);
+    const p = obj.position;
+    const s = obj.scale;
+    const isMesh = obj instanceof THREE.Mesh;
+    let meshInfo = '';
+    if (isMesh) {
+      const geo = obj.geometry;
+      const verts = geo.attributes.position ? geo.attributes.position.count : 0;
+      meshInfo = ` MESH(${verts}verts)`;
+    }
+    log(`${indent}${obj.name || '(unnamed)'} [${obj.type}] pos=(${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)}) scale=(${s.x.toFixed(3)}, ${s.y.toFixed(3)}, ${s.z.toFixed(3)}) ch=${obj.children.length}${meshInfo}`);
+    for (const child of obj.children) {
+      printTree(child, depth + 1);
+    }
+  }
+  printTree(scene, 0);
+  
+  log('\n\n=== WORLD POSITIONS OF ALL MESHES ===\n');
+  scene.traverse(obj => {
+    if (obj instanceof THREE.Mesh) {
+      const wp = new THREE.Vector3();
+      obj.getWorldPosition(wp);
+      const box = new THREE.Box3().setFromObject(obj);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      log(`${obj.name}: worldPos=(${wp.x.toFixed(2)}, ${wp.y.toFixed(2)}, ${wp.z.toFixed(2)}) bboxCenter=(${center.x.toFixed(2)}, ${center.y.toFixed(2)}, ${center.z.toFixed(2)}) size=(${size.x.toFixed(2)}, ${size.y.toFixed(2)}, ${size.z.toFixed(2)})`);
+    }
+  });
+  
+}, undefined, (err) => {
+  out.textContent = 'Error: ' + err.message;
+});
+</script>
+</body>
+</html>

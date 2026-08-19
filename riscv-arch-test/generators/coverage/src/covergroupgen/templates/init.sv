@@ -1,1 +1,0 @@
-    ARCHCASE_INSTRNODOT_cg = new(); ARCHCASE_INSTRNODOT_cg.set_inst_name("obj_ARCHCASE_INSTRNODOT");

@@ -1,1 +1,0 @@
-../cv32e40s-rv32imc/link.ld

@@ -1,8 +1,10 @@
+`timescale 1ns/1ps
 // ============================================================================
 // File: id_ex_stage.sv
 // Description: Decode & Execute Stage (Stage 2) for 3-Stage RISC-V Core.
 //              Integrates Register File, Control Unit, ALU, Hazard Unit,
 //              Immediate Generator, Branch Evaluator, and EX/WB pipeline reg.
+//              Includes Selective TMR Execution and Fault Injection Hooks.
 // Standards: SystemVerilog-2012 / Cadence Genus Synthesizable
 // ============================================================================
 
@@ -46,7 +48,24 @@ module id_ex_stage #(
     output logic                  reg_write_wb,
     output wb_sel_e               wb_sel_wb,
     output logic [2:0]            funct3_wb,
-    output logic                  trap
+    output logic                  trap,
+
+    // Fault Tolerance Mode & Injection Interfaces
+    input  logic                  tmr_mode,
+    input  logic                  fi_reg_en,
+    input  logic [ADDR_WIDTH-1:0] fi_reg_addr,
+    input  logic [5:0]            fi_reg_bit,
+    input  logic                  fi_alu_en,
+    input  logic [1:0]            fi_alu_sel,
+    input  logic [4:0]            fi_alu_bit,
+    
+    // Fault Tolerance Status Outputs
+    output logic                  ecc_sec_1,
+    output logic                  ecc_ded_1,
+    output logic                  ecc_sec_2,
+    output logic                  ecc_ded_2,
+    output logic                  tmr_mismatch,
+    output logic                  tmr_fatal_mismatch
 );
 
     // ------------------------------------------------------------------------
@@ -79,14 +98,18 @@ module id_ex_stage #(
     assign imm_j = {{11{instr_id[31]}}, instr_id[31], instr_id[19:12], instr_id[20], instr_id[30:21], 1'b0};
 
     always_comb begin
-        case (opcode)
-            OPCODE_I_TYPE, OPCODE_LOAD, OPCODE_JALR: imm_selected = imm_i;
-            OPCODE_STORE:                              imm_selected = imm_s;
-            OPCODE_BRANCH:                             imm_selected = imm_b;
-            OPCODE_LUI, OPCODE_AUIPC:                  imm_selected = imm_u;
-            OPCODE_JAL:                                imm_selected = imm_j;
-            default:                                   imm_selected = imm_i;
-        endcase
+        if (opcode == OPCODE_I_TYPE || opcode == OPCODE_LOAD || opcode == OPCODE_JALR)
+            imm_selected = imm_i;
+        else if (opcode == OPCODE_STORE)
+            imm_selected = imm_s;
+        else if (opcode == OPCODE_BRANCH)
+            imm_selected = imm_b;
+        else if (opcode == OPCODE_LUI || opcode == OPCODE_AUIPC)
+            imm_selected = imm_u;
+        else if (opcode == OPCODE_JAL)
+            imm_selected = imm_j;
+        else
+            imm_selected = imm_i;
     end
 
     // ------------------------------------------------------------------------
@@ -103,8 +126,6 @@ module id_ex_stage #(
     logic       ctrl_is_jal;
     logic       ctrl_is_jalr;
 
-    logic ctrl_trap;
-
     control_unit u_control_unit (
         .opcode    (opcode),
         .funct3    (funct3),
@@ -119,20 +140,8 @@ module id_ex_stage #(
         .is_branch (ctrl_is_branch),
         .is_jal    (ctrl_is_jal),
         .is_jalr   (ctrl_is_jalr),
-        .trap      (ctrl_trap)
+        .trap      (trap)
     );
-
-    // RV32E Register Index Out-of-Bounds Trap Guard (x16-x31 access prevention)
-    logic uses_rs2;
-    assign uses_rs2 = (opcode == OPCODE_R_TYPE) || (opcode == OPCODE_BRANCH) || (opcode == OPCODE_STORE);
-
-    logic rv32e_out_of_bounds;
-    assign rv32e_out_of_bounds = (REG_COUNT == 16) && (
-        (ctrl_reg_write && instr_id[11]) || 
-        instr_id[19] || 
-        (uses_rs2 && instr_id[24])
-    );
-    assign trap = ctrl_trap | rv32e_out_of_bounds;
 
     // ------------------------------------------------------------------------
     // REGISTER FILE INSTANTIATION
@@ -144,21 +153,27 @@ module id_ex_stage #(
         .REG_COUNT  (REG_COUNT),
         .ADDR_WIDTH (ADDR_WIDTH)
     ) u_regfile (
-        .clk    (clk),
-        .rst_n  (rst_n),
-        .raddr1 (rs1_addr),
-        .rdata1 (reg_rdata1),
-        .raddr2 (rs2_addr),
-        .rdata2 (reg_rdata2),
-        .we     (wb_reg_write),
-        .waddr  (wb_rd),
-        .wdata  (wb_result)
+        .clk                    (clk),
+        .rst_n                  (rst_n),
+        .raddr1                 (rs1_addr),
+        .rdata1                 (reg_rdata1),
+        .single_err_corrected_1 (ecc_sec_1),
+        .double_err_detected_1  (ecc_ded_1),
+        .raddr2                 (rs2_addr),
+        .rdata2                 (reg_rdata2),
+        .single_err_corrected_2 (ecc_sec_2),
+        .double_err_detected_2  (ecc_ded_2),
+        .we                     (wb_reg_write),
+        .waddr                  (wb_rd),
+        .wdata                  (wb_result),
+        .fi_reg_en              (fi_reg_en),
+        .fi_reg_addr            (fi_reg_addr),
+        .fi_reg_bit             (fi_reg_bit)
     );
 
     // ------------------------------------------------------------------------
-    // HAZARD DETECTION & FORWARDING UNIT
+    // HAZARD DETECTION UNIT
     // ------------------------------------------------------------------------
-    logic forward_a, forward_b;
     logic flush_id_ex;
 
     hazard_unit #(
@@ -166,45 +181,76 @@ module id_ex_stage #(
     ) u_hazard_unit (
         .id_rs1               (rs1_addr),
         .id_rs2               (rs2_addr),
-        .wb_rd                (wb_rd),
-        .wb_reg_write         (wb_reg_write),
+        .id_ex_rd             (rd_wb),          // EX/WB pipeline reg RD
+        .id_ex_mem_read       (reg_write_wb && (wb_sel_wb == WB_SEL_MEM)),
         .branch_or_jump_taken (branch_or_jump_taken),
-        .forward_a            (forward_a),
-        .forward_b            (forward_b),
         .stall_if             (stall_if),
         .flush_if_id          (flush_if_id),
         .flush_id_ex          (flush_id_ex)
     );
 
     // ------------------------------------------------------------------------
-    // FORWARDING & OPERAND MUXES
+    // OPERAND MUXES (Forwarding removed due to regfile bypass)
     // ------------------------------------------------------------------------
-    logic [DATA_WIDTH-1:0] op_a_forwarded;
-    logic [DATA_WIDTH-1:0] op_b_forwarded;
     logic [DATA_WIDTH-1:0] alu_in_a;
     logic [DATA_WIDTH-1:0] alu_in_b;
+    logic [DATA_WIDTH-1:0] alu_in_a_tmr;
+    logic [DATA_WIDTH-1:0] alu_in_b_tmr;
 
-    assign op_a_forwarded = (forward_a) ? wb_result : reg_rdata1;
-    assign op_b_forwarded = (forward_b) ? wb_result : reg_rdata2;
+    assign alu_in_a = (ctrl_alu_src_a) ? pc_id : reg_rdata1;
+    assign alu_in_b = (ctrl_alu_src_b) ? imm_selected : reg_rdata2;
 
-    assign alu_in_a = (ctrl_alu_src_a) ? pc_id : op_a_forwarded;
-    assign alu_in_b = (ctrl_alu_src_b) ? imm_selected : op_b_forwarded;
+    // Operand Isolation for Simplex Mode
+    assign alu_in_a_tmr = (tmr_mode) ? alu_in_a : '0;
+    assign alu_in_b_tmr = (tmr_mode) ? alu_in_b : '0;
 
     // ------------------------------------------------------------------------
-    // ALU INSTANTIATION
+    // SELECTIVE TMR ALU INSTANTIATIONS & FAULT INJECTION
     // ------------------------------------------------------------------------
-    logic [DATA_WIDTH-1:0] alu_result;
-    logic                  alu_zero;
+    logic [DATA_WIDTH-1:0] alu_result_0, alu_result_1, alu_result_2;
+    logic                  alu_zero_0, alu_zero_1, alu_zero_2;
+    logic [DATA_WIDTH-1:0] alu_result_0_fi, alu_result_1_fi, alu_result_2_fi;
 
-    alu #(
-        .DATA_WIDTH (DATA_WIDTH)
-    ) u_alu (
-        .a      (alu_in_a),
-        .b      (alu_in_b),
-        .alu_op (ctrl_alu_op),
-        .result (alu_result),
-        .zero   (alu_zero)
+    alu #(.DATA_WIDTH(DATA_WIDTH)) u_alu_0 (
+        .a(alu_in_a), .b(alu_in_b), .alu_op(ctrl_alu_op), .result(alu_result_0), .zero(alu_zero_0)
     );
+
+    alu #(.DATA_WIDTH(DATA_WIDTH)) u_alu_1 (
+        .a(alu_in_a_tmr), .b(alu_in_b_tmr), .alu_op(ctrl_alu_op), .result(alu_result_1), .zero(alu_zero_1)
+    );
+
+    alu #(.DATA_WIDTH(DATA_WIDTH)) u_alu_2 (
+        .a(alu_in_a_tmr), .b(alu_in_b_tmr), .alu_op(ctrl_alu_op), .result(alu_result_2), .zero(alu_zero_2)
+    );
+
+    // Fault Injection Masks
+    logic [DATA_WIDTH-1:0] fi_mask;
+    assign fi_mask = (fi_alu_en) ? (32'd1 << fi_alu_bit) : '0;
+
+    assign alu_result_0_fi = alu_result_0 ^ ((fi_alu_sel == 2'd0) ? fi_mask : '0);
+    assign alu_result_1_fi = alu_result_1 ^ ((fi_alu_sel == 2'd1) ? fi_mask : '0);
+    assign alu_result_2_fi = alu_result_2 ^ ((fi_alu_sel == 2'd2) ? fi_mask : '0);
+
+    // TMR Voter
+    logic [DATA_WIDTH-1:0] voter_result;
+    logic                  voter_mismatch;
+    logic                  voter_fatal_mismatch;
+
+    tmr_voter #(.WIDTH(DATA_WIDTH)) u_tmr_voter (
+        .a(alu_result_0_fi),
+        .b(alu_result_1_fi),
+        .c(alu_result_2_fi),
+        .result(voter_result),
+        .mismatch_detected(voter_mismatch),
+        .tmr_fatal_mismatch(voter_fatal_mismatch)
+    );
+
+    logic [DATA_WIDTH-1:0] alu_result;
+    
+    // Select final output based on mode
+    assign alu_result   = (tmr_mode) ? voter_result : alu_result_0_fi;
+    assign tmr_mismatch = (tmr_mode) ? voter_mismatch : 1'b0;
+    assign tmr_fatal_mismatch = (tmr_mode) ? voter_fatal_mismatch : 1'b0;
 
     // ------------------------------------------------------------------------
     // BRANCH CONDITION EVALUATION & TARGET CALCULATION
@@ -212,27 +258,24 @@ module id_ex_stage #(
     logic branch_condition_met;
 
     always_comb begin
-        case (funct3)
-            FUNCT3_BEQ:  branch_condition_met = (op_a_forwarded == op_b_forwarded);
-            FUNCT3_BNE:  branch_condition_met = (op_a_forwarded != op_b_forwarded);
-            FUNCT3_BLT:  branch_condition_met = ($signed(op_a_forwarded) < $signed(op_b_forwarded));
-            FUNCT3_BGE:  branch_condition_met = ($signed(op_a_forwarded) >= $signed(op_b_forwarded));
-            FUNCT3_BLTU: branch_condition_met = (op_a_forwarded < op_b_forwarded);
-            FUNCT3_BGEU: branch_condition_met = (op_a_forwarded >= op_b_forwarded);
-            default:     branch_condition_met = 1'b0;
-        endcase
+        if (funct3 == FUNCT3_BEQ)  branch_condition_met = (reg_rdata1 == reg_rdata2);
+        else if (funct3 == FUNCT3_BNE)  branch_condition_met = (reg_rdata1 != reg_rdata2);
+        else if (funct3 == FUNCT3_BLT)  branch_condition_met = ($signed(reg_rdata1) < $signed(reg_rdata2));
+        else if (funct3 == FUNCT3_BGE)  branch_condition_met = ($signed(reg_rdata1) >= $signed(reg_rdata2));
+        else if (funct3 == FUNCT3_BLTU) branch_condition_met = (reg_rdata1 < reg_rdata2);
+        else if (funct3 == FUNCT3_BGEU) branch_condition_met = (reg_rdata1 >= reg_rdata2);
+        else                            branch_condition_met = 1'b0;
     end
 
     assign branch_or_jump_taken = (ctrl_is_branch & branch_condition_met) | ctrl_is_jal | ctrl_is_jalr;
 
     always_comb begin
-        if (ctrl_is_jalr) begin
-            target_pc = (op_a_forwarded + imm_i) & ~32'd1;
-        end else if (ctrl_is_jal) begin
+        if (ctrl_is_jalr)
+            target_pc = (reg_rdata1 + imm_i) & ~32'd1;
+        else if (ctrl_is_jal)
             target_pc = pc_id + imm_j;
-        end else begin
+        else
             target_pc = pc_id + imm_b;
-        end
     end
 
     // ------------------------------------------------------------------------
@@ -241,24 +284,19 @@ module id_ex_stage #(
     assign dmem_addr = alu_result;
 
     always_comb begin
-        case (funct3)
-            FUNCT3_SB: begin
-                dmem_wmask = 4'b0001 << alu_result[1:0];
-                dmem_wdata = op_b_forwarded << (8 * alu_result[1:0]);
-            end
-            FUNCT3_SH: begin
-                dmem_wmask = (alu_result[1]) ? 4'b1100 : 4'b0011;
-                dmem_wdata = (alu_result[1]) ? (op_b_forwarded << 16) : op_b_forwarded;
-            end
-            FUNCT3_SW: begin
-                dmem_wmask = 4'b1111;
-                dmem_wdata = op_b_forwarded;
-            end
-            default: begin
-                dmem_wmask = 4'b0000;
-                dmem_wdata = '0;
-            end
-        endcase
+        if (funct3 == FUNCT3_SB) begin
+            dmem_wmask = 4'b0001 << alu_result[1:0];
+            dmem_wdata = reg_rdata2 << (8 * alu_result[1:0]);
+        end else if (funct3 == FUNCT3_SH) begin
+            dmem_wmask = 4'b0011 << alu_result[1:0];
+            dmem_wdata = reg_rdata2 << (8 * alu_result[1:0]);
+        end else if (funct3 == FUNCT3_SW) begin
+            dmem_wmask = 4'b1111;
+            dmem_wdata = reg_rdata2;
+        end else begin
+            dmem_wmask = 4'b0000;
+            dmem_wdata = '0;
+        end
     end
 
     assign dmem_we = ctrl_mem_write & ~flush_id_ex;
