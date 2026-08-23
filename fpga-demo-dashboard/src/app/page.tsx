@@ -317,11 +317,12 @@ function BottomToolbar() {
 
 export default function Dashboard() {
   return (
-      {/* Warm near-black charcoal background (#0d0d10) — not pure black */}
       <div
         className="w-screen h-screen overflow-hidden bg-grid-pattern text-white relative font-sans"
         style={{ backgroundColor: "#0d0d10" }}
       >
+        {/* Warm near-black charcoal background (#0d0d10) — not pure black */}
+
         {/* Radial vignette to focus the eye on the 3-D subject */}
         <div className="absolute inset-0 bg-radial-gradient from-transparent to-black/80 pointer-events-none" />
 
