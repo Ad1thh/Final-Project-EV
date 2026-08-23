@@ -37,6 +37,11 @@ set_property -dict { PACKAGE_PIN R2   IOSTANDARD LVCMOS33 } [get_ports { LED[14]
 set_property -dict { PACKAGE_PIN P2   IOSTANDARD LVCMOS33 } [get_ports { LED[15] }];
 
 ## ----------------------------------------------------------------------------
+## USB-UART Bridge
+## ----------------------------------------------------------------------------
+set_property -dict { PACKAGE_PIN D4   IOSTANDARD LVCMOS33 } [get_ports { UART_TXD }];
+
+## ----------------------------------------------------------------------------
 ## Configuration Voltage & Mode Settings for Artix-7
 ## ----------------------------------------------------------------------------
 set_property CFGBVS VCCO [current_design]

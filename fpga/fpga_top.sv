@@ -16,7 +16,8 @@ module fpga_top #(
 )(
     input  logic        CLK100MHZ,  // 100 MHz input clock (Nexys 4 Pin E3)
     input  logic        CPU_RESETN, // Active-low reset button (Nexys 4 Pin C12)
-    output logic [15:0] LED         // 16 On-board LEDs
+    output logic [15:0] LED,        // 16 On-board LEDs
+    output logic        UART_TXD    // UART Transmit Data
 );
 
     // ------------------------------------------------------------------------
@@ -121,23 +122,55 @@ module fpga_top #(
     end
 
     // ------------------------------------------------------------------------
-    // MMIO MAPPING: 0x8000_0000 -> BOARD LEDS
+    // MMIO MAPPING: 0x8000_0000 -> BOARD LEDS, 0x8000_0008 -> UART TX
     // ------------------------------------------------------------------------
     logic [15:0] led_reg = 16'h0001;
+    logic        uart_valid;
+    logic [7:0]  uart_tx_data;
+    logic        uart_ready;
 
     always_ff @(posedge clk_25m or negedge rst_n) begin
         if (!rst_n) begin
             led_reg <= 16'h0001; // Power/Reset indicator (LED 0 active on reset)
-        end else if (dmem_we && dmem_addr[31]) begin // Address 0x8000_0000 region
-            if (dmem_wmask[0]) led_reg[7:0]  <= dmem_wdata[7:0];
-            if (dmem_wmask[1]) led_reg[15:8] <= dmem_wdata[15:8];
+            uart_valid <= 1'b0;
+            uart_tx_data <= 8'h00;
+        end else begin
+            uart_valid <= 1'b0; // Default: 1-cycle pulse
+            
+            if (dmem_we && dmem_addr[31]) begin // Address 0x8000_0000 region
+                if (dmem_addr[7:0] == 8'h00) begin
+                    if (dmem_wmask[0]) led_reg[7:0]  <= dmem_wdata[7:0];
+                    if (dmem_wmask[1]) led_reg[15:8] <= dmem_wdata[15:8];
+                end else if (dmem_addr[7:0] == 8'h08) begin
+                    if (dmem_wmask[0]) begin
+                        uart_tx_data <= dmem_wdata[7:0];
+                        uart_valid <= 1'b1;
+                    end
+                end
+            end
         end
     end
 
     assign LED = led_reg;
 
+    // ------------------------------------------------------------------------
+    // UART TRANSMITTER
+    // ------------------------------------------------------------------------
+    uart_tx #(
+        .BAUD_DIVIDER(217), // 25MHz / 115200
+        .PARITY("NONE")
+    ) u_uart_tx (
+        .clk     (clk_25m),
+        .rstn    (rst_n),
+        .valid   (uart_valid),
+        .ready   (uart_ready),
+        .tx_data (uart_tx_data),
+        .tx      (UART_TXD)
+    );
+
     // Data Memory Read (MMIO at 0x8000_0000 vs BRAM read)
-    assign dmem_rdata = (dmem_addr[31]) ? {16'h0000, led_reg} :
+    assign dmem_rdata = (dmem_addr[31]) ? 
+                            ((dmem_addr[7:0] == 8'h0C) ? {31'h0, uart_ready} : {16'h0000, led_reg}) :
                         ((dmem_idx < MEM_DEPTH) ? mem[dmem_idx] : 32'h0000_0000);
 
 endmodule
