@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
-import { DashboardProvider, useDashboard } from "@/lib/DashboardContext";
+import { useDashboard } from "@/lib/DashboardContext";
 import { Layers } from "lucide-react";
 import anime from "animejs";
 import * as THREE from "three";
@@ -98,8 +98,6 @@ function SubsystemsPageContent() {
 
 export default function SubsystemsPage() {
   return (
-    <DashboardProvider>
-      <SubsystemsPageContent />
-    </DashboardProvider>
+    <SubsystemsPageContent />
   );
 }

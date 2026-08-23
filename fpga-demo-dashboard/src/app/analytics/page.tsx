@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import { DashboardProvider, useDashboard } from "@/lib/DashboardContext";
+import { useDashboard } from "@/lib/DashboardContext";
 import Navigation from "@/components/Navigation";
 import { BarChart2, Activity, ShieldAlert, Cpu } from "lucide-react";
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
@@ -130,8 +130,6 @@ function AnalyticsContent() {
 
 export default function AnalyticsPage() {
   return (
-    <DashboardProvider>
-      <AnalyticsContent />
-    </DashboardProvider>
+    <AnalyticsContent />
   );
 }

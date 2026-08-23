@@ -105,7 +105,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [hasPersistentFault, setHasPersistentFault] = useState(false);
 
   useEffect(() => {
-    if (!isDemoActive) return;
     const interval = setInterval(() => {
       setFaultHistory(prev => {
         const now = new Date();
@@ -114,7 +113,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       });
     }, 3000);
     return () => clearInterval(interval);
-  }, [isDemoActive, faultStats]);
+  }, [faultStats]);
 
   const addToast = (message: string, type: ToastMessage["type"]) => {
     const id = nextToastId++;
@@ -236,6 +235,63 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDemoActive, hasPersistentFault, processorState]);
+
+  // WebSocket Integration for Live Telemetry
+  useEffect(() => {
+    const ws = new WebSocket("ws://localhost:8080");
+
+    ws.onopen = () => {
+      console.log("Connected to Serial Bridge WebSocket");
+      setIsDemoActive(false); // Disable internal mock loop
+      addToast("Connected to live telemetry bridge", "success");
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "SEC") {
+           setFaultStats(s => ({ ...s, sec: s.sec + 1, total: s.total + 1 }));
+           setActiveFaultModule("CPU_SEC");
+           setLiveMonitor({ type: "SEC_INJECTED", register: data.reg, bit: data.bit || "0", badValue: data.badValue || "0xDEADBEEF" });
+        } else if (data.type === "SEC_CORRECTED") {
+           setLiveMonitor({ type: "SEC_CORRECTED", register: data.reg, goodValue: data.goodValue });
+           setTimeout(() => {
+             setLiveMonitor({ type: "IDLE", value: "0x0000000F" });
+             setActiveFaultModule(null);
+           }, 2000);
+        } else if (data.type === "ALU") {
+           setFaultStats(s => ({ ...s, alu: s.alu + 1, total: s.total + 1 }));
+           setActiveFaultModule(`ALU_${data.aluId}`);
+           setProcessorState("Recovering");
+           setLiveMonitor({ type: "ALU_INJECTED", aluId: parseInt(data.aluId, 10), badValue: data.badValue, goodValue: "0x0000000F" });
+        } else if (data.type === "ALU_RECOVERED") {
+           setLiveMonitor({ type: "ALU_RECOVERED", goodValue: data.goodValue });
+           setActiveFaultModule("TMR_RECOVER");
+           setProcessorState("Running");
+           setTimeout(() => {
+             setLiveMonitor({ type: "IDLE", value: "0x0000000F" });
+             setActiveFaultModule(null);
+           }, 2000);
+        } else if (data.type === "DED") {
+           setFaultStats(s => ({ ...s, ded: s.ded + 1, total: s.total + 1 }));
+           setProcessorState("Degraded");
+           setHasPersistentFault(true);
+           setActiveFaultModule("CPU_DED");
+           setLiveMonitor({ type: "DED_DETECTED", register: data.reg });
+        }
+      } catch (e) {
+        console.error("Failed to parse websocket message", e);
+      }
+    };
+
+    ws.onclose = () => {
+      console.log("WebSocket disconnected");
+      addToast("Disconnected from telemetry bridge", "error");
+    };
+
+    return () => ws.close();
+  }, []);
 
   return (
     <DashboardContext.Provider

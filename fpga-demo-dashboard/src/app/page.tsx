@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
-import { DashboardProvider, useDashboard } from "@/lib/DashboardContext";
+import { useDashboard } from "@/lib/DashboardContext";
 import { Activity, Zap, Settings2, RefreshCcw, Pause, Play, Crosshair, Cpu } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as THREE from "three";
@@ -317,7 +317,6 @@ function BottomToolbar() {
 
 export default function Dashboard() {
   return (
-    <DashboardProvider>
       {/* Warm near-black charcoal background (#0d0d10) — not pure black */}
       <div
         className="w-screen h-screen overflow-hidden bg-grid-pattern text-white relative font-sans"
@@ -353,6 +352,5 @@ export default function Dashboard() {
           </Canvas>
         </div>
       </div>
-    </DashboardProvider>
   );
 }
