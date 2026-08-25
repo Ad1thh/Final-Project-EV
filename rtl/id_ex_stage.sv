@@ -190,37 +190,40 @@ module id_ex_stage #(
     );
 
     // ------------------------------------------------------------------------
-    // OPERAND MUXES (Forwarding removed due to regfile bypass)
+    // OPERAND MUXES & ADAPTIVE REDUNDANCY CONTROL
     // ------------------------------------------------------------------------
     logic [DATA_WIDTH-1:0] alu_in_a;
     logic [DATA_WIDTH-1:0] alu_in_b;
-    logic [DATA_WIDTH-1:0] alu_in_a_tmr;
-    logic [DATA_WIDTH-1:0] alu_in_b_tmr;
+    logic [DATA_WIDTH-1:0] alu_in_a_ex1, alu_in_b_ex1;
+    logic [3:0]            ctrl_alu_op_ex1;
+    logic [DATA_WIDTH-1:0] alu_in_a_ex2, alu_in_b_ex2;
+    logic [3:0]            ctrl_alu_op_ex2;
+    logic                  gated_clk_ex1, gated_clk_ex2;
+    logic                  tmr_mode_active;
 
     assign alu_in_a = (ctrl_alu_src_a) ? pc_id : reg_rdata1;
     assign alu_in_b = (ctrl_alu_src_b) ? imm_selected : reg_rdata2;
 
-    // Operand Isolation for Simplex Mode
-    assign alu_in_a_tmr = (tmr_mode) ? alu_in_a : '0;
-    assign alu_in_b_tmr = (tmr_mode) ? alu_in_b : '0;
-
     // ------------------------------------------------------------------------
-    // SELECTIVE TMR ALU INSTANTIATIONS & FAULT INJECTION
+    // THREE EXECUTION UNITS (EX0, EX1, EX2)
     // ------------------------------------------------------------------------
     logic [DATA_WIDTH-1:0] alu_result_0, alu_result_1, alu_result_2;
     logic                  alu_zero_0, alu_zero_1, alu_zero_2;
     logic [DATA_WIDTH-1:0] alu_result_0_fi, alu_result_1_fi, alu_result_2_fi;
 
+    // EX0: Primary Execute Unit (Driven by primary clock & un-isolated operands)
     alu #(.DATA_WIDTH(DATA_WIDTH)) u_alu_0 (
         .a(alu_in_a), .b(alu_in_b), .alu_op(ctrl_alu_op), .result(alu_result_0), .zero(alu_zero_0)
     );
 
+    // EX1: Redundant Execute Unit 1 (Driven by isolated operands & gated clock)
     alu #(.DATA_WIDTH(DATA_WIDTH)) u_alu_1 (
-        .a(alu_in_a_tmr), .b(alu_in_b_tmr), .alu_op(ctrl_alu_op), .result(alu_result_1), .zero(alu_zero_1)
+        .a(alu_in_a_ex1), .b(alu_in_b_ex1), .alu_op(ctrl_alu_op_ex1), .result(alu_result_1), .zero(alu_zero_1)
     );
 
+    // EX2: Redundant Execute Unit 2 (Driven by isolated operands & gated clock)
     alu #(.DATA_WIDTH(DATA_WIDTH)) u_alu_2 (
-        .a(alu_in_a_tmr), .b(alu_in_b_tmr), .alu_op(ctrl_alu_op), .result(alu_result_2), .zero(alu_zero_2)
+        .a(alu_in_a_ex2), .b(alu_in_b_ex2), .alu_op(ctrl_alu_op_ex2), .result(alu_result_2), .zero(alu_zero_2)
     );
 
     // Fault Injection Masks
@@ -231,26 +234,35 @@ module id_ex_stage #(
     assign alu_result_1_fi = alu_result_1 ^ ((fi_alu_sel == 2'd1) ? fi_mask : '0);
     assign alu_result_2_fi = alu_result_2 ^ ((fi_alu_sel == 2'd2) ? fi_mask : '0);
 
-    // TMR Voter
-    logic [DATA_WIDTH-1:0] voter_result;
-    logic                  voter_mismatch;
-    logic                  voter_fatal_mismatch;
-
-    tmr_voter #(.WIDTH(DATA_WIDTH)) u_tmr_voter (
-        .a(alu_result_0_fi),
-        .b(alu_result_1_fi),
-        .c(alu_result_2_fi),
-        .result(voter_result),
-        .mismatch_detected(voter_mismatch),
-        .tmr_fatal_mismatch(voter_fatal_mismatch)
-    );
-
+    // Adaptive Redundancy Controller
     logic [DATA_WIDTH-1:0] alu_result;
-    
-    // Select final output based on mode
-    assign alu_result   = (tmr_mode) ? voter_result : alu_result_0_fi;
-    assign tmr_mismatch = (tmr_mode) ? voter_mismatch : 1'b0;
-    assign tmr_fatal_mismatch = (tmr_mode) ? voter_fatal_mismatch : 1'b0;
+
+    adaptive_redundancy_controller #(
+        .DATA_WIDTH (DATA_WIDTH)
+    ) u_adaptive_redundancy_controller (
+        .clk                (clk),
+        .rst_n              (rst_n),
+        .tmr_mode_pin       (tmr_mode),
+        .sw_tmr_mode_reg    (1'b0),
+        .alu_in_a           (alu_in_a),
+        .alu_in_b           (alu_in_b),
+        .ctrl_alu_op        (ctrl_alu_op),
+        .alu_in_a_ex1       (alu_in_a_ex1),
+        .alu_in_b_ex1       (alu_in_b_ex1),
+        .ctrl_alu_op_ex1    (ctrl_alu_op_ex1),
+        .alu_in_a_ex2       (alu_in_a_ex2),
+        .alu_in_b_ex2       (alu_in_b_ex2),
+        .ctrl_alu_op_ex2    (ctrl_alu_op_ex2),
+        .gated_clk_ex1      (gated_clk_ex1),
+        .gated_clk_ex2      (gated_clk_ex2),
+        .alu_result_0_fi    (alu_result_0_fi),
+        .alu_result_1_fi    (alu_result_1_fi),
+        .alu_result_2_fi    (alu_result_2_fi),
+        .alu_result         (alu_result),
+        .tmr_mismatch       (tmr_mismatch),
+        .tmr_fatal_mismatch (tmr_fatal_mismatch),
+        .tmr_mode_active    (tmr_mode_active)
+    );
 
     // ------------------------------------------------------------------------
     // BRANCH CONDITION EVALUATION & TARGET CALCULATION
@@ -283,13 +295,16 @@ module id_ex_stage #(
     // ------------------------------------------------------------------------
     assign dmem_addr = alu_result;
 
+    logic [1:0] alu_result_offset;
+    assign alu_result_offset = alu_result[1:0];
+
     always_comb begin
         if (funct3 == FUNCT3_SB) begin
-            dmem_wmask = 4'b0001 << alu_result[1:0];
-            dmem_wdata = reg_rdata2 << (8 * alu_result[1:0]);
+            dmem_wmask = 4'b0001 << alu_result_offset;
+            dmem_wdata = reg_rdata2 << (8 * alu_result_offset);
         end else if (funct3 == FUNCT3_SH) begin
-            dmem_wmask = 4'b0011 << alu_result[1:0];
-            dmem_wdata = reg_rdata2 << (8 * alu_result[1:0]);
+            dmem_wmask = 4'b0011 << alu_result_offset;
+            dmem_wdata = reg_rdata2 << (8 * alu_result_offset);
         end else if (funct3 == FUNCT3_SW) begin
             dmem_wmask = 4'b1111;
             dmem_wdata = reg_rdata2;

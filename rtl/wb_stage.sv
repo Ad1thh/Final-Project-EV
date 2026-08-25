@@ -28,16 +28,22 @@ module wb_stage #(
     logic [15:0] halfword_selected;
     logic [31:0] formatted_load_data;
 
+    logic [1:0] wb_byte_offset;
+    logic       wb_half_offset;
+
+    assign wb_byte_offset = alu_result_wb[1:0];
+    assign wb_half_offset = alu_result_wb[1];
+
     always_comb begin
-        if (alu_result_wb[1:0] == 2'b00)       byte_selected = dmem_rdata_raw_wb[7:0];
-        else if (alu_result_wb[1:0] == 2'b01)  byte_selected = dmem_rdata_raw_wb[15:8];
-        else if (alu_result_wb[1:0] == 2'b10)  byte_selected = dmem_rdata_raw_wb[23:16];
-        else                                   byte_selected = dmem_rdata_raw_wb[31:24];
+        if (wb_byte_offset == 2'b00)       byte_selected = dmem_rdata_raw_wb[7:0];
+        else if (wb_byte_offset == 2'b01)  byte_selected = dmem_rdata_raw_wb[15:8];
+        else if (wb_byte_offset == 2'b10)  byte_selected = dmem_rdata_raw_wb[23:16];
+        else                               byte_selected = dmem_rdata_raw_wb[31:24];
 
-        if (alu_result_wb[1] == 1'b0)          halfword_selected = dmem_rdata_raw_wb[15:0];
-        else                                   halfword_selected = dmem_rdata_raw_wb[31:16];
+        if (wb_half_offset == 1'b0)        halfword_selected = dmem_rdata_raw_wb[15:0];
+        else                               halfword_selected = dmem_rdata_raw_wb[31:16];
 
-        if (funct3_wb == FUNCT3_LB)    formatted_load_data = {{24{byte_selected[7]}}, byte_selected};
+        if (funct3_wb == FUNCT3_LB)       formatted_load_data = {{24{byte_selected[7]}}, byte_selected};
         else if (funct3_wb == FUNCT3_LBU) formatted_load_data = {24'b0, byte_selected};
         else if (funct3_wb == FUNCT3_LH)  formatted_load_data = {{16{halfword_selected[15]}}, halfword_selected};
         else if (funct3_wb == FUNCT3_LHU) formatted_load_data = {16'b0, halfword_selected};

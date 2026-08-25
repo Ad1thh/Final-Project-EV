@@ -1,0 +1,886 @@
+#! /usr/bin/vvp
+:ivl_version "13.0 (stable)" "(v13_0)";
+:ivl_delay_selection "TYPICAL";
+:vpi_time_precision - 12;
+:vpi_module "/usr/lib/x86_64-linux-gnu/ivl/system.vpi";
+:vpi_module "/usr/lib/x86_64-linux-gnu/ivl/vhdl_sys.vpi";
+:vpi_module "/usr/lib/x86_64-linux-gnu/ivl/vhdl_textio.vpi";
+:vpi_module "/usr/lib/x86_64-linux-gnu/ivl/v2005_math.vpi";
+:vpi_module "/usr/lib/x86_64-linux-gnu/ivl/va_math.vpi";
+:vpi_module "/usr/lib/x86_64-linux-gnu/ivl/v2009.vpi";
+S_0x6452ee284a00 .scope package, "$unit" "$unit" 2 1;
+ .timescale 0 0;
+S_0x6452ee25d0d0 .scope package, "riscv_pkg" "riscv_pkg" 3 9;
+ .timescale -9 -12;
+enum0x6452ee203260 .enum4 (7)
+   "OPCODE_R_TYPE" 7'b0110011,
+   "OPCODE_I_TYPE" 7'b0010011,
+   "OPCODE_LOAD" 7'b0000011,
+   "OPCODE_STORE" 7'b0100011,
+   "OPCODE_BRANCH" 7'b1100011,
+   "OPCODE_JALR" 7'b1100111,
+   "OPCODE_JAL" 7'b1101111,
+   "OPCODE_LUI" 7'b0110111,
+   "OPCODE_AUIPC" 7'b0010111,
+   "OPCODE_SYSTEM" 7'b1110011
+ ;
+enum0x6452ee2034e0 .enum4 (3)
+   "FUNCT3_ADD_SUB" 3'b000,
+   "FUNCT3_SLL" 3'b001,
+   "FUNCT3_SLT" 3'b010,
+   "FUNCT3_SLTU" 3'b011,
+   "FUNCT3_XOR" 3'b100,
+   "FUNCT3_SRL_SRA" 3'b101,
+   "FUNCT3_OR" 3'b110,
+   "FUNCT3_AND" 3'b111
+ ;
+enum0x6452ee215390 .enum4 (3)
+   "FUNCT3_BEQ" 3'b000,
+   "FUNCT3_BNE" 3'b001,
+   "FUNCT3_BLT" 3'b100,
+   "FUNCT3_BGE" 3'b101,
+   "FUNCT3_BLTU" 3'b110,
+   "FUNCT3_BGEU" 3'b111
+ ;
+enum0x6452ee215e30 .enum4 (3)
+   "FUNCT3_LB" 3'b000,
+   "FUNCT3_LH" 3'b001,
+   "FUNCT3_LW" 3'b010,
+   "FUNCT3_LBU" 3'b100,
+   "FUNCT3_LHU" 3'b101
+ ;
+enum0x6452ee24ed40 .enum4 (3)
+   "FUNCT3_SB" 3'b000,
+   "FUNCT3_SH" 3'b001,
+   "FUNCT3_SW" 3'b010
+ ;
+enum0x6452ee24f410 .enum4 (4)
+   "ALU_ADD" 4'b0000,
+   "ALU_SUB" 4'b0001,
+   "ALU_AND" 4'b0010,
+   "ALU_OR" 4'b0011,
+   "ALU_XOR" 4'b0100,
+   "ALU_SLL" 4'b0101,
+   "ALU_SRL" 4'b0110,
+   "ALU_SRA" 4'b0111,
+   "ALU_SLT" 4'b1000,
+   "ALU_SLTU" 4'b1001,
+   "ALU_PASS_B" 4'b1010
+ ;
+enum0x6452ee2505b0 .enum4 (2)
+   "WB_SEL_ALU" 2'b00,
+   "WB_SEL_MEM" 2'b01,
+   "WB_SEL_PC4" 2'b10
+ ;
+S_0x6452ee2857d0 .scope module, "tb_adaptive_redundancy_control" "tb_adaptive_redundancy_control" 4 13;
+ .timescale -9 -12;
+P_0x6452ee285960 .param/l "DATA_WIDTH" 0 4 15, +C4<00000000000000000000000000100000>;
+v0x6452ee2a7430_0 .var "alu_in_a", 31 0;
+v0x6452ee2a7540_0 .net "alu_in_a_ex1", 31 0, v0x6452ee2a5ef0_0;  1 drivers
+v0x6452ee2a7610_0 .net "alu_in_a_ex2", 31 0, v0x6452ee2a5fd0_0;  1 drivers
+v0x6452ee2a7710_0 .var "alu_in_b", 31 0;
+v0x6452ee2a77e0_0 .net "alu_in_b_ex1", 31 0, v0x6452ee2a6170_0;  1 drivers
+v0x6452ee2a78d0_0 .net "alu_in_b_ex2", 31 0, v0x6452ee2a6250_0;  1 drivers
+v0x6452ee2a79a0_0 .net "alu_result", 31 0, v0x6452ee2a6330_0;  1 drivers
+v0x6452ee2a7a70_0 .var "alu_result_0_fi", 31 0;
+v0x6452ee2a7b60_0 .var "alu_result_1_fi", 31 0;
+v0x6452ee2a7c00_0 .var "alu_result_2_fi", 31 0;
+v0x6452ee2a7d10_0 .var "clk", 0 0;
+v0x6452ee2a7db0_0 .var "ctrl_alu_op", 3 0;
+v0x6452ee2a7e70_0 .net "ctrl_alu_op_ex1", 3 0, v0x6452ee2a67d0_0;  1 drivers
+v0x6452ee2a7f10_0 .net "ctrl_alu_op_ex2", 3 0, v0x6452ee2a68b0_0;  1 drivers
+v0x6452ee2a7fb0_0 .var/2s "error_count", 31 0;
+v0x6452ee2a8070_0 .var/2s "ex1_ex2_toggle_count", 31 0;
+v0x6452ee2a8150_0 .net "gated_clk_ex1", 0 0, L_0x6452ee2756e0;  1 drivers
+v0x6452ee2a8350_0 .var/2s "gated_clk_ex1_pulses", 31 0;
+v0x6452ee2a8430_0 .net "gated_clk_ex2", 0 0, L_0x6452ee275750;  1 drivers
+v0x6452ee2a8520_0 .var "rst_n", 0 0;
+v0x6452ee2a85c0_0 .var "sw_tmr_mode_reg", 0 0;
+v0x6452ee2a8660_0 .var/2s "test_pass_count", 31 0;
+v0x6452ee2a8700_0 .net "tmr_fatal_mismatch", 0 0, v0x6452ee2a6c40_0;  1 drivers
+v0x6452ee2a87d0_0 .net "tmr_mismatch", 0 0, v0x6452ee2a6d00_0;  1 drivers
+v0x6452ee2a88a0_0 .net "tmr_mode_active", 0 0, L_0x6452ee275590;  1 drivers
+v0x6452ee2a8940_0 .var "tmr_mode_pin", 0 0;
+E_0x6452ee221680 .event posedge, v0x6452ee2a3fc0_0;
+E_0x6452ee22a170/0 .event anyedge, v0x6452ee2a68b0_0, v0x6452ee2a6250_0, v0x6452ee2a5fd0_0, v0x6452ee2a67d0_0;
+E_0x6452ee22a170/1 .event anyedge, v0x6452ee2a6170_0, v0x6452ee2a5ef0_0;
+E_0x6452ee22a170 .event/or E_0x6452ee22a170/0, E_0x6452ee22a170/1;
+S_0x6452ee285a50 .scope begin, "$ivl_for_loop0" "$ivl_for_loop0" 4 137, 4 137 0, S_0x6452ee2857d0;
+ .timescale -9 -12;
+v0x6452ee27da90_0 .var/2s "i", 31 0;
+E_0x6452ee229d60 .event posedge, v0x6452ee2a3d50_0;
+S_0x6452ee2a3270 .scope begin, "$ivl_for_loop1" "$ivl_for_loop1" 4 286, 4 286 0, S_0x6452ee2857d0;
+ .timescale -9 -12;
+v0x6452ee2a3470_0 .var/2s "step", 31 0;
+S_0x6452ee2a3550 .scope module, "dut" "adaptive_redundancy_controller" 4 78, 5 13 0, S_0x6452ee2857d0;
+ .timescale -9 -12;
+    .port_info 0 /INPUT 1 "clk";
+    .port_info 1 /INPUT 1 "rst_n";
+    .port_info 2 /INPUT 1 "tmr_mode_pin";
+    .port_info 3 /INPUT 1 "sw_tmr_mode_reg";
+    .port_info 4 /INPUT 32 "alu_in_a";
+    .port_info 5 /INPUT 32 "alu_in_b";
+    .port_info 6 /INPUT 4 "ctrl_alu_op";
+    .port_info 7 /OUTPUT 32 "alu_in_a_ex1";
+    .port_info 8 /OUTPUT 32 "alu_in_b_ex1";
+    .port_info 9 /OUTPUT 4 "ctrl_alu_op_ex1";
+    .port_info 10 /OUTPUT 32 "alu_in_a_ex2";
+    .port_info 11 /OUTPUT 32 "alu_in_b_ex2";
+    .port_info 12 /OUTPUT 4 "ctrl_alu_op_ex2";
+    .port_info 13 /OUTPUT 1 "gated_clk_ex1";
+    .port_info 14 /OUTPUT 1 "gated_clk_ex2";
+    .port_info 15 /INPUT 32 "alu_result_0_fi";
+    .port_info 16 /INPUT 32 "alu_result_1_fi";
+    .port_info 17 /INPUT 32 "alu_result_2_fi";
+    .port_info 18 /OUTPUT 32 "alu_result";
+    .port_info 19 /OUTPUT 1 "tmr_mismatch";
+    .port_info 20 /OUTPUT 1 "tmr_fatal_mismatch";
+    .port_info 21 /OUTPUT 1 "tmr_mode_active";
+P_0x6452ee2a3730 .param/l "DATA_WIDTH" 0 5 14, +C4<00000000000000000000000000100000>;
+L_0x6452ee275590 .functor OR 1, v0x6452ee2a8940_0, v0x6452ee2a85c0_0, C4<0>, C4<0>;
+v0x6452ee2a5df0_0 .net "alu_in_a", 31 0, v0x6452ee2a7430_0;  1 drivers
+v0x6452ee2a5ef0_0 .var "alu_in_a_ex1", 31 0;
+v0x6452ee2a5fd0_0 .var "alu_in_a_ex2", 31 0;
+v0x6452ee2a6090_0 .net "alu_in_b", 31 0, v0x6452ee2a7710_0;  1 drivers
+v0x6452ee2a6170_0 .var "alu_in_b_ex1", 31 0;
+v0x6452ee2a6250_0 .var "alu_in_b_ex2", 31 0;
+v0x6452ee2a6330_0 .var "alu_result", 31 0;
+v0x6452ee2a6410_0 .net "alu_result_0_fi", 31 0, v0x6452ee2a7a70_0;  1 drivers
+v0x6452ee2a64d0_0 .net "alu_result_1_fi", 31 0, v0x6452ee2a7b60_0;  1 drivers
+v0x6452ee2a65a0_0 .net "alu_result_2_fi", 31 0, v0x6452ee2a7c00_0;  1 drivers
+v0x6452ee2a6670_0 .net "clk", 0 0, v0x6452ee2a7d10_0;  1 drivers
+v0x6452ee2a6710_0 .net "ctrl_alu_op", 3 0, v0x6452ee2a7db0_0;  1 drivers
+v0x6452ee2a67d0_0 .var "ctrl_alu_op_ex1", 3 0;
+v0x6452ee2a68b0_0 .var "ctrl_alu_op_ex2", 3 0;
+v0x6452ee2a6990_0 .net "gated_clk_ex1", 0 0, L_0x6452ee2756e0;  alias, 1 drivers
+v0x6452ee2a6a30_0 .net "gated_clk_ex2", 0 0, L_0x6452ee275750;  alias, 1 drivers
+v0x6452ee2a6b00_0 .net "rst_n", 0 0, v0x6452ee2a8520_0;  1 drivers
+v0x6452ee2a6ba0_0 .net "sw_tmr_mode_reg", 0 0, v0x6452ee2a85c0_0;  1 drivers
+v0x6452ee2a6c40_0 .var "tmr_fatal_mismatch", 0 0;
+v0x6452ee2a6d00_0 .var "tmr_mismatch", 0 0;
+v0x6452ee2a6dc0_0 .net "tmr_mode_active", 0 0, L_0x6452ee275590;  alias, 1 drivers
+v0x6452ee2a6eb0_0 .net "tmr_mode_pin", 0 0, v0x6452ee2a8940_0;  1 drivers
+v0x6452ee2a6f70_0 .net "voter_fatal_mismatch", 0 0, L_0x6452ee2a9bf0;  1 drivers
+v0x6452ee2a7010_0 .net "voter_mismatch", 0 0, L_0x6452ee2a93b0;  1 drivers
+v0x6452ee2a70e0_0 .net "voter_result", 31 0, L_0x6452ee2a8fc0;  1 drivers
+E_0x6452ee202240/0 .event anyedge, v0x6452ee2a3e30_0, v0x6452ee2a5b50_0, v0x6452ee2a5a90_0, v0x6452ee2a5c30_0;
+E_0x6452ee202240/1 .event anyedge, v0x6452ee2a57f0_0;
+E_0x6452ee202240 .event/or E_0x6452ee202240/0, E_0x6452ee202240/1;
+E_0x6452ee284620 .event anyedge, v0x6452ee2a3e30_0, v0x6452ee2a5df0_0, v0x6452ee2a6090_0, v0x6452ee2a6710_0;
+S_0x6452ee2a3aa0 .scope module, "u_cg_ex1" "clock_gater" 5 61, 6 10 0, S_0x6452ee2a3550;
+ .timescale -9 -12;
+    .port_info 0 /INPUT 1 "clk";
+    .port_info 1 /INPUT 1 "enable";
+    .port_info 2 /INPUT 1 "test_mode";
+    .port_info 3 /OUTPUT 1 "gated_clk";
+L_0x6452ee2756e0 .functor AND 1, v0x6452ee2a7d10_0, v0x6452ee2a3ef0_0, C4<1>, C4<1>;
+v0x6452ee2a3d50_0 .net "clk", 0 0, v0x6452ee2a7d10_0;  alias, 1 drivers
+v0x6452ee2a3e30_0 .net "enable", 0 0, L_0x6452ee275590;  alias, 1 drivers
+v0x6452ee2a3ef0_0 .var "enable_latched", 0 0;
+v0x6452ee2a3fc0_0 .net "gated_clk", 0 0, L_0x6452ee2756e0;  alias, 1 drivers
+L_0x7e68f6190018 .functor BUFT 1, C4<0>, C4<0>, C4<0>, C4<0>;
+v0x6452ee2a4080_0 .net "test_mode", 0 0, L_0x7e68f6190018;  1 drivers
+E_0x6452ee2a3cd0 .event anyedge, v0x6452ee2a3d50_0, v0x6452ee2a3e30_0, v0x6452ee2a4080_0;
+S_0x6452ee2a4210 .scope module, "u_cg_ex2" "clock_gater" 5 68, 6 10 0, S_0x6452ee2a3550;
+ .timescale -9 -12;
+    .port_info 0 /INPUT 1 "clk";
+    .port_info 1 /INPUT 1 "enable";
+    .port_info 2 /INPUT 1 "test_mode";
+    .port_info 3 /OUTPUT 1 "gated_clk";
+L_0x6452ee275750 .functor AND 1, v0x6452ee2a7d10_0, v0x6452ee2a46c0_0, C4<1>, C4<1>;
+v0x6452ee2a4500_0 .net "clk", 0 0, v0x6452ee2a7d10_0;  alias, 1 drivers
+v0x6452ee2a45f0_0 .net "enable", 0 0, L_0x6452ee275590;  alias, 1 drivers
+v0x6452ee2a46c0_0 .var "enable_latched", 0 0;
+v0x6452ee2a4790_0 .net "gated_clk", 0 0, L_0x6452ee275750;  alias, 1 drivers
+L_0x7e68f6190060 .functor BUFT 1, C4<0>, C4<0>, C4<0>, C4<0>;
+v0x6452ee2a4830_0 .net "test_mode", 0 0, L_0x7e68f6190060;  1 drivers
+E_0x6452ee2a44a0 .event anyedge, v0x6452ee2a3d50_0, v0x6452ee2a3e30_0, v0x6452ee2a4830_0;
+S_0x6452ee2a49a0 .scope module, "u_tmr_voter" "tmr_voter" 5 108, 7 9 0, S_0x6452ee2a3550;
+ .timescale -9 -12;
+    .port_info 0 /INPUT 32 "a";
+    .port_info 1 /INPUT 32 "b";
+    .port_info 2 /INPUT 32 "c";
+    .port_info 3 /OUTPUT 32 "result";
+    .port_info 4 /OUTPUT 1 "mismatch_detected";
+    .port_info 5 /OUTPUT 1 "tmr_fatal_mismatch";
+P_0x6452ee2a4b80 .param/l "WIDTH" 0 7 10, +C4<00000000000000000000000000100000>;
+L_0x6452ee2a8b70 .functor AND 32, v0x6452ee2a7a70_0, v0x6452ee2a7b60_0, C4<11111111111111111111111111111111>, C4<11111111111111111111111111111111>;
+L_0x6452ee2a8c10 .functor AND 32, v0x6452ee2a7a70_0, v0x6452ee2a7c00_0, C4<11111111111111111111111111111111>, C4<11111111111111111111111111111111>;
+L_0x6452ee2a8d60 .functor OR 32, L_0x6452ee2a8b70, L_0x6452ee2a8c10, C4<00000000000000000000000000000000>, C4<00000000000000000000000000000000>;
+L_0x6452ee2a8e00 .functor AND 32, v0x6452ee2a7b60_0, v0x6452ee2a7c00_0, C4<11111111111111111111111111111111>, C4<11111111111111111111111111111111>;
+L_0x6452ee2a8fc0 .functor OR 32, L_0x6452ee2a8d60, L_0x6452ee2a8e00, C4<00000000000000000000000000000000>, C4<00000000000000000000000000000000>;
+L_0x6452ee2a91c0 .functor OR 1, L_0x6452ee2a9080, L_0x6452ee2a9120, C4<0>, C4<0>;
+L_0x6452ee2a93b0 .functor OR 1, L_0x6452ee2a91c0, L_0x6452ee2a9310, C4<0>, C4<0>;
+L_0x6452ee2a9790 .functor AND 1, L_0x6452ee2a9510, L_0x6452ee2a95e0, C4<1>, C4<1>;
+L_0x6452ee2a9bf0 .functor AND 1, L_0x6452ee2a9790, L_0x6452ee2a98f0, C4<1>, C4<1>;
+v0x6452ee2a4df0_0 .net *"_ivl_0", 31 0, L_0x6452ee2a8b70;  1 drivers
+v0x6452ee2a4ed0_0 .net *"_ivl_10", 0 0, L_0x6452ee2a9080;  1 drivers
+v0x6452ee2a4f90_0 .net *"_ivl_12", 0 0, L_0x6452ee2a9120;  1 drivers
+v0x6452ee2a5060_0 .net *"_ivl_14", 0 0, L_0x6452ee2a91c0;  1 drivers
+v0x6452ee2a5140_0 .net *"_ivl_16", 0 0, L_0x6452ee2a9310;  1 drivers
+v0x6452ee2a5250_0 .net *"_ivl_2", 31 0, L_0x6452ee2a8c10;  1 drivers
+v0x6452ee2a5330_0 .net *"_ivl_20", 0 0, L_0x6452ee2a9510;  1 drivers
+v0x6452ee2a53f0_0 .net *"_ivl_22", 0 0, L_0x6452ee2a95e0;  1 drivers
+v0x6452ee2a54b0_0 .net *"_ivl_25", 0 0, L_0x6452ee2a9790;  1 drivers
+v0x6452ee2a5570_0 .net *"_ivl_26", 0 0, L_0x6452ee2a98f0;  1 drivers
+v0x6452ee2a5630_0 .net *"_ivl_4", 31 0, L_0x6452ee2a8d60;  1 drivers
+v0x6452ee2a5710_0 .net *"_ivl_6", 31 0, L_0x6452ee2a8e00;  1 drivers
+v0x6452ee2a57f0_0 .net "a", 31 0, v0x6452ee2a7a70_0;  alias, 1 drivers
+v0x6452ee2a58d0_0 .net "b", 31 0, v0x6452ee2a7b60_0;  alias, 1 drivers
+v0x6452ee2a59b0_0 .net "c", 31 0, v0x6452ee2a7c00_0;  alias, 1 drivers
+v0x6452ee2a5a90_0 .net "mismatch_detected", 0 0, L_0x6452ee2a93b0;  alias, 1 drivers
+v0x6452ee2a5b50_0 .net "result", 31 0, L_0x6452ee2a8fc0;  alias, 1 drivers
+v0x6452ee2a5c30_0 .net "tmr_fatal_mismatch", 0 0, L_0x6452ee2a9bf0;  alias, 1 drivers
+L_0x6452ee2a9080 .cmp/ne 32, v0x6452ee2a7a70_0, v0x6452ee2a7b60_0;
+L_0x6452ee2a9120 .cmp/ne 32, v0x6452ee2a7a70_0, v0x6452ee2a7c00_0;
+L_0x6452ee2a9310 .cmp/ne 32, v0x6452ee2a7b60_0, v0x6452ee2a7c00_0;
+L_0x6452ee2a9510 .cmp/ne 32, v0x6452ee2a7a70_0, v0x6452ee2a7b60_0;
+L_0x6452ee2a95e0 .cmp/ne 32, v0x6452ee2a7a70_0, v0x6452ee2a7c00_0;
+L_0x6452ee2a98f0 .cmp/ne 32, v0x6452ee2a7b60_0, v0x6452ee2a7c00_0;
+    .scope S_0x6452ee2a3aa0;
+T_0 ;
+Ewait_0 .event/or E_0x6452ee2a3cd0, E_0x0;
+    %wait Ewait_0;
+    %load/vec4 v0x6452ee2a3d50_0;
+    %nor/r;
+    %flag_set/vec4 8;
+    %jmp/0xz  T_0.0, 8;
+    %load/vec4 v0x6452ee2a3e30_0;
+    %load/vec4 v0x6452ee2a4080_0;
+    %or;
+    %assign/vec4 v0x6452ee2a3ef0_0, 0;
+T_0.0 ;
+    %jmp T_0;
+    .thread T_0, $push;
+    .scope S_0x6452ee2a4210;
+T_1 ;
+Ewait_1 .event/or E_0x6452ee2a44a0, E_0x0;
+    %wait Ewait_1;
+    %load/vec4 v0x6452ee2a4500_0;
+    %nor/r;
+    %flag_set/vec4 8;
+    %jmp/0xz  T_1.0, 8;
+    %load/vec4 v0x6452ee2a45f0_0;
+    %load/vec4 v0x6452ee2a4830_0;
+    %or;
+    %assign/vec4 v0x6452ee2a46c0_0, 0;
+T_1.0 ;
+    %jmp T_1;
+    .thread T_1, $push;
+    .scope S_0x6452ee2a3550;
+T_2 ;
+Ewait_2 .event/or E_0x6452ee284620, E_0x0;
+    %wait Ewait_2;
+    %load/vec4 v0x6452ee2a6dc0_0;
+    %flag_set/vec4 8;
+    %jmp/0xz  T_2.0, 8;
+    %load/vec4 v0x6452ee2a5df0_0;
+    %store/vec4 v0x6452ee2a5ef0_0, 0, 32;
+    %load/vec4 v0x6452ee2a6090_0;
+    %store/vec4 v0x6452ee2a6170_0, 0, 32;
+    %load/vec4 v0x6452ee2a6710_0;
+    %store/vec4 v0x6452ee2a67d0_0, 0, 4;
+    %load/vec4 v0x6452ee2a5df0_0;
+    %store/vec4 v0x6452ee2a5fd0_0, 0, 32;
+    %load/vec4 v0x6452ee2a6090_0;
+    %store/vec4 v0x6452ee2a6250_0, 0, 32;
+    %load/vec4 v0x6452ee2a6710_0;
+    %store/vec4 v0x6452ee2a68b0_0, 0, 4;
+    %jmp T_2.1;
+T_2.0 ;
+    %pushi/vec4 0, 0, 32;
+    %store/vec4 v0x6452ee2a5ef0_0, 0, 32;
+    %pushi/vec4 0, 0, 32;
+    %store/vec4 v0x6452ee2a6170_0, 0, 32;
+    %pushi/vec4 0, 0, 4;
+    %store/vec4 v0x6452ee2a67d0_0, 0, 4;
+    %pushi/vec4 0, 0, 32;
+    %store/vec4 v0x6452ee2a5fd0_0, 0, 32;
+    %pushi/vec4 0, 0, 32;
+    %store/vec4 v0x6452ee2a6250_0, 0, 32;
+    %pushi/vec4 0, 0, 4;
+    %store/vec4 v0x6452ee2a68b0_0, 0, 4;
+T_2.1 ;
+    %jmp T_2;
+    .thread T_2, $push;
+    .scope S_0x6452ee2a3550;
+T_3 ;
+Ewait_3 .event/or E_0x6452ee202240, E_0x0;
+    %wait Ewait_3;
+    %load/vec4 v0x6452ee2a6dc0_0;
+    %flag_set/vec4 8;
+    %jmp/0xz  T_3.0, 8;
+    %load/vec4 v0x6452ee2a70e0_0;
+    %store/vec4 v0x6452ee2a6330_0, 0, 32;
+    %load/vec4 v0x6452ee2a7010_0;
+    %store/vec4 v0x6452ee2a6d00_0, 0, 1;
+    %load/vec4 v0x6452ee2a6f70_0;
+    %store/vec4 v0x6452ee2a6c40_0, 0, 1;
+    %jmp T_3.1;
+T_3.0 ;
+    %load/vec4 v0x6452ee2a6410_0;
+    %store/vec4 v0x6452ee2a6330_0, 0, 32;
+    %pushi/vec4 0, 0, 1;
+    %store/vec4 v0x6452ee2a6d00_0, 0, 1;
+    %pushi/vec4 0, 0, 1;
+    %store/vec4 v0x6452ee2a6c40_0, 0, 1;
+T_3.1 ;
+    %jmp T_3;
+    .thread T_3, $push;
+    .scope S_0x6452ee2857d0;
+T_4 ;
+    %pushi/vec4 0, 0, 32;
+    %store/vec4 v0x6452ee2a7fb0_0, 0, 32;
+    %pushi/vec4 0, 0, 32;
+    %store/vec4 v0x6452ee2a8660_0, 0, 32;
+    %pushi/vec4 0, 0, 32;
+    %store/vec4 v0x6452ee2a8070_0, 0, 32;
+    %pushi/vec4 0, 0, 32;
+    %store/vec4 v0x6452ee2a8350_0, 0, 32;
+    %end;
+    .thread T_4, $init;
+    .scope S_0x6452ee2857d0;
+T_5 ;
+    %delay 5000, 0;
+    %load/vec4 v0x6452ee2a7d10_0;
+    %inv;
+    %store/vec4 v0x6452ee2a7d10_0, 0, 1;
+    %jmp T_5;
+    .thread T_5;
+    .scope S_0x6452ee2857d0;
+T_6 ;
+    %wait E_0x6452ee22a170;
+    %load/vec4 v0x6452ee2a8520_0;
+    %flag_set/vec4 8;
+    %jmp/0xz  T_6.0, 8;
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a8070_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a8070_0, 0, 32;
+T_6.0 ;
+    %jmp T_6;
+    .thread T_6, $push;
+    .scope S_0x6452ee2857d0;
+T_7 ;
+    %wait E_0x6452ee221680;
+    %load/vec4 v0x6452ee2a8520_0;
+    %flag_set/vec4 8;
+    %jmp/0xz  T_7.0, 8;
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a8350_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a8350_0, 0, 32;
+T_7.0 ;
+    %jmp T_7;
+    .thread T_7;
+    .scope S_0x6452ee2857d0;
+T_8 ;
+    %vpi_call/w 4 107 "$display", "\012=========================================================" {0 0 0};
+    %vpi_call/w 4 108 "$display", "   STARTING ADAPTIVE REDUNDANCY CONTROL VERIFICATION   " {0 0 0};
+    %vpi_call/w 4 109 "$display", "=========================================================\012" {0 0 0};
+    %pushi/vec4 0, 0, 1;
+    %store/vec4 v0x6452ee2a7d10_0, 0, 1;
+    %pushi/vec4 0, 0, 1;
+    %store/vec4 v0x6452ee2a8520_0, 0, 1;
+    %pushi/vec4 0, 0, 1;
+    %store/vec4 v0x6452ee2a8940_0, 0, 1;
+    %pushi/vec4 0, 0, 1;
+    %store/vec4 v0x6452ee2a85c0_0, 0, 1;
+    %pushi/vec4 0, 0, 32;
+    %store/vec4 v0x6452ee2a7430_0, 0, 32;
+    %pushi/vec4 0, 0, 32;
+    %store/vec4 v0x6452ee2a7710_0, 0, 32;
+    %pushi/vec4 0, 0, 4;
+    %store/vec4 v0x6452ee2a7db0_0, 0, 4;
+    %pushi/vec4 0, 0, 32;
+    %store/vec4 v0x6452ee2a7a70_0, 0, 32;
+    %pushi/vec4 0, 0, 32;
+    %store/vec4 v0x6452ee2a7b60_0, 0, 32;
+    %pushi/vec4 0, 0, 32;
+    %store/vec4 v0x6452ee2a7c00_0, 0, 32;
+    %delay 20000, 0;
+    %pushi/vec4 1, 0, 1;
+    %store/vec4 v0x6452ee2a8520_0, 0, 1;
+    %delay 10000, 0;
+    %vpi_call/w 4 130 "$display", "[TEST 1] Verifying Simplex Mode (Power-Saving / Isolation)..." {0 0 0};
+    %pushi/vec4 0, 0, 1;
+    %store/vec4 v0x6452ee2a8940_0, 0, 1;
+    %pushi/vec4 0, 0, 1;
+    %store/vec4 v0x6452ee2a85c0_0, 0, 1;
+    %pushi/vec4 0, 0, 32;
+    %store/vec4 v0x6452ee2a8070_0, 0, 32;
+    %pushi/vec4 0, 0, 32;
+    %store/vec4 v0x6452ee2a8350_0, 0, 32;
+    %fork t_1, S_0x6452ee285a50;
+    %jmp t_0;
+    .scope S_0x6452ee285a50;
+t_1 ;
+    %pushi/vec4 0, 0, 32;
+    %store/vec4 v0x6452ee27da90_0, 0, 32;
+T_8.0 ; Top of for-loop
+    %load/vec4 v0x6452ee27da90_0;
+    %cmpi/s 10, 0, 32;
+	  %jmp/0xz T_8.1, 5;
+    %wait E_0x6452ee229d60;
+    %pushi/vec4 268435456, 0, 32;
+    %load/vec4 v0x6452ee27da90_0;
+    %muli 4369, 0, 32;
+    %add;
+    %store/vec4 v0x6452ee2a7430_0, 0, 32;
+    %pushi/vec4 42405, 0, 32;
+    %load/vec4 v0x6452ee27da90_0;
+    %muli 23130, 0, 32;
+    %add;
+    %store/vec4 v0x6452ee2a7710_0, 0, 32;
+    %load/vec4 v0x6452ee27da90_0;
+    %parti/s 4, 0, 2;
+    %store/vec4 v0x6452ee2a7db0_0, 0, 4;
+    %load/vec4 v0x6452ee2a7430_0;
+    %load/vec4 v0x6452ee2a7710_0;
+    %add;
+    %store/vec4 v0x6452ee2a7a70_0, 0, 32;
+    %pushi/vec4 3735928559, 0, 32;
+    %store/vec4 v0x6452ee2a7b60_0, 0, 32;
+    %pushi/vec4 3405691582, 0, 32;
+    %store/vec4 v0x6452ee2a7c00_0, 0, 32;
+    %delay 1000, 0;
+    %load/vec4 v0x6452ee2a88a0_0;
+    %cmpi/ne 0, 0, 1;
+    %jmp/0xz  T_8.3, 6;
+    %vpi_call/w 4 149 "$display", "ERROR: tmr_mode_active should be 0 in Simplex Mode!" {0 0 0};
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a7fb0_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a7fb0_0, 0, 32;
+T_8.3 ;
+    %load/vec4 v0x6452ee2a7540_0;
+    %cmpi/ne 0, 0, 32;
+    %jmp/1 T_8.8, 6;
+    %flag_mov 8, 6;
+    %load/vec4 v0x6452ee2a77e0_0;
+    %cmpi/ne 0, 0, 32;
+    %flag_or 6, 8;
+T_8.8;
+    %jmp/1 T_8.7, 6;
+    %flag_mov 8, 6;
+    %load/vec4 v0x6452ee2a7e70_0;
+    %cmpi/ne 0, 0, 4;
+    %flag_or 6, 8;
+T_8.7;
+    %jmp/0xz  T_8.5, 6;
+    %vpi_call/w 4 153 "$display", "ERROR: EX1 Operands are NOT isolated to 0! A1=%h B1=%h Op1=%h", v0x6452ee2a7540_0, v0x6452ee2a77e0_0, v0x6452ee2a7e70_0 {0 0 0};
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a7fb0_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a7fb0_0, 0, 32;
+T_8.5 ;
+    %load/vec4 v0x6452ee2a7610_0;
+    %cmpi/ne 0, 0, 32;
+    %jmp/1 T_8.12, 6;
+    %flag_mov 8, 6;
+    %load/vec4 v0x6452ee2a78d0_0;
+    %cmpi/ne 0, 0, 32;
+    %flag_or 6, 8;
+T_8.12;
+    %jmp/1 T_8.11, 6;
+    %flag_mov 8, 6;
+    %load/vec4 v0x6452ee2a7f10_0;
+    %cmpi/ne 0, 0, 4;
+    %flag_or 6, 8;
+T_8.11;
+    %jmp/0xz  T_8.9, 6;
+    %vpi_call/w 4 158 "$display", "ERROR: EX2 Operands are NOT isolated to 0! A2=%h B2=%h Op2=%h", v0x6452ee2a7610_0, v0x6452ee2a78d0_0, v0x6452ee2a7f10_0 {0 0 0};
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a7fb0_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a7fb0_0, 0, 32;
+T_8.9 ;
+    %load/vec4 v0x6452ee2a79a0_0;
+    %load/vec4 v0x6452ee2a7a70_0;
+    %cmp/ne;
+    %jmp/0xz  T_8.13, 6;
+    %vpi_call/w 4 163 "$display", "ERROR: Simplex output did not bypass EX0 directly! Expected %h, Got %h", v0x6452ee2a7a70_0, v0x6452ee2a79a0_0 {0 0 0};
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a7fb0_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a7fb0_0, 0, 32;
+T_8.13 ;
+    %load/vec4 v0x6452ee2a87d0_0;
+    %cmpi/ne 0, 0, 1;
+    %jmp/1 T_8.17, 6;
+    %flag_mov 8, 6;
+    %load/vec4 v0x6452ee2a8700_0;
+    %cmpi/ne 0, 0, 1;
+    %flag_or 6, 8;
+T_8.17;
+    %jmp/0xz  T_8.15, 6;
+    %vpi_call/w 4 168 "$display", "ERROR: Mismatch flags should be masked to 0 in Simplex mode!" {0 0 0};
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a7fb0_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a7fb0_0, 0, 32;
+T_8.15 ;
+T_8.2 ; for-loop step statement
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee27da90_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee27da90_0, 0, 32;
+    %jmp T_8.0;
+T_8.1 ; for-loop exit label
+    %end;
+    .scope S_0x6452ee2857d0;
+t_0 %join;
+    %load/vec4 v0x6452ee2a8350_0;
+    %cmpi/ne 0, 0, 32;
+    %jmp/0xz  T_8.18, 4;
+    %vpi_call/w 4 174 "$display", "ERROR: Clock Gating Failed! Gated clock pulsed %d times in Simplex mode!", v0x6452ee2a8350_0 {0 0 0};
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a7fb0_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a7fb0_0, 0, 32;
+    %jmp T_8.19;
+T_8.18 ;
+    %vpi_call/w 4 177 "$display", "  -> Clock Gating PASS: 0 clock pulses reached EX1/EX2." {0 0 0};
+T_8.19 ;
+    %load/vec4 v0x6452ee2a8070_0;
+    %cmpi/ne 0, 0, 32;
+    %jmp/0xz  T_8.20, 4;
+    %vpi_call/w 4 181 "$display", "ERROR: Operand Isolation Failed! Detected %d input toggles on EX1/EX2!", v0x6452ee2a8070_0 {0 0 0};
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a7fb0_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a7fb0_0, 0, 32;
+    %jmp T_8.21;
+T_8.20 ;
+    %vpi_call/w 4 184 "$display", "  -> Operand Isolation PASS: Zero input toggles on EX1/EX2." {0 0 0};
+T_8.21 ;
+    %vpi_call/w 4 187 "$display", "  -> TEST 1 PASSED: Simplex Mode verified successfully.\012" {0 0 0};
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a8660_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a8660_0, 0, 32;
+    %vpi_call/w 4 193 "$display", "[TEST 2] Verifying TMR Mode via Hardware Pin (Pin Control)..." {0 0 0};
+    %pushi/vec4 1, 0, 1;
+    %store/vec4 v0x6452ee2a8940_0, 0, 1;
+    %pushi/vec4 0, 0, 1;
+    %store/vec4 v0x6452ee2a85c0_0, 0, 1;
+    %delay 10000, 0;
+    %load/vec4 v0x6452ee2a88a0_0;
+    %cmpi/ne 1, 0, 1;
+    %jmp/0xz  T_8.22, 6;
+    %vpi_call/w 4 199 "$display", "ERROR: tmr_mode_active should be 1 when tmr_mode_pin = 1!" {0 0 0};
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a7fb0_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a7fb0_0, 0, 32;
+T_8.22 ;
+    %pushi/vec4 16, 0, 32;
+    %store/vec4 v0x6452ee2a7430_0, 0, 32;
+    %pushi/vec4 32, 0, 32;
+    %store/vec4 v0x6452ee2a7710_0, 0, 32;
+    %pushi/vec4 0, 0, 4;
+    %store/vec4 v0x6452ee2a7db0_0, 0, 4;
+    %pushi/vec4 48, 0, 32;
+    %store/vec4 v0x6452ee2a7a70_0, 0, 32;
+    %pushi/vec4 48, 0, 32;
+    %store/vec4 v0x6452ee2a7b60_0, 0, 32;
+    %pushi/vec4 48, 0, 32;
+    %store/vec4 v0x6452ee2a7c00_0, 0, 32;
+    %delay 5000, 0;
+    %load/vec4 v0x6452ee2a7540_0;
+    %load/vec4 v0x6452ee2a7430_0;
+    %cmp/ne;
+    %jmp/1 T_8.27, 6;
+    %flag_mov 8, 6;
+    %load/vec4 v0x6452ee2a77e0_0;
+    %load/vec4 v0x6452ee2a7710_0;
+    %cmp/ne;
+    %flag_or 6, 8;
+T_8.27;
+    %jmp/1 T_8.26, 6;
+    %flag_mov 8, 6;
+    %load/vec4 v0x6452ee2a7e70_0;
+    %load/vec4 v0x6452ee2a7db0_0;
+    %cmp/ne;
+    %flag_or 6, 8;
+T_8.26;
+    %jmp/0xz  T_8.24, 6;
+    %vpi_call/w 4 213 "$display", "ERROR: EX1 operands not correctly propagated in TMR Mode!" {0 0 0};
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a7fb0_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a7fb0_0, 0, 32;
+T_8.24 ;
+    %load/vec4 v0x6452ee2a79a0_0;
+    %cmpi/ne 48, 0, 32;
+    %jmp/1 T_8.31, 6;
+    %flag_mov 8, 6;
+    %load/vec4 v0x6452ee2a87d0_0;
+    %cmpi/ne 0, 0, 1;
+    %flag_or 6, 8;
+T_8.31;
+    %jmp/1 T_8.30, 6;
+    %flag_mov 8, 6;
+    %load/vec4 v0x6452ee2a8700_0;
+    %cmpi/ne 0, 0, 1;
+    %flag_or 6, 8;
+T_8.30;
+    %jmp/0xz  T_8.28, 6;
+    %vpi_call/w 4 217 "$display", "ERROR: Fault-free TMR vote incorrect! Result=%h Mismatch=%b Fatal=%b", v0x6452ee2a79a0_0, v0x6452ee2a87d0_0, v0x6452ee2a8700_0 {0 0 0};
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a7fb0_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a7fb0_0, 0, 32;
+T_8.28 ;
+    %vpi_call/w 4 223 "$display", "  -> Injecting fault into EX1 output (TMR Majority Vote Recovery test)..." {0 0 0};
+    %pushi/vec4 4294967295, 0, 32;
+    %store/vec4 v0x6452ee2a7b60_0, 0, 32;
+    %delay 5000, 0;
+    %load/vec4 v0x6452ee2a79a0_0;
+    %cmpi/ne 48, 0, 32;
+    %jmp/0xz  T_8.32, 6;
+    %vpi_call/w 4 228 "$display", "ERROR: TMR Majority Voter failed to correct single-unit fault! Expected 32'h30, Got %h", v0x6452ee2a79a0_0 {0 0 0};
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a7fb0_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a7fb0_0, 0, 32;
+T_8.32 ;
+    %load/vec4 v0x6452ee2a87d0_0;
+    %cmpi/ne 1, 0, 1;
+    %jmp/1 T_8.36, 6;
+    %flag_mov 8, 6;
+    %load/vec4 v0x6452ee2a8700_0;
+    %cmpi/ne 0, 0, 1;
+    %flag_or 6, 8;
+T_8.36;
+    %jmp/0xz  T_8.34, 6;
+    %vpi_call/w 4 232 "$display", "ERROR: TMR Mismatch flag incorrect under single fault! Mismatch=%b Fatal=%b", v0x6452ee2a87d0_0, v0x6452ee2a8700_0 {0 0 0};
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a7fb0_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a7fb0_0, 0, 32;
+    %jmp T_8.35;
+T_8.34 ;
+    %vpi_call/w 4 236 "$display", "  -> TMR Single Fault Recovery PASS: Output correctly recovered as 32'h30 with mismatch flagged." {0 0 0};
+T_8.35 ;
+    %vpi_call/w 4 240 "$display", "  -> Injecting fatal multi-unit faults (All three units differ)..." {0 0 0};
+    %pushi/vec4 286331153, 0, 32;
+    %store/vec4 v0x6452ee2a7a70_0, 0, 32;
+    %pushi/vec4 572662306, 0, 32;
+    %store/vec4 v0x6452ee2a7b60_0, 0, 32;
+    %pushi/vec4 858993459, 0, 32;
+    %store/vec4 v0x6452ee2a7c00_0, 0, 32;
+    %delay 5000, 0;
+    %load/vec4 v0x6452ee2a8700_0;
+    %cmpi/ne 1, 0, 1;
+    %jmp/0xz  T_8.37, 6;
+    %vpi_call/w 4 247 "$display", "ERROR: TMR Fatal Mismatch flag failed to trigger when all 3 units differ!" {0 0 0};
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a7fb0_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a7fb0_0, 0, 32;
+    %jmp T_8.38;
+T_8.37 ;
+    %vpi_call/w 4 250 "$display", "  -> TMR Fatal Mismatch Detection PASS: Fatal flag correctly asserted." {0 0 0};
+T_8.38 ;
+    %vpi_call/w 4 253 "$display", "  -> TEST 2 PASSED: TMR Mode via hardware pin verified.\012" {0 0 0};
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a8660_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a8660_0, 0, 32;
+    %vpi_call/w 4 259 "$display", "[TEST 3] Verifying TMR Mode via Software Control Register..." {0 0 0};
+    %pushi/vec4 0, 0, 1;
+    %store/vec4 v0x6452ee2a8940_0, 0, 1;
+    %pushi/vec4 1, 0, 1;
+    %store/vec4 v0x6452ee2a85c0_0, 0, 1;
+    %delay 10000, 0;
+    %load/vec4 v0x6452ee2a88a0_0;
+    %cmpi/ne 1, 0, 1;
+    %jmp/0xz  T_8.39, 6;
+    %vpi_call/w 4 265 "$display", "ERROR: tmr_mode_active should be 1 when sw_tmr_mode_reg = 1!" {0 0 0};
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a7fb0_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a7fb0_0, 0, 32;
+T_8.39 ;
+    %pushi/vec4 2882343476, 0, 32;
+    %store/vec4 v0x6452ee2a7a70_0, 0, 32;
+    %pushi/vec4 2882343476, 0, 32;
+    %store/vec4 v0x6452ee2a7b60_0, 0, 32;
+    %pushi/vec4 2576980377, 0, 32;
+    %store/vec4 v0x6452ee2a7c00_0, 0, 32;
+    %delay 5000, 0;
+    %load/vec4 v0x6452ee2a79a0_0;
+    %cmpi/ne 2882343476, 0, 32;
+    %jmp/1 T_8.43, 6;
+    %flag_mov 8, 6;
+    %load/vec4 v0x6452ee2a87d0_0;
+    %cmpi/ne 1, 0, 1;
+    %flag_or 6, 8;
+T_8.43;
+    %jmp/0xz  T_8.41, 6;
+    %vpi_call/w 4 275 "$display", "ERROR: SW-controlled TMR mode majority voting failed!" {0 0 0};
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a7fb0_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a7fb0_0, 0, 32;
+T_8.41 ;
+    %vpi_call/w 4 279 "$display", "  -> TEST 3 PASSED: TMR Mode via software register verified.\012" {0 0 0};
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a8660_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a8660_0, 0, 32;
+    %vpi_call/w 4 285 "$display", "[TEST 4] Verifying Dynamic Mode Transitions (Simplex <-> TMR)..." {0 0 0};
+    %fork t_3, S_0x6452ee2a3270;
+    %jmp t_2;
+    .scope S_0x6452ee2a3270;
+t_3 ;
+    %pushi/vec4 0, 0, 32;
+    %store/vec4 v0x6452ee2a3470_0, 0, 32;
+T_8.44 ; Top of for-loop
+    %load/vec4 v0x6452ee2a3470_0;
+    %cmpi/s 20, 0, 32;
+	  %jmp/0xz T_8.45, 5;
+    %wait E_0x6452ee229d60;
+    %load/vec4 v0x6452ee2a3470_0;
+    %parti/s 1, 0, 2;
+    %store/vec4 v0x6452ee2a8940_0, 0, 1;
+    %pushi/vec4 0, 0, 1;
+    %store/vec4 v0x6452ee2a85c0_0, 0, 1;
+    %load/vec4 v0x6452ee2a3470_0;
+    %muli 256, 0, 32;
+    %store/vec4 v0x6452ee2a7430_0, 0, 32;
+    %load/vec4 v0x6452ee2a3470_0;
+    %muli 512, 0, 32;
+    %store/vec4 v0x6452ee2a7710_0, 0, 32;
+    %load/vec4 v0x6452ee2a7430_0;
+    %load/vec4 v0x6452ee2a7710_0;
+    %add;
+    %store/vec4 v0x6452ee2a7a70_0, 0, 32;
+    %load/vec4 v0x6452ee2a7430_0;
+    %load/vec4 v0x6452ee2a7710_0;
+    %add;
+    %store/vec4 v0x6452ee2a7b60_0, 0, 32;
+    %load/vec4 v0x6452ee2a7430_0;
+    %load/vec4 v0x6452ee2a7710_0;
+    %add;
+    %store/vec4 v0x6452ee2a7c00_0, 0, 32;
+    %delay 1000, 0;
+    %load/vec4 v0x6452ee2a88a0_0;
+    %flag_set/vec4 8;
+    %jmp/0xz  T_8.47, 8;
+    %load/vec4 v0x6452ee2a7540_0;
+    %load/vec4 v0x6452ee2a7430_0;
+    %cmp/ne;
+    %jmp/0xz  T_8.49, 6;
+    %vpi_call/w 4 299 "$display", "ERROR: Transition to TMR mode failed on step %d", v0x6452ee2a3470_0 {0 0 0};
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a7fb0_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a7fb0_0, 0, 32;
+T_8.49 ;
+    %jmp T_8.48;
+T_8.47 ;
+    %load/vec4 v0x6452ee2a7540_0;
+    %cmpi/ne 0, 0, 32;
+    %jmp/0xz  T_8.51, 6;
+    %vpi_call/w 4 304 "$display", "ERROR: Transition to Simplex mode failed on step %d", v0x6452ee2a3470_0 {0 0 0};
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a7fb0_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a7fb0_0, 0, 32;
+T_8.51 ;
+T_8.48 ;
+T_8.46 ; for-loop step statement
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a3470_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a3470_0, 0, 32;
+    %jmp T_8.44;
+T_8.45 ; for-loop exit label
+    %end;
+    .scope S_0x6452ee2857d0;
+t_2 %join;
+    %vpi_call/w 4 310 "$display", "  -> TEST 4 PASSED: Dynamic mode transitions executed cleanly without glitches.\012" {0 0 0};
+    ; show_stmt_assign_vector: Get l-value for compressed += operand
+    %load/vec4 v0x6452ee2a8660_0;
+    %pushi/vec4 1, 0, 32;
+    %add;
+    %cast2;
+    %store/vec4 v0x6452ee2a8660_0, 0, 32;
+    %vpi_call/w 4 316 "$display", "=========================================================" {0 0 0};
+    %vpi_call/w 4 317 "$display", "   ADAPTIVE REDUNDANCY CONTROL TEST SUMMARY             " {0 0 0};
+    %vpi_call/w 4 318 "$display", "=========================================================" {0 0 0};
+    %vpi_call/w 4 319 "$display", " Total Sub-tests Passed : %0d / 4", v0x6452ee2a8660_0 {0 0 0};
+    %vpi_call/w 4 320 "$display", " Total Error Count      : %0d", v0x6452ee2a7fb0_0 {0 0 0};
+    %vpi_call/w 4 321 "$display", "=========================================================" {0 0 0};
+    %load/vec4 v0x6452ee2a7fb0_0;
+    %cmpi/e 0, 0, 32;
+    %jmp/0xz  T_8.53, 4;
+    %vpi_call/w 4 324 "$display", "\012>>> RESULT: ALL ADAPTIVE REDUNDANCY CONTROL TESTS PASSED SUCCESSFULY! <<<\012" {0 0 0};
+    %vpi_call/w 4 325 "$finish" {0 0 0};
+    %jmp T_8.54;
+T_8.53 ;
+    %vpi_call/w 4 327 "$display", "\012>>> RESULT: TEST FAILED WITH %0d ERRORS <<<\012", v0x6452ee2a7fb0_0 {0 0 0};
+    %vpi_call/w 4 328 "$stop" {0 0 0};
+T_8.54 ;
+    %end;
+    .thread T_8;
+# The file index is used to find the file name in the following table.
+:file_names 8;
+    "N/A";
+    "<interactive>";
+    "-";
+    "rtl/riscv_pkg.sv";
+    "tb/tb_adaptive_redundancy_control.sv";
+    "rtl/adaptive_redundancy_controller.sv";
+    "rtl/clock_gater.sv";
+    "rtl/tmr_voter.sv";
