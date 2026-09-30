@@ -311,6 +311,8 @@ function BottomToolbar() {
   );
 }
 
+import SignalPipeline from "@/components/SignalPipeline";
+
 /* ═══════════════════════════════════════════════════════════════════════════
    DASHBOARD ROOT
 ═══════════════════════════════════════════════════════════════════════════ */
@@ -342,6 +344,7 @@ export default function Dashboard() {
         <LeftPanel />
         <RightPanel />
         <BottomToolbar />
+        <SignalPipeline />
 
         {/* 3-D Canvas */}
         <div className="absolute inset-0 z-0">

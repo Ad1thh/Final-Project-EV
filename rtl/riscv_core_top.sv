@@ -45,13 +45,17 @@ module riscv_core_top #(
     input  logic [1:0]  fi_alu_sel,
     input  logic [4:0]  fi_alu_bit,
     
-    // Status Outputs
+    // Status Outputs — Register File ECC
     output logic        ecc_sec_1,
     output logic        ecc_ded_1,
     output logic        ecc_sec_2,
     output logic        ecc_ded_2,
+    // Status Outputs — ALU TMR
     output logic        tmr_mismatch,
-    output logic        tmr_fatal_mismatch
+    output logic        tmr_fatal_mismatch,
+    // Status Outputs — PC TMR
+    output logic        pc_tmr_mismatch,       // PC single-replica SEU detected & corrected
+    output logic        pc_tmr_fatal_mismatch  // PC all-replicas disagree (uncorrectable)
 );
 
     // ------------------------------------------------------------------------
@@ -106,16 +110,18 @@ module riscv_core_top #(
     if_stage #(
         .DATA_WIDTH (DATA_WIDTH)
     ) u_if_stage (
-        .clk                  (clk),
-        .rst_n                (rst_n),
-        .branch_or_jump_taken (branch_or_jump_taken),
-        .target_pc            (target_pc),
-        .stall_if             (stall_if),
-        .flush_if_id          (flush_if_id),
-        .imem_addr            (imem_addr),
-        .imem_rdata           (imem_rdata),
-        .pc_id                (pc_id),
-        .instr_id             (instr_id)
+        .clk                   (clk),
+        .rst_n                 (rst_n),
+        .branch_or_jump_taken  (branch_or_jump_taken),
+        .target_pc             (target_pc),
+        .stall_if              (stall_if),
+        .flush_if_id           (flush_if_id),
+        .imem_addr             (imem_addr),
+        .imem_rdata            (imem_rdata),
+        .pc_id                 (pc_id),
+        .instr_id              (instr_id),
+        .pc_tmr_mismatch       (pc_tmr_mismatch),
+        .pc_tmr_fatal_mismatch (pc_tmr_fatal_mismatch)
     );
 
     // ------------------------------------------------------------------------
