@@ -16,11 +16,11 @@ read_verilog -sv [glob rtl/*.sv]
 read_verilog -sv fpga/fpga_top.sv
 
 # 2. Read Target Board Constraints
-read_xdc constraints/nexys4.xdc
+read_xdc constraints/zybo_z7.xdc
 
 # 3. Synthesize Design
-puts " === FPGA BUILD === Running synth_design (Target: xc7a100tcsg324-1)..."
-synth_design -top fpga_top -part xc7a100tcsg324-1 -flatten_hierarchy rebuilt
+puts " === FPGA BUILD === Running synth_design (Target: xc7z020clg400-1)..."
+synth_design -top fpga_top -part xc7z020clg400-1 -flatten_hierarchy rebuilt
 
 # 4. Optimization & Placement
 puts " === FPGA BUILD === Running opt_design & place_design..."
