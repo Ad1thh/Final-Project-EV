@@ -92,6 +92,12 @@ interface DashboardState {
   // Dashboard Type (Software vs Hardware)
   dashboardType: "software" | "hardware";
   setDashboardType: (type: "software" | "hardware") => void;
+
+  // UART Terminal
+  uartLogs: string[];
+  isTerminalOpen: boolean;
+  setIsTerminalOpen: (v: boolean) => void;
+  clearTerminal: () => void;
 }
 
 let nextToastId = 0;
@@ -134,6 +140,11 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const uartSource = useRef(new UARTDataSource());
   const [dataSourceInfo, setDataSourceInfo] = useState<DataSourceInfo>({ isConnected: false, sourceName: "Simulated" });
   const [eventCounter, setEventCounter] = useState(0);
+
+  // UART Terminal State
+  const [uartLogs, setUartLogs] = useState<string[]>([]);
+  const [isTerminalOpen, setIsTerminalOpen] = useState(false);
+  const clearTerminal = () => setUartLogs([]);
 
   // Helper to format hex values
   const toHex = (val?: number) => val !== undefined ? "0x" + val.toString(16).toUpperCase().padStart(8, '0') : "0x00000000";
@@ -210,6 +221,9 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     // Bind the handler to both sources
     simulatedSource.current.onEvent(handleFaultEvent);
     uartSource.current.onEvent(handleFaultEvent);
+    uartSource.current.onLog((msg) => {
+      setUartLogs(prev => [...prev, msg].slice(-100)); // Keep last 100 logs
+    });
     
     return () => {
       simulatedSource.current.stop();
@@ -338,7 +352,8 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         injectFault, resetDemo,
         isDemoActive, setIsDemoActive,
         dataSourceInfo, connectFPGA, disconnectFPGA, eventCounter,
-        dashboardType, setDashboardType
+        dashboardType, setDashboardType,
+        uartLogs, isTerminalOpen, setIsTerminalOpen, clearTerminal
       }}
     >
       {children}

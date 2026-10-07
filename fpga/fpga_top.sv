@@ -16,9 +16,7 @@ module fpga_top #(
 )(
     input  logic       sysclk,   // 125 MHz input clock (Zybo Z7 Pin K17)
     input  logic       BTN0,     // Active-high reset button (Zybo Z7 Pin K18)
-    output logic [3:0] LED,      // 4 On-board LEDs (Zybo Z7)
-    output logic       UART_TXD, // UART Transmit Data (Route to a Pmod, e.g. JE1 Pin V12)
-    input  logic       UART_RXD  // UART Receive Data (Route to a Pmod, e.g. JE2 Pin W16)
+    output logic [3:0] LED       // 4 On-board LEDs (Zybo Z7)
 );
 
     // ------------------------------------------------------------------------
@@ -167,38 +165,61 @@ module fpga_top #(
     assign LED = led_reg;
 
     // ------------------------------------------------------------------------
-    // UART TRANSMITTER
+    // ZYNQ PS & AXI GPIO BRIDGE (Hardware-in-the-Loop)
     // ------------------------------------------------------------------------
+    logic [31:0] gpio_from_ps; // Channel 1 (Output from PS to PL)
+    logic [31:0] gpio_to_ps;   // Channel 2 (Input from PL to PS)
+
+    // Synchronize GPIO inputs from PS (since PS clock may differ or have skew)
+    logic [31:0] gpio_from_ps_sync1, gpio_from_ps_sync;
+    always_ff @(posedge clk_31m) begin
+        gpio_from_ps_sync1 <= gpio_from_ps;
+        gpio_from_ps_sync  <= gpio_from_ps_sync1;
+    end
+
+    logic [7:0] rx_data;
+    logic rx_toggle;
+    logic tx_ack;
+
+    assign rx_data   = gpio_from_ps_sync[7:0];
+    assign rx_toggle = gpio_from_ps_sync[8];
+    assign tx_ack    = gpio_from_ps_sync[9];
+
+    // RX Edge Detector
+    logic rx_toggle_q;
+    logic rx_valid;
+    always_ff @(posedge clk_31m or negedge rst_n) begin
+        if (!rst_n) rx_toggle_q <= 0;
+        else rx_toggle_q <= rx_toggle;
+    end
+    assign rx_valid = (rx_toggle != rx_toggle_q);
+
+    // TX Handshake
+    logic [7:0] tx_data_latch;
+    logic tx_toggle;
+    logic tx_ready;
     logic uart_valid;
     logic [7:0] uart_tx_data;
-    logic uart_ready;
+    logic tx_ack_q;
 
-    uart_tx #(
-        .BAUD_DIVIDER(271), // 31.25MHz / 115200 = 271.26
-        .PARITY("NONE")
-    ) u_uart_tx (
-        .clk     (clk_31m),
-        .rstn    (rst_n),
-        .valid   (uart_valid),
-        .ready   (uart_ready),
-        .tx_data (uart_tx_data),
-        .tx      (UART_TXD)
-    );
+    always_ff @(posedge clk_31m) tx_ack_q <= tx_ack;
+    assign tx_ready = (tx_toggle == tx_ack_q);
 
-    // ------------------------------------------------------------------------
-    // UART RECEIVER
-    // ------------------------------------------------------------------------
-    logic       rx_valid;
-    logic [7:0] rx_data;
+    always_ff @(posedge clk_31m or negedge rst_n) begin
+        if (!rst_n) begin
+            tx_toggle <= 0;
+            tx_data_latch <= 0;
+        end else if (uart_valid && tx_ready) begin
+            tx_toggle <= ~tx_toggle;
+            tx_data_latch <= uart_tx_data;
+        end
+    end
 
-    uart_rx #(
-        .BAUD_DIVIDER(271) // 31.25MHz / 115200 = 271.26
-    ) u_uart_rx (
-        .clk     (clk_31m),
-        .rstn    (rst_n),
-        .rx      (UART_RXD),
-        .valid   (rx_valid),
-        .rx_data (rx_data)
+    assign gpio_to_ps = {23'd0, tx_toggle, tx_data_latch};
+
+    system_wrapper u_zynq_system (
+        .gpio_from_ps_tri_o (gpio_from_ps),
+        .gpio_to_ps_tri_i   (gpio_to_ps)
     );
 
     // ------------------------------------------------------------------------
@@ -211,7 +232,7 @@ module fpga_top #(
         .rx_data       (rx_data),
         .tx_valid      (uart_valid),
         .tx_data       (uart_tx_data),
-        .tx_ready      (uart_ready),
+        .tx_ready      (tx_ready),
         .fi_reg_en     (fi_reg_en),
         .fi_reg_addr   (fi_reg_addr),
         .fi_reg_bit    (fi_reg_bit),

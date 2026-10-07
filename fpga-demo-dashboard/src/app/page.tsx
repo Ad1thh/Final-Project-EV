@@ -3,7 +3,7 @@
 import React, { useRef, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import { useDashboard } from "@/lib/DashboardContext";
-import { Activity, Zap, Settings2, RefreshCcw, Pause, Play, Crosshair, Cpu, X } from "lucide-react";
+import { Activity, Zap, Settings2, RefreshCcw, Pause, Play, Crosshair, Cpu, X, TerminalSquare, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as THREE from "three";
 import anime from "animejs";
@@ -247,6 +247,58 @@ function RightPanel() {
   );
 }
 
+function TerminalPanel() {
+  const { isTerminalOpen, setIsTerminalOpen, uartLogs, clearTerminal } = useDashboard();
+  const logsEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [uartLogs, isTerminalOpen]);
+
+  return (
+    <AnimatePresence>
+      {isTerminalOpen && (
+        <motion.div
+          initial={{ x: 400, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: 400, opacity: 0 }}
+          transition={{ type: "spring", damping: 25, stiffness: 200 }}
+          className="absolute right-0 top-0 bottom-0 w-96 bg-black/90 backdrop-blur-3xl border-l border-white/10 shadow-2xl z-50 flex flex-col pointer-events-auto"
+        >
+          <div className="flex items-center justify-between p-4 border-b border-white/10 bg-black/50">
+            <h2 className="text-white/80 text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+              <TerminalSquare className="w-4 h-4 text-green-500" /> Serial Console
+            </h2>
+            <div className="flex items-center gap-2">
+              <button onClick={clearTerminal} className="text-white/40 hover:text-red-400 transition-colors p-1" title="Clear Logs">
+                <Trash2 className="w-4 h-4" />
+              </button>
+              <button onClick={() => setIsTerminalOpen(false)} className="text-white/40 hover:text-white transition-colors p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-4 font-mono text-[11px] leading-relaxed no-scrollbar bg-[#050505]">
+            {uartLogs.length === 0 ? (
+              <div className="text-white/30 h-full flex items-center justify-center italic">No UART activity yet...</div>
+            ) : (
+              uartLogs.map((log, i) => (
+                <div key={i} className={`mb-1 ${log.includes("TX") ? "text-blue-400" : log.includes("Error") ? "text-red-400" : "text-green-400"}`}>
+                  {log}
+                </div>
+              ))
+            )}
+            <div ref={logsEndRef} />
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 function BottomToolbar() {
   const {
     resetDemo,
@@ -316,7 +368,7 @@ function BottomToolbar() {
 ═══════════════════════════════════════════════════════════════════════════ */
 
 export default function Dashboard() {
-  const { dashboardType, setDashboardType, dataSourceInfo, connectFPGA } = useDashboard();
+  const { dashboardType, setDashboardType, dataSourceInfo, connectFPGA, isTerminalOpen, setIsTerminalOpen } = useDashboard();
   
   // No longer forcing software on mount, rely on context defaults.
 
@@ -371,10 +423,20 @@ export default function Dashboard() {
 
         <Navigation />
 
+        {/* Terminal Button */}
+        <button 
+          onClick={() => setIsTerminalOpen(true)}
+          className="absolute top-20 right-6 z-40 bg-black/60 backdrop-blur-xl border border-white/10 p-3 rounded-full hover:bg-white/10 transition-colors pointer-events-auto shadow-lg group"
+          title="Open UART Terminal"
+        >
+          <TerminalSquare className="w-5 h-5 text-white/60 group-hover:text-green-400 transition-colors" />
+        </button>
+
         <ToastContainer />
         <LeftPanel />
         <RightPanel />
         <BottomToolbar />
+        <TerminalPanel />
 
         {/* 3-D Canvas */}
         <div className="absolute inset-0 z-0">

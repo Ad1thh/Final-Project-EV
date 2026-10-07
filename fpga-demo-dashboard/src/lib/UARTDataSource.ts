@@ -7,6 +7,7 @@ export class UARTDataSource implements DataSource {
   private reader: any | null = null;
   private keepReading = true;
   private listeners: ((event: FaultEvent) => void)[] = [];
+  private logListeners: ((msg: string) => void)[] = [];
 
   public async start(): Promise<void> {
     if (!("serial" in navigator)) {
@@ -47,18 +48,31 @@ export class UARTDataSource implements DataSource {
 
   public async sendCommand(typeByte: number, reg: number, bit: number, aluId: number): Promise<void> {
     if (!this.port || !this.port.writable) {
+      this.emitLog("TX Error: UART not connected or writable");
       console.warn("UART not connected or writable");
       return;
     }
     const writer = this.port.writable.getWriter();
     try {
       const data = new Uint8Array([0xAA, typeByte, reg, bit, aluId, 0x55]);
+      const hex = Array.from(data).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+      this.emitLog(`TX: ${hex}`);
       await writer.write(data);
-    } catch (e) {
+    } catch (e: any) {
+      this.emitLog(`TX Error: ${e.message}`);
       console.error("UART Write Error:", e);
     } finally {
       writer.releaseLock();
     }
+  }
+
+  public onLog(cb: (msg: string) => void): void {
+    this.logListeners.push(cb);
+  }
+
+  private emitLog(msg: string) {
+    const timestamp = new Date().toISOString().split('T')[1].slice(0, 8);
+    this.logListeners.forEach(cb => cb(`[${timestamp}] ${msg}`));
   }
 
   public onEvent(cb: (event: FaultEvent) => void): void {
@@ -80,7 +94,10 @@ export class UARTDataSource implements DataSource {
           if (done) {
             break; // Reader cancelled
           }
-          if (value) {
+          if (value && value.length > 0) {
+            const hex = Array.from(value as Uint8Array).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+            this.emitLog(`RX: ${hex}`);
+            
             // Append to buffer
             const newBuffer = new Uint8Array(buffer.length + value.length);
             newBuffer.set(buffer);
