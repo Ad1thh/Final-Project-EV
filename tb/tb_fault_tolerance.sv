@@ -41,6 +41,7 @@ module tb_fault_tolerance;
     logic        ecc_sec_2, ecc_ded_2;
     logic        tmr_mismatch;
     logic        tmr_fatal_mismatch;
+    logic        cu_mismatch;
 
     // Memory array
     logic [31:0] mem [0:MEM_DEPTH-1];
@@ -108,7 +109,8 @@ module tb_fault_tolerance;
         .ecc_sec_2    (ecc_sec_2),
         .ecc_ded_2    (ecc_ded_2),
         .tmr_mismatch (tmr_mismatch),
-        .tmr_fatal_mismatch(tmr_fatal_mismatch)
+        .tmr_fatal_mismatch(tmr_fatal_mismatch),
+        .cu_mismatch  (cu_mismatch)
     );
 
     // ========================================================================
@@ -122,7 +124,9 @@ module tb_fault_tolerance;
     // Task: Load program and wait for trap
     // ========================================================================
     task run_program(input int start_addr);
-        // Flush pipeline and start execution
+        rst_n = 0;
+        #10;
+        rst_n = 1;
         @(posedge clk);
         #1;
         wait(trap);

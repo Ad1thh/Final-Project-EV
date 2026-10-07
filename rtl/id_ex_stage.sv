@@ -65,7 +65,8 @@ module id_ex_stage #(
     output logic                  ecc_sec_2,
     output logic                  ecc_ded_2,
     output logic                  tmr_mismatch,
-    output logic                  tmr_fatal_mismatch
+    output logic                  tmr_fatal_mismatch,
+    output logic                  cu_mismatch
 );
 
     // ------------------------------------------------------------------------
@@ -113,8 +114,9 @@ module id_ex_stage #(
     end
 
     // ------------------------------------------------------------------------
-    // CONTROL UNIT INSTANTIATION
+    // DUAL MODULAR REDUNDANCY (DMR) CONTROL UNIT WITH FAIL-SAFE CLAMPING
     // ------------------------------------------------------------------------
+    // Primary CU outputs
     logic       ctrl_reg_write;
     logic       ctrl_mem_read;
     logic       ctrl_mem_write;
@@ -125,7 +127,30 @@ module id_ex_stage #(
     logic       ctrl_is_branch;
     logic       ctrl_is_jal;
     logic       ctrl_is_jalr;
+    logic       ctrl_trap_raw;
 
+    // Redundant Checker CU outputs
+    logic       chk_reg_write;
+    logic       chk_mem_read;
+    logic       chk_mem_write;
+    alu_op_e    chk_alu_op;
+    logic       chk_alu_src_a;
+    logic       chk_alu_src_b;
+    wb_sel_e    chk_wb_sel;
+    logic       chk_is_branch;
+    logic       chk_is_jal;
+    logic       chk_is_jalr;
+    logic       chk_trap;
+
+    // Fail-safe clamped control signals
+    logic       safe_reg_write;
+    logic       safe_mem_write;
+    logic       safe_is_branch;
+    logic       safe_is_jal;
+    logic       safe_is_jalr;
+
+    // Primary Control Unit instance
+    (* dont_touch = "true" *)
     control_unit u_control_unit (
         .opcode    (opcode),
         .funct3    (funct3),
@@ -140,8 +165,50 @@ module id_ex_stage #(
         .is_branch (ctrl_is_branch),
         .is_jal    (ctrl_is_jal),
         .is_jalr   (ctrl_is_jalr),
-        .trap      (trap)
+        .trap      (ctrl_trap_raw)
     );
+
+    // Duplicate Checker Control Unit instance
+    (* dont_touch = "true" *)
+    control_unit u_control_unit_checker (
+        .opcode    (opcode),
+        .funct3    (funct3),
+        .funct7    (funct7),
+        .reg_write (chk_reg_write),
+        .mem_read  (chk_mem_read),
+        .mem_write (chk_mem_write),
+        .alu_op    (chk_alu_op),
+        .alu_src_a (chk_alu_src_a),
+        .alu_src_b (chk_alu_src_b),
+        .wb_sel    (chk_wb_sel),
+        .is_branch (chk_is_branch),
+        .is_jal    (chk_is_jal),
+        .is_jalr   (chk_is_jalr),
+        .trap      (chk_trap)
+    );
+
+    // XOR Mismatch Detection Comparator
+    assign cu_mismatch = (ctrl_reg_write != chk_reg_write) |
+                         (ctrl_mem_read  != chk_mem_read)  |
+                         (ctrl_mem_write != chk_mem_write) |
+                         (ctrl_alu_op    != chk_alu_op)    |
+                         (ctrl_alu_src_a != chk_alu_src_a) |
+                         (ctrl_alu_src_b != chk_alu_src_b) |
+                         (ctrl_wb_sel    != chk_wb_sel)    |
+                         (ctrl_is_branch != chk_is_branch) |
+                         (ctrl_is_jal    != chk_is_jal)    |
+                         (ctrl_is_jalr   != chk_is_jalr)   |
+                         (ctrl_trap_raw  != chk_trap);
+
+    // Fail-Safe Clamping: If DMR mismatch is detected, clamp destructive signals to zero
+    assign safe_reg_write = ctrl_reg_write & ~cu_mismatch;
+    assign safe_mem_write = ctrl_mem_write & ~cu_mismatch;
+    assign safe_is_branch = ctrl_is_branch & ~cu_mismatch;
+    assign safe_is_jal    = ctrl_is_jal    & ~cu_mismatch;
+    assign safe_is_jalr   = ctrl_is_jalr   & ~cu_mismatch;
+
+    // Trap generation: Invalid opcode from either decoder OR mismatch detection
+    assign trap = ctrl_trap_raw | chk_trap | cu_mismatch;
 
     // ------------------------------------------------------------------------
     // REGISTER FILE INSTANTIATION
@@ -279,7 +346,7 @@ module id_ex_stage #(
         else                            branch_condition_met = 1'b0;
     end
 
-    assign branch_or_jump_taken = (ctrl_is_branch & branch_condition_met) | ctrl_is_jal | ctrl_is_jalr;
+    assign branch_or_jump_taken = (safe_is_branch & branch_condition_met) | safe_is_jal | safe_is_jalr;
 
     always_comb begin
         if (ctrl_is_jalr)
@@ -299,13 +366,13 @@ module id_ex_stage #(
     assign alu_result_offset = alu_result[1:0];
 
     always_comb begin
-        if (funct3 == FUNCT3_SB) begin
+        if (safe_mem_write && (funct3 == FUNCT3_SB)) begin
             dmem_wmask = 4'b0001 << alu_result_offset;
             dmem_wdata = reg_rdata2 << (8 * alu_result_offset);
-        end else if (funct3 == FUNCT3_SH) begin
+        end else if (safe_mem_write && (funct3 == FUNCT3_SH)) begin
             dmem_wmask = 4'b0011 << alu_result_offset;
             dmem_wdata = reg_rdata2 << (8 * alu_result_offset);
-        end else if (funct3 == FUNCT3_SW) begin
+        end else if (safe_mem_write && (funct3 == FUNCT3_SW)) begin
             dmem_wmask = 4'b1111;
             dmem_wdata = reg_rdata2;
         end else begin
@@ -314,7 +381,7 @@ module id_ex_stage #(
         end
     end
 
-    assign dmem_we = ctrl_mem_write & ~flush_id_ex;
+    assign dmem_we = safe_mem_write & ~flush_id_ex;
 
     // ------------------------------------------------------------------------
     // EX/WB PIPELINE REGISTER
@@ -333,7 +400,7 @@ module id_ex_stage #(
             alu_result_wb    <= alu_result;
             dmem_rdata_raw_wb<= dmem_rdata;
             rd_wb            <= rd_addr;
-            reg_write_wb     <= ctrl_reg_write;
+            reg_write_wb     <= safe_reg_write;
             wb_sel_wb        <= ctrl_wb_sel;
             funct3_wb        <= funct3;
         end

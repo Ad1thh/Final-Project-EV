@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
 -------------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version     : Vivado v.2025.2 (win64) Build 6299465 Fri Nov 14 19:35:11 GMT 2025
-| Date             : Sun Aug  2 23:23:00 2026
+| Date             : Wed Oct  7 10:23:40 2026
 | Host             : ACE running 64-bit major release  (build 9200)
 | Command          : report_power -file C:/Main_Project/Final-Project-EV/synth_impl_out/post_route_power.rpt
 | Design           : riscv_core_top
@@ -30,10 +30,10 @@ Table of Contents
 ----------
 
 +--------------------------+--------------+
-| Total On-Chip Power (W)  | 0.102        |
+| Total On-Chip Power (W)  | 0.111        |
 | Design Power Budget (W)  | Unspecified* |
 | Power Budget Margin (W)  | NA           |
-| Dynamic (W)              | 0.018        |
+| Dynamic (W)              | 0.027        |
 | Device Static (W)        | 0.084        |
 | Effective TJA (C/W)      | 4.6          |
 | Max Ambient (C)          | 84.5         |
@@ -53,15 +53,15 @@ Table of Contents
 | On-Chip        | Power (W) | Used     | Available | Utilization (%) |
 +----------------+-----------+----------+-----------+-----------------+
 | Clocks         |     0.003 |        3 |       --- |             --- |
-| Slice Logic    |     0.007 |     5396 |       --- |             --- |
-|   LUT as Logic |     0.007 |     3759 |     63400 |            5.93 |
+| Slice Logic    |     0.012 |     5429 |       --- |             --- |
+|   LUT as Logic |     0.012 |     3807 |     63400 |            6.00 |
 |   CARRY4       |    <0.001 |      131 |     15850 |            0.83 |
 |   Register     |    <0.001 |      788 |    126800 |            0.62 |
 |   F7/F8 Muxes  |    <0.001 |      130 |     63400 |            0.21 |
-|   Others       |     0.000 |        9 |       --- |             --- |
-| Signals        |     0.007 |     4088 |       --- |             --- |
+|   Others       |     0.000 |        8 |       --- |             --- |
+| Signals        |     0.011 |     4119 |       --- |             --- |
 | Static Power   |     0.084 |          |           |                 |
-| Total          |     0.102 |          |           |                 |
+| Total          |     0.111 |          |           |                 |
 +----------------+-----------+----------+-----------+-----------------+
 
 
@@ -71,7 +71,7 @@ Table of Contents
 +-----------+-------------+-----------+-------------+------------+-------------+-------------+------------+
 | Source    | Voltage (V) | Total (A) | Dynamic (A) | Static (A) | Powerup (A) | Budget (A)  | Margin (A) |
 +-----------+-------------+-----------+-------------+------------+-------------+-------------+------------+
-| Vccint    |       1.000 |     0.033 |       0.018 |      0.015 |       NA    | Unspecified | NA         |
+| Vccint    |       1.000 |     0.042 |       0.027 |      0.015 |       NA    | Unspecified | NA         |
 | Vccaux    |       1.800 |     0.018 |       0.000 |      0.018 |       NA    | Unspecified | NA         |
 | Vcco33    |       3.300 |     0.000 |       0.000 |      0.000 |       NA    | Unspecified | NA         |
 | Vcco25    |       2.500 |     0.000 |       0.000 |      0.000 |       NA    | Unspecified | NA         |
@@ -140,10 +140,10 @@ Table of Contents
 +-----------------+-----------+
 | Name            | Power (W) |
 +-----------------+-----------+
-| riscv_core_top  |     0.018 |
-|   u_id_ex_stage |     0.011 |
-|     u_regfile   |     0.010 |
-|   u_if_stage    |     0.008 |
+| riscv_core_top  |     0.027 |
+|   u_id_ex_stage |     0.025 |
+|     u_regfile   |     0.024 |
+|   u_if_stage    |     0.002 |
 +-----------------+-----------+
 
 

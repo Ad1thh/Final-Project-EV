@@ -39,6 +39,9 @@ create_clock -name clk -period 40.000 [get_ports clk]
 set_input_delay -clock clk 5.000 [all_inputs]
 set_output_delay -clock clk 5.000 [all_outputs]
 
+# Prevent optimization/merging of Dual Modular Redundancy (DMR) Control Units
+set_property DONT_TOUCH true [get_cells -hierarchical -filter {NAME =~ *u_control_unit*}]
+
 # Step 2: Logic Optimization
 puts "========================================================================="
 puts "                     STEP 2: OPT DESIGN                                  "

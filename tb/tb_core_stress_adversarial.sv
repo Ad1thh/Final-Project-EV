@@ -30,6 +30,7 @@ module tb_core_stress_adversarial;
     logic        ecc_sec_2, ecc_ded_2;
     logic        tmr_mismatch;
     logic        tmr_fatal_mismatch;
+    logic        cu_mismatch;
 
     // Memory array
     logic [31:0] mem [0:MEM_DEPTH-1];
@@ -74,7 +75,8 @@ module tb_core_stress_adversarial;
         .ecc_sec_2    (ecc_sec_2),
         .ecc_ded_2    (ecc_ded_2),
         .tmr_mismatch (tmr_mismatch),
-        .tmr_fatal_mismatch(tmr_fatal_mismatch)
+        .tmr_fatal_mismatch(tmr_fatal_mismatch),
+        .cu_mismatch  (cu_mismatch)
     );
 
     initial begin
@@ -84,6 +86,7 @@ module tb_core_stress_adversarial;
 
     integer p3_3_tested = 0, p3_3_passed = 0, p3_3_failed = 0;
     integer p3_4_tested = 0, p3_4_passed = 0, p3_4_failed = 0;
+    integer p3_5_tested = 0, p3_5_passed = 0, p3_5_failed = 0;
     integer cycle_cnt;
     integer sec_occurrences;
     integer tmr_mismatch_occurrences;
@@ -221,12 +224,83 @@ module tb_core_stress_adversarial;
             $display("3.4 Result: Cycles Tested=%0d, Passed=%0d, Failed=%0d", p3_4_tested, p3_4_passed, p3_4_failed);
         end
 
+        // --------------------------------------------------------------------
+        // 3.5 Control Unit DMR Mutation Testing & Fail-Safe Clamping
+        // --------------------------------------------------------------------
+        $display("\n--- 3.5 Control Unit DMR Mutation Testing & Fail-Safe Clamping ---");
+        begin
+            p3_5_tested = 3;
+
+            // Scenario 1: Non-store ADD instruction with transient fault injected on primary mem_write
+            // Memory[25] initialized to clean value 0xCAFEBABE
+            // 0x00: addi x1, x0, 10
+            // 0x04: addi x2, x0, 20
+            // 0x08: add  x3, x1, x2  (Normal ADD: mem_write should be 0)
+            // 0x0C: ebreak
+            for (int i = 0; i < MEM_DEPTH; i++) mem[i] = 32'h00000013;
+            mem[0] = 32'h00A00093; // addi x1, x0, 10
+            mem[1] = 32'h01400113; // addi x2, x0, 20
+            mem[2] = 32'h002081B3; // add  x3, x1, x2
+            mem[3] = 32'h00000073; // ebreak
+            mem[25] = 32'hCAFEBABE; // Sentinel memory word
+
+            rst_n = 1'b0; #20; rst_n = 1'b1; #10;
+
+            // Wait for ADD instruction to enter ID stage
+            @(posedge clk);
+            @(posedge clk);
+            @(posedge clk);
+            #1;
+
+            // Force transient single-event upset (SEU) on primary mem_write
+            force dut.u_id_ex_stage.ctrl_mem_write = 1'b1;
+            #1;
+
+            if (cu_mismatch == 1'b1 && dut.u_id_ex_stage.safe_mem_write == 1'b0 && trap == 1'b1) begin
+                p3_5_passed++;
+                $display("  Case 1 (Primary mem_write fault): cu_mismatch asserted, safe_mem_write clamped to 0, trap asserted.");
+            end else begin
+                p3_5_failed++;
+                $display("[3.5 FAIL Case 1] Mismatch not caught! cu_mismatch=%b, safe_mem_write=%b, trap=%b",
+                         cu_mismatch, dut.u_id_ex_stage.safe_mem_write, trap);
+            end
+
+            @(posedge clk); #1;
+            release dut.u_id_ex_stage.ctrl_mem_write;
+
+            // Check sentinel memory location was preserved
+            if (mem[25] == 32'hCAFEBABE) begin
+                p3_5_passed++;
+                $display("  Case 2 (Memory Integrity): Sentinel memory data preserved at 0x%08h (No memory corruption).", mem[25]);
+            end else begin
+                p3_5_failed++;
+                $display("[3.5 FAIL Case 2] Memory corrupted: mem[25]=0x%08h", mem[25]);
+            end
+
+            // Scenario 2: Redundant checker CU fault on reg_write
+            rst_n = 1'b0; #20; rst_n = 1'b1; #10;
+            @(posedge clk); @(posedge clk);
+            force dut.u_id_ex_stage.chk_reg_write = ~dut.u_id_ex_stage.ctrl_reg_write;
+            #1;
+            if (cu_mismatch == 1'b1 && dut.u_id_ex_stage.safe_reg_write == 1'b0 && trap == 1'b1) begin
+                p3_5_passed++;
+                $display("  Case 3 (Checker reg_write fault): cu_mismatch asserted, safe_reg_write clamped to 0, trap asserted.");
+            end else begin
+                p3_5_failed++;
+                $display("[3.5 FAIL Case 3] Checker mismatch not caught! cu_mismatch=%b, safe_reg_write=%b, trap=%b",
+                         cu_mismatch, dut.u_id_ex_stage.safe_reg_write, trap);
+            end
+            release dut.u_id_ex_stage.chk_reg_write;
+
+            $display("3.5 Result: Tested=%0d, Passed=%0d, Failed=%0d", p3_5_tested, p3_5_passed, p3_5_failed);
+        end
+
         $display("\n=================================================");
         $display("PART 3 SUMMARY");
         $display("=================================================");
-        $display("Total Part 3 Core Stress Tests: %0d", p3_3_tested + p3_4_tested);
-        $display("Total Part 3 Core Stress Passed: %0d", p3_3_passed + p3_4_passed);
-        $display("Total Part 3 Core Stress Failed: %0d", p3_3_failed + p3_4_failed);
+        $display("Total Part 3 Core Stress Tests: %0d", p3_3_tested + p3_4_tested + p3_5_tested);
+        $display("Total Part 3 Core Stress Passed: %0d", p3_3_passed + p3_4_passed + p3_5_passed);
+        $display("Total Part 3 Core Stress Failed: %0d", p3_3_failed + p3_4_failed + p3_5_failed);
         $display("=================================================");
 
         $finish;
