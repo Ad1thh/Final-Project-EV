@@ -3,7 +3,7 @@
 import React, { useRef, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import { useDashboard } from "@/lib/DashboardContext";
-import { Activity, Zap, Settings2, RefreshCcw, Pause, Play, Crosshair, Cpu } from "lucide-react";
+import { Activity, Zap, Settings2, RefreshCcw, Pause, Play, Crosshair, Cpu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as THREE from "three";
 import anime from "animejs";
@@ -311,13 +311,15 @@ function BottomToolbar() {
   );
 }
 
-import SignalPipeline from "@/components/SignalPipeline";
-
 /* ═══════════════════════════════════════════════════════════════════════════
    DASHBOARD ROOT
 ═══════════════════════════════════════════════════════════════════════════ */
 
 export default function Dashboard() {
+  const { dashboardType, setDashboardType, dataSourceInfo, connectFPGA } = useDashboard();
+  
+  // No longer forcing software on mount, rely on context defaults.
+
   return (
       <div
         className="w-screen h-screen overflow-hidden bg-grid-pattern text-white relative font-sans"
@@ -328,13 +330,42 @@ export default function Dashboard() {
         {/* Radial vignette to focus the eye on the 3-D subject */}
         <div className="absolute inset-0 bg-radial-gradient from-transparent to-black/80 pointer-events-none" />
 
-        {/* Title */}
-        {/* Inset clears the chrome on each side (left panel ~21rem, nav ~28.5rem)
-            so the title centres in the gap instead of running underneath them. */}
-        <div className="absolute top-6 left-[23rem] right-[30rem] z-10 pointer-events-none text-center flex flex-col items-center">
-          <div className="bg-black/80 px-6 py-3 rounded-xl backdrop-blur-md border border-white/5 shadow-2xl">
-            <h1 className="text-xl font-bold tracking-widest text-white/90 uppercase">Fault Tolerant Processor</h1>
-            <p className="text-xs font-mono text-orange-500 mt-1 uppercase tracking-widest">Live Diagnostics</p>
+        {/* Title and Toggle */}
+        <div className="absolute top-6 left-[23rem] right-[30rem] z-10 pointer-events-none flex flex-col items-center gap-3">
+          <div className={`pointer-events-auto px-6 py-3 rounded-xl backdrop-blur-md border shadow-2xl transition-colors duration-500 flex flex-col items-center ${
+            dashboardType === "hardware" ? "bg-green-900/40 border-green-500/30" : "bg-black/80 border-white/5"
+          }`}>
+            <h1 className={`text-xl font-bold tracking-widest uppercase transition-colors duration-500 ${
+              dashboardType === "hardware" ? "text-green-100" : "text-white/90"
+            }`}>
+              {dashboardType === "hardware" ? "Hardware-in-the-Loop" : "Fault Tolerant Processor"}
+            </h1>
+            <p className={`text-xs font-mono mt-1 uppercase tracking-widest transition-colors duration-500 flex items-center justify-center gap-2 ${
+              dashboardType === "hardware" ? "text-green-400" : "text-orange-500"
+            }`}>
+              {dashboardType === "hardware" && <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>}
+              Live Diagnostics
+            </p>
+          </div>
+          
+          {/* Hardware/Software Toggle */}
+          <div className="pointer-events-auto bg-black/60 backdrop-blur-xl border border-white/10 p-1.5 rounded-full flex items-center shadow-lg">
+            <button
+              onClick={() => setDashboardType("software")}
+              className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-colors ${
+                dashboardType === "software" ? "bg-orange-500 text-white" : "text-white/60 hover:text-white"
+              }`}
+            >
+              Software
+            </button>
+            <button
+              onClick={() => setDashboardType("hardware")}
+              className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-colors ${
+                dashboardType === "hardware" ? "bg-green-500 text-white" : "text-white/60 hover:text-white"
+              }`}
+            >
+              Hardware
+            </button>
           </div>
         </div>
 
@@ -344,7 +375,6 @@ export default function Dashboard() {
         <LeftPanel />
         <RightPanel />
         <BottomToolbar />
-        <SignalPipeline />
 
         {/* 3-D Canvas */}
         <div className="absolute inset-0 z-0">
@@ -355,6 +385,35 @@ export default function Dashboard() {
             <SharedScene />
           </Canvas>
         </div>
+
+        {/* Disconnected Overlay (Only in Hardware Mode) */}
+        {dashboardType === "hardware" && !dataSourceInfo.isConnected && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+            <div className="bg-black/90 p-8 rounded-2xl border border-white/10 text-center max-w-md shadow-2xl relative">
+              <button
+                onClick={() => setDashboardType("software")}
+                className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors p-1"
+                title="Return to Software Mode"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              
+              <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/30">
+                <Cpu className="w-8 h-8 text-red-500" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2 tracking-wide uppercase">Board Disconnected</h2>
+              <p className="text-white/60 text-sm mb-8">
+                Hardware-in-the-Loop mode requires a live connection to the Zybo Z7 FPGA board via USB UART.
+              </p>
+              <button 
+                onClick={connectFPGA}
+                className="w-full py-4 bg-green-600 hover:bg-green-500 text-white font-bold tracking-widest uppercase rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                <Zap className="w-5 h-5 fill-white" /> Connect to FPGA
+              </button>
+            </div>
+          </div>
+        )}
       </div>
   );
 }

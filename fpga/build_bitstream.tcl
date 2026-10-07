@@ -13,7 +13,7 @@ puts "========================================================"
 
 # 1. Read SystemVerilog RTL Sources
 read_verilog -sv [glob rtl/*.sv]
-read_verilog -sv fpga/fpga_top.sv
+read_verilog -sv [glob fpga/*.sv]
 
 # 2. Read Target Board Constraints
 read_xdc constraints/zybo_z7.xdc

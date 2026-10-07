@@ -17,7 +17,8 @@ module fpga_top #(
     input  logic       sysclk,   // 125 MHz input clock (Zybo Z7 Pin K17)
     input  logic       BTN0,     // Active-high reset button (Zybo Z7 Pin K18)
     output logic [3:0] LED,      // 4 On-board LEDs (Zybo Z7)
-    output logic       UART_TXD  // UART Transmit Data (Route to a Pmod, e.g. JE1 Pin V12)
+    output logic       UART_TXD, // UART Transmit Data (Route to a Pmod, e.g. JE1 Pin V12)
+    input  logic       UART_RXD  // UART Receive Data (Route to a Pmod, e.g. JE2 Pin W16)
 );
 
     // ------------------------------------------------------------------------
@@ -70,6 +71,16 @@ module fpga_top #(
     (* keep = "true", mark_debug = "true" *) logic [31:0] pc_debug;
     (* keep = "true", mark_debug = "true" *) logic        trap;
 
+    logic        tmr_mode_pin;
+    logic        fi_reg_en;
+    logic [3:0]  fi_reg_addr;
+    logic [5:0]  fi_reg_bit;
+    logic        fi_alu_en;
+    logic [1:0]  fi_alu_sel;
+    logic [4:0]  fi_alu_bit;
+    logic        ecc_sec_1, ecc_ded_1, ecc_sec_2, ecc_ded_2, tmr_mismatch, tmr_fatal_mismatch, pc_tmr_mismatch, pc_tmr_fatal_mismatch;
+    logic        core_rst_n;
+
     // ------------------------------------------------------------------------
     // CPU CORE INSTANTIATION (IMMUTABLE ASIC IP)
     // ------------------------------------------------------------------------
@@ -79,7 +90,7 @@ module fpga_top #(
         .ADDR_WIDTH (4)
     ) u_riscv_core (
         .clk        (clk_31m),
-        .rst_n      (rst_n),
+        .rst_n      (core_rst_n),
         .imem_addr  (imem_addr),
         .imem_rdata (imem_rdata),
         .dmem_addr  (dmem_addr),
@@ -88,7 +99,22 @@ module fpga_top #(
         .dmem_we    (dmem_we),
         .dmem_rdata (dmem_rdata),
         .pc_debug   (pc_debug),
-        .trap       (trap)
+        .trap       (trap),
+        .tmr_mode_pin(tmr_mode_pin),
+        .fi_reg_en(fi_reg_en),
+        .fi_reg_addr(fi_reg_addr),
+        .fi_reg_bit(fi_reg_bit),
+        .fi_alu_en(fi_alu_en),
+        .fi_alu_sel(fi_alu_sel),
+        .fi_alu_bit(fi_alu_bit),
+        .ecc_sec_1(ecc_sec_1),
+        .ecc_ded_1(ecc_ded_1),
+        .ecc_sec_2(ecc_sec_2),
+        .ecc_ded_2(ecc_ded_2),
+        .tmr_mismatch(tmr_mismatch),
+        .tmr_fatal_mismatch(tmr_fatal_mismatch),
+        .pc_tmr_mismatch(pc_tmr_mismatch),
+        .pc_tmr_fatal_mismatch(pc_tmr_fatal_mismatch)
     );
 
     // ------------------------------------------------------------------------
@@ -122,29 +148,17 @@ module fpga_top #(
     end
 
     // ------------------------------------------------------------------------
-    // MMIO MAPPING: 0x8000_0000 -> BOARD LEDS, 0x8000_0008 -> UART TX
+    // MMIO MAPPING: 0x8000_0000 -> BOARD LEDS
     // ------------------------------------------------------------------------
     logic [3:0]  led_reg = 4'h1;
-    logic        uart_valid;
-    logic [7:0]  uart_tx_data;
-    logic        uart_ready;
 
-    always_ff @(posedge clk_31m or negedge rst_n) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk_31m or negedge core_rst_n) begin
+        if (!core_rst_n) begin
             led_reg <= 4'h1; // Power/Reset indicator (LED 0 active on reset)
-            uart_valid <= 1'b0;
-            uart_tx_data <= 8'h00;
         end else begin
-            uart_valid <= 1'b0; // Default: 1-cycle pulse
-            
             if (dmem_we && dmem_addr[31]) begin // Address 0x8000_0000 region
                 if (dmem_addr[7:0] == 8'h00) begin
                     if (dmem_wmask[0]) led_reg[3:0] <= dmem_wdata[3:0];
-                end else if (dmem_addr[7:0] == 8'h08) begin
-                    if (dmem_wmask[0]) begin
-                        uart_tx_data <= dmem_wdata[7:0];
-                        uart_valid <= 1'b1;
-                    end
                 end
             end
         end
@@ -155,6 +169,10 @@ module fpga_top #(
     // ------------------------------------------------------------------------
     // UART TRANSMITTER
     // ------------------------------------------------------------------------
+    logic uart_valid;
+    logic [7:0] uart_tx_data;
+    logic uart_ready;
+
     uart_tx #(
         .BAUD_DIVIDER(271), // 31.25MHz / 115200 = 271.26
         .PARITY("NONE")
@@ -167,9 +185,51 @@ module fpga_top #(
         .tx      (UART_TXD)
     );
 
+    // ------------------------------------------------------------------------
+    // UART RECEIVER
+    // ------------------------------------------------------------------------
+    logic       rx_valid;
+    logic [7:0] rx_data;
+
+    uart_rx #(
+        .BAUD_DIVIDER(271) // 31.25MHz / 115200 = 271.26
+    ) u_uart_rx (
+        .clk     (clk_31m),
+        .rstn    (rst_n),
+        .rx      (UART_RXD),
+        .valid   (rx_valid),
+        .rx_data (rx_data)
+    );
+
+    // ------------------------------------------------------------------------
+    // HARDWARE-IN-THE-LOOP (HIL) CONTROLLER
+    // ------------------------------------------------------------------------
+    hil_controller u_hil_ctrl (
+        .clk           (clk_31m),
+        .rst_n         (rst_n),
+        .rx_valid      (rx_valid),
+        .rx_data       (rx_data),
+        .tx_valid      (uart_valid),
+        .tx_data       (uart_tx_data),
+        .tx_ready      (uart_ready),
+        .fi_reg_en     (fi_reg_en),
+        .fi_reg_addr   (fi_reg_addr),
+        .fi_reg_bit    (fi_reg_bit),
+        .fi_alu_en     (fi_alu_en),
+        .fi_alu_sel    (fi_alu_sel),
+        .fi_alu_bit    (fi_alu_bit),
+        .tmr_mode_pin  (tmr_mode_pin),
+        .core_rst_n    (core_rst_n),
+        .ecc_sec_1     (ecc_sec_1),
+        .ecc_ded_1     (ecc_ded_1),
+        .ecc_sec_2     (ecc_sec_2),
+        .ecc_ded_2     (ecc_ded_2),
+        .tmr_mismatch  (tmr_mismatch)
+    );
+
     // Data Memory Read (MMIO at 0x8000_0000 vs BRAM read)
     assign dmem_rdata = (dmem_addr[31]) ? 
-                            ((dmem_addr[7:0] == 8'h0C) ? {31'h0, uart_ready} : {28'h0000000, led_reg}) :
+                            ((dmem_addr[7:0] == 8'h00) ? {28'h0000000, led_reg} : 32'h0000_0000) :
                         ((dmem_idx < MEM_DEPTH) ? mem[dmem_idx] : 32'h0000_0000);
 
 endmodule

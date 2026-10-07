@@ -25,6 +25,7 @@ set_property -dict { PACKAGE_PIN G14   IOSTANDARD LVCMOS33 } [get_ports { LED[2]
 set_property -dict { PACKAGE_PIN D18   IOSTANDARD LVCMOS33 } [get_ports { LED[3] }];
 
 ## ----------------------------------------------------------------------------
-## UART Transmitter (Routed to Pmod JE Pin 1)
+## UART (Routed to Pmod JE)
 ## ----------------------------------------------------------------------------
 set_property -dict { PACKAGE_PIN V12   IOSTANDARD LVCMOS33 } [get_ports { UART_TXD }];
+set_property -dict { PACKAGE_PIN W16   IOSTANDARD LVCMOS33 } [get_ports { UART_RXD }];

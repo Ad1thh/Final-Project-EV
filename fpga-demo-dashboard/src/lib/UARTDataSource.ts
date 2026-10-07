@@ -45,6 +45,22 @@ export class UARTDataSource implements DataSource {
     this.sourceName = "Simulated";
   }
 
+  public async sendCommand(typeByte: number, reg: number, bit: number, aluId: number): Promise<void> {
+    if (!this.port || !this.port.writable) {
+      console.warn("UART not connected or writable");
+      return;
+    }
+    const writer = this.port.writable.getWriter();
+    try {
+      const data = new Uint8Array([0xAA, typeByte, reg, bit, aluId, 0x55]);
+      await writer.write(data);
+    } catch (e) {
+      console.error("UART Write Error:", e);
+    } finally {
+      writer.releaseLock();
+    }
+  }
+
   public onEvent(cb: (event: FaultEvent) => void): void {
     this.listeners.push(cb);
   }

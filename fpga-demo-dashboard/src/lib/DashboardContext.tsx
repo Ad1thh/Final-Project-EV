@@ -88,6 +88,10 @@ interface DashboardState {
   
   // Expose an event counter so the UI (like SignalPipeline) can trigger burst animations
   eventCounter: number;
+  
+  // Dashboard Type (Software vs Hardware)
+  dashboardType: "software" | "hardware";
+  setDashboardType: (type: "software" | "hardware") => void;
 }
 
 let nextToastId = 0;
@@ -97,6 +101,7 @@ const DashboardContext = createContext<DashboardState | undefined>(undefined);
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [processorState, setProcessorState] = useState<"Running" | "Degraded" | "Recovering" | "Halted">("Running");
   const [currentMode, setCurrentMode] = useState<"Simplex" | "Triple Modular Redundancy">("Simplex");
+  const [dashboardType, setDashboardType] = useState<"software" | "hardware">("software");
   
   // 3D Visual State
   const [isHovering, setIsHovering] = useState(true);
@@ -214,12 +219,12 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (isDemoActive && !dataSourceInfo.isConnected) {
+    if (dashboardType === "software" && isDemoActive && !dataSourceInfo.isConnected) {
       simulatedSource.current.start();
     } else {
       simulatedSource.current.stop();
     }
-  }, [isDemoActive, dataSourceInfo.isConnected]);
+  }, [isDemoActive, dataSourceInfo.isConnected, dashboardType]);
 
   const connectFPGA = async () => {
     try {
@@ -287,17 +292,32 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   // Backwards compatibility for UI buttons that trigger faults manually
   const injectFault = (type: FaultType, reg?: string, bit?: string, alu?: string) => {
     let convertedType: FaultEvent['type'] = 'SEC';
-    if (type === 'DED') convertedType = 'DED';
-    if (type === 'ALU') convertedType = 'TMR_MISMATCH';
-    if (type === 'MODE') convertedType = 'MODE_CHANGE';
+    let typeByte = 0x01;
+    if (type === 'DED') { convertedType = 'DED'; typeByte = 0x02; }
+    if (type === 'ALU') { convertedType = 'TMR_MISMATCH'; typeByte = 0x03; }
+    if (type === 'MODE') { convertedType = 'MODE_CHANGE'; typeByte = 0x04; }
 
-    handleFaultEvent({
-      type: convertedType,
-      register: reg ? parseInt(reg.replace('x', ''), 10) : undefined,
-      bit: bit ? parseInt(bit, 10) : undefined,
-      aluInstance: alu ? parseInt(alu, 10) : undefined,
-      timestamp: Date.now()
-    });
+    const regNum = reg ? parseInt(reg.replace('x', ''), 10) : (type === 'DED' ? 9 : 5);
+    const bitNum = bit ? parseInt(bit, 10) : 7;
+    const aluNum = alu ? parseInt(alu, 10) : 0;
+
+    if (dashboardType === "hardware") {
+      if (!dataSourceInfo.isConnected) {
+        addToast("Cannot inject fault: Hardware disconnected", "error");
+        return;
+      }
+      // Send command to FPGA
+      uartSource.current.sendCommand(typeByte, regNum, bitNum, aluNum);
+    } else {
+      // Simulate locally
+      handleFaultEvent({
+        type: convertedType,
+        register: regNum,
+        bit: bitNum,
+        aluInstance: aluNum,
+        timestamp: Date.now()
+      });
+    }
   };
 
   return (
@@ -317,7 +337,8 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         faultStats, faultHistory,
         injectFault, resetDemo,
         isDemoActive, setIsDemoActive,
-        dataSourceInfo, connectFPGA, disconnectFPGA, eventCounter
+        dataSourceInfo, connectFPGA, disconnectFPGA, eventCounter,
+        dashboardType, setDashboardType
       }}
     >
       {children}
