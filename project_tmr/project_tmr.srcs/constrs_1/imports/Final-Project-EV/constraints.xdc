@@ -1,43 +1,30 @@
 ## ============================================================================
-## File: nexys4.xdc
-## Description: Board Constraint File for Xilinx Nexys 4 (Artix-7 XC7A100T-1CSG324C).
-##              Maps 100MHz clock, active-low CPU reset, and 16 LEDs.
+## File: zybo_z7.xdc
+## Description: Board Constraint File for Digilent Zybo Z7 (Zynq-7000).
+##              Maps 125MHz clock, active-high CPU reset, 4 LEDs, and PMOD UART.
 ## Standards: Xilinx Vivado XDC Constraints (LVCMOS33)
 ## ============================================================================
 
 ## ----------------------------------------------------------------------------
-## Clock Signal (100 MHz System Oscillator)
+## Clock Signal (125 MHz System Oscillator)
 ## ----------------------------------------------------------------------------
-set_property -dict { PACKAGE_PIN E3    IOSTANDARD LVCMOS33 } [get_ports { CLK100MHZ }];
-create_clock -add -name sys_clk_pin -period 10.00 -waveform {0 5} [get_ports { CLK100MHZ }];
+set_property -dict { PACKAGE_PIN K17   IOSTANDARD LVCMOS33 } [get_ports { sysclk }];
+create_clock -add -name sys_clk_pin -period 8.00 -waveform {0 4} [get_ports { sysclk }];
 
 ## ----------------------------------------------------------------------------
-## Reset Button (CPU_RESETN - Active Low Pushbutton)
+## Reset Button (BTN0 - Active High Pushbutton)
 ## ----------------------------------------------------------------------------
-set_property -dict { PACKAGE_PIN E16   IOSTANDARD LVCMOS33 } [get_ports { CPU_RESETN }];
+set_property -dict { PACKAGE_PIN K18   IOSTANDARD LVCMOS33 } [get_ports { BTN0 }];
 
 ## ----------------------------------------------------------------------------
-## User LEDs (LED[15:0])
+## User LEDs (LED[3:0])
 ## ----------------------------------------------------------------------------
-set_property -dict { PACKAGE_PIN T8   IOSTANDARD LVCMOS33 } [get_ports { LED[0]  }];
-set_property -dict { PACKAGE_PIN V9   IOSTANDARD LVCMOS33 } [get_ports { LED[1]  }];
-set_property -dict { PACKAGE_PIN R8   IOSTANDARD LVCMOS33 } [get_ports { LED[2]  }];
-set_property -dict { PACKAGE_PIN T6   IOSTANDARD LVCMOS33 } [get_ports { LED[3]  }];
-set_property -dict { PACKAGE_PIN T5   IOSTANDARD LVCMOS33 } [get_ports { LED[4]  }];
-set_property -dict { PACKAGE_PIN T4   IOSTANDARD LVCMOS33 } [get_ports { LED[5]  }];
-set_property -dict { PACKAGE_PIN U7   IOSTANDARD LVCMOS33 } [get_ports { LED[6]  }];
-set_property -dict { PACKAGE_PIN U6   IOSTANDARD LVCMOS33 } [get_ports { LED[7]  }];
-set_property -dict { PACKAGE_PIN V4   IOSTANDARD LVCMOS33 } [get_ports { LED[8]  }];
-set_property -dict { PACKAGE_PIN U3   IOSTANDARD LVCMOS33 } [get_ports { LED[9]  }];
-set_property -dict { PACKAGE_PIN V1   IOSTANDARD LVCMOS33 } [get_ports { LED[10] }];
-set_property -dict { PACKAGE_PIN R1   IOSTANDARD LVCMOS33 } [get_ports { LED[11] }];
-set_property -dict { PACKAGE_PIN P5   IOSTANDARD LVCMOS33 } [get_ports { LED[12] }];
-set_property -dict { PACKAGE_PIN U1   IOSTANDARD LVCMOS33 } [get_ports { LED[13] }];
-set_property -dict { PACKAGE_PIN R2   IOSTANDARD LVCMOS33 } [get_ports { LED[14] }];
-set_property -dict { PACKAGE_PIN P2   IOSTANDARD LVCMOS33 } [get_ports { LED[15] }];
+set_property -dict { PACKAGE_PIN M14   IOSTANDARD LVCMOS33 } [get_ports { LED[0] }];
+set_property -dict { PACKAGE_PIN M15   IOSTANDARD LVCMOS33 } [get_ports { LED[1] }];
+set_property -dict { PACKAGE_PIN G14   IOSTANDARD LVCMOS33 } [get_ports { LED[2] }];
+set_property -dict { PACKAGE_PIN D18   IOSTANDARD LVCMOS33 } [get_ports { LED[3] }];
 
 ## ----------------------------------------------------------------------------
-## Configuration Voltage & Mode Settings for Artix-7
+## UART Transmitter (Routed to Pmod JE Pin 1)
 ## ----------------------------------------------------------------------------
-set_property CFGBVS VCCO [current_design]
-set_property CONFIG_VOLTAGE 3.3 [current_design]
+set_property -dict { PACKAGE_PIN V12   IOSTANDARD LVCMOS33 } [get_ports { UART_TXD }];

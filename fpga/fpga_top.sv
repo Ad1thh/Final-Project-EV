@@ -14,29 +14,29 @@ module fpga_top #(
     parameter int MEM_DEPTH = 8192,            // 32KB Memory (8192 x 32-bit)
     parameter string HEX_FILE = "firmware.hex"  // Default firmware memory initialization file
 )(
-    input  logic        CLK100MHZ,  // 100 MHz input clock (Nexys 4 Pin E3)
-    input  logic        CPU_RESETN, // Active-low reset button (Nexys 4 Pin C12)
-    output logic [15:0] LED,        // 16 On-board LEDs
-    output logic        UART_TXD    // UART Transmit Data
+    input  logic       sysclk,   // 125 MHz input clock (Zybo Z7 Pin K17)
+    input  logic       BTN0,     // Active-high reset button (Zybo Z7 Pin K18)
+    output logic [3:0] LED,      // 4 On-board LEDs (Zybo Z7)
+    output logic       UART_TXD  // UART Transmit Data (Route to a Pmod, e.g. JE1 Pin V12)
 );
 
     // ------------------------------------------------------------------------
-    // CLOCK DIVISION: 100 MHz to 25 MHz
+    // CLOCK DIVISION: 125 MHz to 31.25 MHz
     // ------------------------------------------------------------------------
     logic [1:0] clk_div_cnt = 2'b00;
-    logic       clk_25m_raw;
-    logic       clk_25m;
+    logic       clk_31m_raw;
+    logic       clk_31m;
 
-    always_ff @(posedge CLK100MHZ) begin
+    always_ff @(posedge sysclk) begin
         clk_div_cnt <= clk_div_cnt + 1'b1;
     end
 
-    assign clk_25m_raw = clk_div_cnt[1];
+    assign clk_31m_raw = clk_div_cnt[1];
 
     // Global Clock Buffer for clean internal clock distribution
     BUFG u_bufg (
-        .I (clk_25m_raw),
-        .O (clk_25m)
+        .I (clk_31m_raw),
+        .O (clk_31m)
     );
 
     // ------------------------------------------------------------------------
@@ -45,8 +45,8 @@ module fpga_top #(
     logic [7:0] por_cnt = 8'h00;
     logic       rst_n;
 
-    always_ff @(posedge clk_25m) begin
-        if (CPU_RESETN) begin // Active-high BTNC button pressed
+    always_ff @(posedge clk_31m) begin
+        if (BTN0) begin // Active-high BTN0 button pressed
             por_cnt <= 8'h00;
             rst_n   <= 1'b0;
         end else if (por_cnt != 8'hFF) begin // Auto reset for 256 cycles after bitstream flash
@@ -78,7 +78,7 @@ module fpga_top #(
         .REG_COUNT  (16),
         .ADDR_WIDTH (4)
     ) u_riscv_core (
-        .clk        (clk_25m),
+        .clk        (clk_31m),
         .rst_n      (rst_n),
         .imem_addr  (imem_addr),
         .imem_rdata (imem_rdata),
@@ -112,7 +112,7 @@ module fpga_top #(
     // Data Memory Write (RAM space: dmem_addr[31] == 0)
     wire [31:0] dmem_idx = dmem_addr >> 2;
 
-    always_ff @(posedge clk_25m) begin
+    always_ff @(posedge clk_31m) begin
         if (dmem_we && !dmem_addr[31] && (dmem_idx < MEM_DEPTH)) begin
             if (dmem_wmask[0]) mem[dmem_idx][7:0]   <= dmem_wdata[7:0];
             if (dmem_wmask[1]) mem[dmem_idx][15:8]  <= dmem_wdata[15:8];
@@ -124,14 +124,14 @@ module fpga_top #(
     // ------------------------------------------------------------------------
     // MMIO MAPPING: 0x8000_0000 -> BOARD LEDS, 0x8000_0008 -> UART TX
     // ------------------------------------------------------------------------
-    logic [15:0] led_reg = 16'h0001;
+    logic [3:0]  led_reg = 4'h1;
     logic        uart_valid;
     logic [7:0]  uart_tx_data;
     logic        uart_ready;
 
-    always_ff @(posedge clk_25m or negedge rst_n) begin
+    always_ff @(posedge clk_31m or negedge rst_n) begin
         if (!rst_n) begin
-            led_reg <= 16'h0001; // Power/Reset indicator (LED 0 active on reset)
+            led_reg <= 4'h1; // Power/Reset indicator (LED 0 active on reset)
             uart_valid <= 1'b0;
             uart_tx_data <= 8'h00;
         end else begin
@@ -139,8 +139,7 @@ module fpga_top #(
             
             if (dmem_we && dmem_addr[31]) begin // Address 0x8000_0000 region
                 if (dmem_addr[7:0] == 8'h00) begin
-                    if (dmem_wmask[0]) led_reg[7:0]  <= dmem_wdata[7:0];
-                    if (dmem_wmask[1]) led_reg[15:8] <= dmem_wdata[15:8];
+                    if (dmem_wmask[0]) led_reg[3:0] <= dmem_wdata[3:0];
                 end else if (dmem_addr[7:0] == 8'h08) begin
                     if (dmem_wmask[0]) begin
                         uart_tx_data <= dmem_wdata[7:0];
@@ -157,10 +156,10 @@ module fpga_top #(
     // UART TRANSMITTER
     // ------------------------------------------------------------------------
     uart_tx #(
-        .BAUD_DIVIDER(217), // 25MHz / 115200
+        .BAUD_DIVIDER(271), // 31.25MHz / 115200 = 271.26
         .PARITY("NONE")
     ) u_uart_tx (
-        .clk     (clk_25m),
+        .clk     (clk_31m),
         .rstn    (rst_n),
         .valid   (uart_valid),
         .ready   (uart_ready),
@@ -170,7 +169,7 @@ module fpga_top #(
 
     // Data Memory Read (MMIO at 0x8000_0000 vs BRAM read)
     assign dmem_rdata = (dmem_addr[31]) ? 
-                            ((dmem_addr[7:0] == 8'h0C) ? {31'h0, uart_ready} : {16'h0000, led_reg}) :
+                            ((dmem_addr[7:0] == 8'h0C) ? {31'h0, uart_ready} : {28'h0000000, led_reg}) :
                         ((dmem_idx < MEM_DEPTH) ? mem[dmem_idx] : 32'h0000_0000);
 
 endmodule
