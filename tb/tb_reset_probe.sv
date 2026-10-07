@@ -13,7 +13,8 @@ module tb_reset_probe;
     logic [5:0]  fi_reg_bit;
     logic [1:0]  fi_alu_sel;
     logic [4:0]  fi_alu_bit;
-    logic        ecc_sec_1, ecc_ded_1, ecc_sec_2, ecc_ded_2, tmr_mismatch, tmr_fatal_mismatch, cu_mismatch;
+    logic        ecc_sec_1, ecc_ded_1, ecc_sec_2, ecc_ded_2, tmr_mismatch, tmr_fatal_mismatch;
+    logic        pc_tmr_mismatch, pc_tmr_fatal_mismatch, cu_mismatch;
 
     assign imem_rdata = 32'h00000013; // NOP
     assign dmem_rdata = 32'h0;
@@ -26,7 +27,10 @@ module tb_reset_probe;
         .fi_reg_bit(fi_reg_bit), .fi_alu_en(fi_alu_en), .fi_alu_sel(fi_alu_sel),
         .fi_alu_bit(fi_alu_bit), .ecc_sec_1(ecc_sec_1), .ecc_ded_1(ecc_ded_1),
         .ecc_sec_2(ecc_sec_2), .ecc_ded_2(ecc_ded_2), .tmr_mismatch(tmr_mismatch),
-        .tmr_fatal_mismatch(tmr_fatal_mismatch), .cu_mismatch(cu_mismatch)
+        .tmr_fatal_mismatch(tmr_fatal_mismatch),
+        .pc_tmr_mismatch(pc_tmr_mismatch),
+        .pc_tmr_fatal_mismatch(pc_tmr_fatal_mismatch),
+        .cu_mismatch(cu_mismatch)
     );
 
     initial begin clk=0; forever #5 clk=~clk; end

@@ -52,6 +52,7 @@ module riscv_core_top #(
     output logic        ecc_ded_2,
     // Status Outputs — ALU TMR
     output logic        tmr_mismatch,
+    output logic        tmr_fatal_mismatch,
     // Status Outputs — PC TMR
     output logic        pc_tmr_mismatch,       // PC single-replica SEU detected & corrected
     output logic        pc_tmr_fatal_mismatch, // PC all-replicas disagree (uncorrectable)

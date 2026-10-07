@@ -47,6 +47,9 @@ module tb_riscv_core_top();
     logic        ecc_sec_2, ecc_ded_2;
     logic        tmr_mismatch;
     logic        tmr_fatal_mismatch;
+    logic        pc_tmr_mismatch;
+    logic        pc_tmr_fatal_mismatch;
+    logic        cu_mismatch;
 
     // Sticky status flags for FT verification
     logic        sec_flag, ded_flag, tmr_flag;
@@ -115,6 +118,8 @@ module tb_riscv_core_top();
         .ecc_ded_2    (ecc_ded_2),
         .tmr_mismatch (tmr_mismatch),
         .tmr_fatal_mismatch(tmr_fatal_mismatch),
+        .pc_tmr_mismatch(pc_tmr_mismatch),
+        .pc_tmr_fatal_mismatch(pc_tmr_fatal_mismatch),
         .cu_mismatch  (cu_mismatch)
     );
 

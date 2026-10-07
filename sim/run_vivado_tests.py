@@ -33,6 +33,7 @@ def main():
         "rtl/if_stage.sv",
         "rtl/id_ex_stage.sv",
         "rtl/wb_stage.sv",
+        "rtl/uart_tx.sv",
         "rtl/riscv_core_top.sv"
     ]
     

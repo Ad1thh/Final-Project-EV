@@ -17,6 +17,7 @@ module tb_compliance_run;
     logic [1:0] fi_alu_sel  = '0;
     logic [4:0] fi_alu_bit  = '0;
     logic ecc_sec_1, ecc_ded_1, ecc_sec_2, ecc_ded_2, tmr_mismatch, tmr_fatal_mismatch, cu_mismatch;
+    logic pc_tmr_mismatch, pc_tmr_fatal_mismatch;
 
     // 64KB byte-addressable memory
     logic [7:0] memory [0:65535];
@@ -48,6 +49,8 @@ module tb_compliance_run;
         .ecc_sec_2(ecc_sec_2), .ecc_ded_2(ecc_ded_2),
         .tmr_mismatch(tmr_mismatch),
         .tmr_fatal_mismatch(tmr_fatal_mismatch),
+        .pc_tmr_mismatch(pc_tmr_mismatch),
+        .pc_tmr_fatal_mismatch(pc_tmr_fatal_mismatch),
         .cu_mismatch(cu_mismatch)
     );
 
