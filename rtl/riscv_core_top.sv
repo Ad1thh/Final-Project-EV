@@ -52,10 +52,11 @@ module riscv_core_top #(
     output logic        ecc_ded_2,
     // Status Outputs — ALU TMR
     output logic        tmr_mismatch,
-    output logic        tmr_fatal_mismatch,
     // Status Outputs — PC TMR
     output logic        pc_tmr_mismatch,       // PC single-replica SEU detected & corrected
-    output logic        pc_tmr_fatal_mismatch  // PC all-replicas disagree (uncorrectable)
+    output logic        pc_tmr_fatal_mismatch, // PC all-replicas disagree (uncorrectable)
+    // Status Outputs — CU DMR
+    output logic        cu_mismatch
 );
 
     // ------------------------------------------------------------------------
@@ -168,7 +169,8 @@ module riscv_core_top #(
         .ecc_sec_2            (ecc_sec_2),
         .ecc_ded_2            (ecc_ded_2),
         .tmr_mismatch         (tmr_mismatch),
-        .tmr_fatal_mismatch   (tmr_fatal_mismatch)
+        .tmr_fatal_mismatch   (tmr_fatal_mismatch),
+        .cu_mismatch          (cu_mismatch)
     );
 
     // ------------------------------------------------------------------------

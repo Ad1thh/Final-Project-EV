@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 // ============================================================================
 // File: tb_riscv_core_top.sv
 // Description: Testbench for the RISC-V 3-Stage Pipelined Core.
@@ -43,7 +44,7 @@ module tb_riscv_core_top();
     logic [4:0]  fi_alu_bit;
     
     logic        ecc_sec_1, ecc_ded_1;
-    logic        ecc_ded_2;
+    logic        ecc_sec_2, ecc_ded_2;
     logic        tmr_mismatch;
     logic        tmr_fatal_mismatch;
 
@@ -113,7 +114,8 @@ module tb_riscv_core_top();
         .ecc_sec_2    (ecc_sec_2),
         .ecc_ded_2    (ecc_ded_2),
         .tmr_mismatch (tmr_mismatch),
-        .tmr_fatal_mismatch(tmr_fatal_mismatch)
+        .tmr_fatal_mismatch(tmr_fatal_mismatch),
+        .cu_mismatch  (cu_mismatch)
     );
 
     // ------------------------------------------------------------------------

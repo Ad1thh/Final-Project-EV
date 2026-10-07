@@ -1,4 +1,6 @@
 rtl/riscv_pkg.sv
+rtl/clock_gater.sv
+rtl/adaptive_redundancy_controller.sv
 rtl/alu.sv
 rtl/control_unit.sv
 rtl/hazard_unit.sv
