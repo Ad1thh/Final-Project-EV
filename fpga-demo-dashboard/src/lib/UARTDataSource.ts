@@ -8,6 +8,15 @@ export class UARTDataSource implements DataSource {
   private keepReading = true;
   private listeners: ((event: FaultEvent) => void)[] = [];
   private logListeners: ((msg: string) => void)[] = [];
+  private connectionListeners: ((connected: boolean) => void)[] = [];
+
+  private handleDisconnect = (event: any) => {
+    if (event.target === this.port) {
+      this.emitLog("HARDWARE LOST: USB cable unplugged.");
+      this.stop();
+      this.emitConnectionChange(false);
+    }
+  };
 
   public async start(): Promise<void> {
     if (!("serial" in navigator)) {
@@ -24,6 +33,8 @@ export class UARTDataSource implements DataSource {
       this.isConnected = true;
       this.keepReading = true;
 
+      (navigator as any).serial.addEventListener("disconnect", this.handleDisconnect);
+
       // Start reading loop
       this.readLoop();
     } catch (e) {
@@ -35,11 +46,16 @@ export class UARTDataSource implements DataSource {
 
   public async stop(): Promise<void> {
     this.keepReading = false;
+    
+    if ("serial" in navigator) {
+      (navigator as any).serial.removeEventListener("disconnect", this.handleDisconnect);
+    }
+
     if (this.reader) {
-      await this.reader.cancel();
+      await this.reader.cancel().catch(() => {});
     }
     if (this.port) {
-      await this.port.close();
+      await this.port.close().catch(() => {});
       this.port = null;
     }
     this.isConnected = false;
@@ -73,6 +89,14 @@ export class UARTDataSource implements DataSource {
   private emitLog(msg: string) {
     const timestamp = new Date().toISOString().split('T')[1].slice(0, 8);
     this.logListeners.forEach(cb => cb(`[${timestamp}] ${msg}`));
+  }
+
+  public onConnectionChange(cb: (connected: boolean) => void): void {
+    this.connectionListeners.push(cb);
+  }
+
+  private emitConnectionChange(connected: boolean) {
+    this.connectionListeners.forEach(cb => cb(connected));
   }
 
   public onEvent(cb: (event: FaultEvent) => void): void {

@@ -224,6 +224,11 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     uartSource.current.onLog((msg) => {
       setUartLogs(prev => [...prev, msg].slice(-100)); // Keep last 100 logs
     });
+    uartSource.current.onConnectionChange((connected) => {
+      if (!connected) {
+        setDataSourceInfo({ isConnected: false, sourceName: simulatedSource.current.sourceName });
+      }
+    });
     
     return () => {
       simulatedSource.current.stop();
