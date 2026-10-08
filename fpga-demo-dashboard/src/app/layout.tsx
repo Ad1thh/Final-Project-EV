@@ -27,6 +27,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body
         className={`${geistSans.variable} ${geistMono.variable} min-h-full flex flex-col antialiased`}
+        suppressHydrationWarning
       >
         <DashboardProvider>
           {children}

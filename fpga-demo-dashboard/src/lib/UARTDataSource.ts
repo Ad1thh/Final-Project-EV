@@ -35,6 +35,8 @@ export class UARTDataSource implements DataSource {
 
       (navigator as any).serial.addEventListener("disconnect", this.handleDisconnect);
 
+      this.emitLog(`HARDWARE LINK ESTABLISHED: ${this.sourceName}`);
+
       // Start reading loop
       this.readLoop();
     } catch (e) {
