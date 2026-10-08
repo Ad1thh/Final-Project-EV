@@ -426,7 +426,7 @@ export default function Dashboard() {
         {/* Terminal Button */}
         <button 
           onClick={() => setIsTerminalOpen(true)}
-          className="absolute top-20 right-6 z-40 bg-black/60 backdrop-blur-xl border border-white/10 p-3 rounded-full hover:bg-white/10 transition-colors pointer-events-auto shadow-lg group"
+          className="absolute top-32 right-6 z-40 bg-black/60 backdrop-blur-xl border border-white/10 p-3 rounded-full hover:bg-white/10 transition-colors pointer-events-auto shadow-lg group"
           title="Open UART Terminal"
         >
           <TerminalSquare className="w-5 h-5 text-white/60 group-hover:text-green-400 transition-colors" />
