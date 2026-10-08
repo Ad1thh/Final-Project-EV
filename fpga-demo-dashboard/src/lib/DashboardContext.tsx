@@ -143,7 +143,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   // UART Terminal State
   const [uartLogs, setUartLogs] = useState<string[]>([]);
-  const [isTerminalOpen, setIsTerminalOpen] = useState(false);
+  const [isTerminalOpen, setIsTerminalOpen] = useState(true);
   const clearTerminal = () => setUartLogs([]);
 
   // Helper to format hex values
