@@ -16,6 +16,10 @@ module fpga_top #(
 )(
     input  logic       sysclk,   // 125 MHz input clock (Zybo Z7 Pin K17)
     input  logic       BTN0,     // Active-high reset button (Zybo Z7 Pin K18)
+    input  logic       BTN1,     // Active-high SEC inject (Zybo Z7 Pin P16)
+    input  logic       BTN2,     // Active-high DED inject (Zybo Z7 Pin K19)
+    input  logic       BTN3,     // Active-high ALU inject (Zybo Z7 Pin Y16)
+    input  logic       SW0,      // Hardware TMR mode switch (Zybo Z7 Pin G15)
     output logic [3:0] LED       // 4 On-board LEDs (Zybo Z7)
 );
 
@@ -228,6 +232,10 @@ module fpga_top #(
     hil_controller u_hil_ctrl (
         .clk           (clk_31m),
         .rst_n         (rst_n),
+        .btn_sec       (BTN1),
+        .btn_ded       (BTN2),
+        .btn_tmr       (BTN3),
+        .sw_mode       (SW0),
         .rx_valid      (rx_valid),
         .rx_data       (rx_data),
         .tx_valid      (uart_valid),

@@ -1,0 +1,3 @@
+connect
+puts [targets]
+exit

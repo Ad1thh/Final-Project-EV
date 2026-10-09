@@ -1,26 +1,33 @@
 # ============================================================================
 # File: build_bitstream.tcl
-# Description: Vivado Batch TCL Script for Automated Bitstream Generation
-# Target Board: Xilinx Nexys 4 (Artix-7 XC7A100T-1CSG324C)
+# Description: Vivado TCL Script for Zynq-7000 SoC Block Design + RISC-V PL
+# Target Board: Digilent Zybo (Zynq-7000 XC7Z010-1CLG400C)
 # ============================================================================
 
 set project_dir [file normalize [file join [file dirname [info script]] ".."]]
 cd $project_dir
 
+set part_name "xc7z010clg400-1"
+set proj_name "zynq_soc"
+set proj_path [file join $project_dir "fpga" $proj_name]
+
 puts "========================================================"
-puts " === FPGA BUILD === Starting Non-Interactive Vivado Synthesis"
+puts " === FPGA BUILD === Creating Vivado SoC Project ($part_name)"
 puts "========================================================"
 
-# 1. Read SystemVerilog RTL Sources
-read_verilog -sv [glob rtl/*.sv]
-read_verilog -sv [glob fpga/*.sv]
+create_project -force $proj_name $proj_path -part $part_name
 
-# 2. Read Target Board Constraints
-read_xdc constraints/zybo_z7.xdc
+# 1. Add SystemVerilog Sources
+add_files [glob rtl/*.sv]
+add_files [glob fpga/*.sv]
 
-# 3. Create Zynq Block Design for USB-UART Bridge
+# 2. Add Constraints
+add_files -fileset constrs_1 constraints/zybo_z7.xdc
+
+# 3. Create Zynq PS + AXI GPIO Block Design
 puts " === FPGA BUILD === Creating Zynq Block Design..."
 create_bd_design "system"
+
 create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 processing_system7_0
 apply_bd_automation -rule xilinx.com:bd_rule:processing_system7 -config {make_external "FIXED_IO, DDR" apply_board_preset "1" Master "Disable" Slave "Disable" }  [get_bd_cells processing_system7_0]
 
@@ -35,38 +42,39 @@ make_bd_intf_pins_external  [get_bd_intf_pins axi_gpio_0/GPIO2]
 set_property name gpio_to_ps [get_bd_intf_ports GPIO2_0]
 
 save_bd_design
-make_wrapper -files [get_files system.bd] -top
-add_files -norecurse [file join [file dirname [get_property file_name [get_bd_designs system]]] "hdl" "system_wrapper.v"]
+
+# 4. Generate BD Targets and Wrapper
+puts " === FPGA BUILD === Generating Block Design Targets..."
+generate_target all [get_files [file join $proj_path "$proj_name.srcs" "sources_1" "bd" "system" "system.bd"]]
+make_wrapper -files [get_files [file join $proj_path "$proj_name.srcs" "sources_1" "bd" "system" "system.bd"]] -top
+add_files -norecurse [file join $proj_path "$proj_name.srcs" "sources_1" "bd" "system" "hdl" "system_wrapper.v"]
 update_compile_order -fileset sources_1
 
-# 4. Synthesize Design
-puts " === FPGA BUILD === Running synth_design (Target: xc7z020clg400-1)..."
-synth_design -top fpga_top -part xc7z020clg400-1 -flatten_hierarchy rebuilt
+# Set Top Module
+set_property top fpga_top [current_fileset]
+update_compile_order -fileset sources_1
 
-# 4. Optimization & Placement
-puts " === FPGA BUILD === Running opt_design & place_design..."
-opt_design
-place_design
+# 5. Run Synthesis, Implementation, and Bitstream Generation
+puts " === FPGA BUILD === Running Synthesis and Implementation..."
+launch_runs impl_1 -to_step write_bitstream -jobs 8
+wait_on_run impl_1
 
-# 6. Routing
-puts " === FPGA BUILD === Running route_design..."
-route_design
+if {[get_property PROGRESS [get_runs impl_1]] != "100%"} {
+    puts " === ERROR === Implementation failed!"
+    exit 1
+}
 
-# 7. Export Hardware for Vitis
-set xsa_path [file join $project_dir "fpga" "system_wrapper.xsa"]
-puts " === FPGA BUILD === Exporting Hardware to: $xsa_path"
-write_hw_platform -fixed -include_bit -force -file $xsa_path
+# 6. Copy Bitstream & Export Hardware (XSA)
+set generated_bit [file join $proj_path "$proj_name.runs" "impl_1" "fpga_top.bit"]
+set target_bit [file join $project_dir "fpga" "fpga_top.bit"]
+set target_xsa [file join $project_dir "fpga" "system_wrapper.xsa"]
 
-# 8. Generate Bitstream
-set bitstream_path [file join $project_dir "fpga" "fpga_top.bit"]
-puts " === FPGA BUILD === Writing bitstream to: $bitstream_path"
-write_bitstream -force $bitstream_path
+file copy -force $generated_bit $target_bit
+puts " === FPGA BUILD === Copied bitstream to: $target_bit"
 
-# 7. Summary & Reports
-report_utilization -file fpga/utilization_report.txt
-report_timing_summary -file fpga/timing_report.txt
+puts " === FPGA BUILD === Exporting Hardware XSA to: $target_xsa"
+write_hw_platform -fixed -include_bit -force -file $target_xsa
 
 puts "========================================================"
-puts " === FPGA BUILD SUCCESS === Bitstream Generated Successfully!"
-puts " Output: $bitstream_path"
+puts " === FPGA BUILD SUCCESS === SoC Flow Completed!"
 puts "========================================================"

@@ -4,6 +4,12 @@ module hil_controller (
     input  logic        clk,
     input  logic        rst_n,
 
+    // Physical Zybo Board Buttons and Switch
+    input  logic        btn_sec,
+    input  logic        btn_ded,
+    input  logic        btn_tmr,
+    input  logic        sw_mode,
+
     // UART RX Interface
     input  logic        rx_valid,
     input  logic [7:0]  rx_data,
@@ -72,9 +78,33 @@ module hil_controller (
     end
 
     // ========================================================================
+    // PHYSICAL BUTTON & SWITCH SYNCHRONIZATION
+    // ========================================================================
+    logic [2:0] btn_sec_sync, btn_ded_sync, btn_tmr_sync, sw_mode_sync;
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            btn_sec_sync <= 3'b000;
+            btn_ded_sync <= 3'b000;
+            btn_tmr_sync <= 3'b000;
+            sw_mode_sync <= 3'b000;
+        end else begin
+            btn_sec_sync <= {btn_sec_sync[1:0], btn_sec};
+            btn_ded_sync <= {btn_ded_sync[1:0], btn_ded};
+            btn_tmr_sync <= {btn_tmr_sync[1:0], btn_tmr};
+            sw_mode_sync <= {sw_mode_sync[1:0], sw_mode};
+        end
+    end
+
+    wire btn_sec_pulse = (btn_sec_sync[2:1] == 2'b01);
+    wire btn_ded_pulse = (btn_ded_sync[2:1] == 2'b01);
+    wire btn_tmr_pulse = (btn_tmr_sync[2:1] == 2'b01);
+
+    // ========================================================================
     // INJECTION LOGIC
     // ========================================================================
     logic rst_req;
+    logic tmr_mode_uart_toggle;
+
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             fi_reg_en <= 0;
@@ -83,14 +113,42 @@ module hil_controller (
             fi_alu_en <= 0;
             fi_alu_sel <= 0;
             fi_alu_bit <= 0;
-            tmr_mode_pin <= 0; // Default Simplex
+            tmr_mode_uart_toggle <= 0;
+            tmr_mode_pin <= 0;
             rst_req <= 0;
         end else begin
             fi_reg_en <= 0;
             fi_alu_en <= 0;
             rst_req <= 0;
 
-            if (do_inject) begin
+            // Mode combination: Switch SW0 XOR UART Toggle
+            tmr_mode_pin <= sw_mode_sync[2] ^ tmr_mode_uart_toggle;
+
+            if (btn_sec_pulse) begin
+                // Physical BTN1: Inject SEC into Register 1, Bit 0
+                fi_reg_en   <= 1'b1;
+                fi_reg_addr <= 4'd1;
+                fi_reg_bit  <= 6'd0;
+                cmd_reg     <= 8'd1;
+                cmd_bit     <= 8'd0;
+                cmd_alu     <= 8'd0;
+            end else if (btn_ded_pulse) begin
+                // Physical BTN2: Inject DED into Register 1, Bit 0
+                fi_reg_en   <= 1'b1;
+                fi_reg_addr <= 4'd1;
+                fi_reg_bit  <= 6'd0;
+                cmd_reg     <= 8'd1;
+                cmd_bit     <= 8'd0;
+                cmd_alu     <= 8'd0;
+            end else if (btn_tmr_pulse) begin
+                // Physical BTN3: Inject ALU Fault into ALU0, Bit 0
+                fi_alu_en   <= 1'b1;
+                fi_alu_sel  <= 2'b00;
+                fi_alu_bit  <= 5'd0;
+                cmd_reg     <= 8'd0;
+                cmd_bit     <= 8'd0;
+                cmd_alu     <= 8'd0;
+            end else if (do_inject) begin
                 if (cmd_type == 8'h01 || cmd_type == 8'h02) begin
                     // SEC or DED
                     fi_reg_en <= 1;
@@ -103,7 +161,7 @@ module hil_controller (
                     fi_alu_bit <= cmd_bit[4:0];
                 end else if (cmd_type == 8'h04) begin
                     // MODE TOGGLE
-                    tmr_mode_pin <= ~tmr_mode_pin;
+                    tmr_mode_uart_toggle <= ~tmr_mode_uart_toggle;
                 end else if (cmd_type == 8'h05) begin
                     // RESET
                     rst_req <= 1;

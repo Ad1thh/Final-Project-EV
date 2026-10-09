@@ -45,11 +45,6 @@ export class SimulatedDataSource implements DataSource {
 
       if (randomFault === 'TMR_MISMATCH') {
         event.aluInstance = randomAlu;
-        event.correctedValue = 0x0000000F;
-        event.rawValue = 0x00007FFF;
-      } else {
-        event.correctedValue = 0x0000000F;
-        event.rawValue = 0xDEADBEEF;
       }
 
       this.emit(event);

@@ -38,6 +38,14 @@ riscv-gnu-toolchain/
 fpga-demo-dashboard/node_modules/
 fpga-demo-dashboard/.next/
 fpga-demo-dashboard/out/
+drone-dashboard/
+
+# Vivado / Vitis temporary workspace outputs
+zynq_vitis_deployment/vivado_output/
+zynq_vitis_deployment/vitis_ws/
+
+# Screenshots
+*.png
 
 # OS metadata
 .DS_Store

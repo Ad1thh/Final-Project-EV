@@ -1,0 +1,2 @@
+puts [help mrd]
+exit
