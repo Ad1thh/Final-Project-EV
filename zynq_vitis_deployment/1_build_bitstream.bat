@@ -19,6 +19,10 @@ if %ERRORLEVEL% NEQ 0 (
                     )
                 )
             )
+            if exist "%%D:\%%P\2025.2.1\Vivado\settings64.bat" (
+                echo [FOUND] Sourcing %%D:\%%P\2025.2.1\Vivado\settings64.bat
+                call "%%D:\%%P\2025.2.1\Vivado\settings64.bat" >nul 2>&1
+            )
             if exist "%%D:\%%P\2025.2\Vivado\settings64.bat" (
                 echo [FOUND] Sourcing %%D:\%%P\2025.2\Vivado\settings64.bat
                 call "%%D:\%%P\2025.2\Vivado\settings64.bat" >nul 2>&1
@@ -62,4 +66,4 @@ echo.
 echo ==========================================================================
 echo  [STEP 1 COMPLETE] Bitstream (fpga_top.bit) and Platform (system_wrapper.xsa) ready!
 echo ==========================================================================
-pause
+if not "%1"=="--nopause" pause

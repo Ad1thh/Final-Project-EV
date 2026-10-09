@@ -1,6 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
-title [Step 3] XSDB Hardware Flasher & Execution
+title [Step 3] XSDB Hardware Flasher and Execution
 
 echo ==========================================================================
 echo  [STEP 3] Flashing Bitstream and Launching ARM Cortex-A9 UART Bridge
@@ -16,6 +16,12 @@ if %ERRORLEVEL% NEQ 0 (
                         call "%%D:\%%P\Vivado\%%V\settings64.bat" >nul 2>&1
                     )
                 )
+            )
+            if exist "%%D:\%%P\2025.2.1\Vivado\settings64.bat" (
+                call "%%D:\%%P\2025.2.1\Vivado\settings64.bat" >nul 2>&1
+            )
+            if exist "%%D:\%%P\2025.2.1\Vitis\settings64.bat" (
+                call "%%D:\%%P\2025.2.1\Vitis\settings64.bat" >nul 2>&1
             )
             if exist "%%D:\%%P\2025.2\Vivado\settings64.bat" (
                 call "%%D:\%%P\2025.2\Vivado\settings64.bat" >nul 2>&1
@@ -40,4 +46,3 @@ echo  [STEP 3 COMPLETE] Hardware is executing live on Digilent Zybo!
 echo  Open the Drone Web Dashboard, connect to COM port at 115200 baud,
 echo  and test live telemetry and fault injection.
 echo ==========================================================================
-pause

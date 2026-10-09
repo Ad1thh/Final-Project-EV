@@ -3,11 +3,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Layers, BarChart2, Activity, Cpu } from "lucide-react";
 
-export default function Navigation() {
+export default function Navigation({ extraLeft }: { extraLeft?: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="absolute top-6 right-6 z-50 flex items-center gap-2 bg-black/60 backdrop-blur-xl border border-white/10 p-1.5 rounded-full pointer-events-auto shadow-lg">
+    <div className="absolute top-6 right-6 z-50 flex items-center gap-3 pointer-events-auto">
+      {extraLeft}
+      <div className="flex items-center gap-2 bg-black/60 backdrop-blur-xl border border-white/10 p-1.5 rounded-full shadow-lg">
       <Link href="/" className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-colors ${pathname === "/" ? "bg-orange-500 text-white" : "text-white/60 hover:text-white hover:bg-white/10"}`}>
         <LayoutDashboard className="w-4 h-4" />
         Dashboard
@@ -18,8 +20,9 @@ export default function Navigation() {
       </Link>
       <Link href="/simulation" className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-colors ${pathname === "/simulation" ? "bg-orange-500 text-white" : "text-white/60 hover:text-white hover:bg-white/10"}`}>
         <Activity className="w-4 h-4" />
-        Analytics
+        Sandbox
       </Link>
+      </div>
     </div>
   );
 }

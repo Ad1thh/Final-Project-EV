@@ -6,18 +6,18 @@
 ## ============================================================================
 
 ## ----------------------------------------------------------------------------
-## Clock Signal (125 MHz System Oscillator)
+## Clock Signal (Internal Zynq PS FCLK_CLK0 used, no external pin required)
 ## ----------------------------------------------------------------------------
-set_property -dict { PACKAGE_PIN K17   IOSTANDARD LVCMOS33 } [get_ports { sysclk }];
-create_clock -add -name sys_clk_pin -period 8.00 -waveform {0 4} [get_ports { sysclk }];
+# set_property -dict { PACKAGE_PIN L16   IOSTANDARD LVCMOS33 } [get_ports { sysclk }];
+# create_clock -add -name sys_clk_pin -period 8.00 -waveform {0 4} [get_ports { sysclk }];
 
 ## ----------------------------------------------------------------------------
-## Push Buttons (Active High)
+## Push Buttons (Active High on ZYBO Rev. B)
 ## ----------------------------------------------------------------------------
-set_property -dict { PACKAGE_PIN K18   IOSTANDARD LVCMOS33 } [get_ports { BTN0 }]; # Reset
-set_property -dict { PACKAGE_PIN P16   IOSTANDARD LVCMOS33 } [get_ports { BTN1 }]; # SEC Fault
-set_property -dict { PACKAGE_PIN K19   IOSTANDARD LVCMOS33 } [get_ports { BTN2 }]; # DED Fault
-set_property -dict { PACKAGE_PIN Y16   IOSTANDARD LVCMOS33 } [get_ports { BTN3 }]; # ALU Fault
+set_property -dict { PACKAGE_PIN R18   IOSTANDARD LVCMOS33 } [get_ports { BTN0 }]; # Reset (BTN0)
+set_property -dict { PACKAGE_PIN P16   IOSTANDARD LVCMOS33 } [get_ports { BTN1 }]; # SEC Fault (BTN1)
+set_property -dict { PACKAGE_PIN V16   IOSTANDARD LVCMOS33 } [get_ports { BTN2 }]; # DED Fault (BTN2)
+set_property -dict { PACKAGE_PIN Y16   IOSTANDARD LVCMOS33 } [get_ports { BTN3 }]; # ALU Fault (BTN3)
 
 ## ----------------------------------------------------------------------------
 ## Slide Switches

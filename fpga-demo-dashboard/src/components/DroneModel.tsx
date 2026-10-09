@@ -145,6 +145,7 @@ export default function DroneModel({ staticExploded = false }: { staticExploded?
     isHovering, isRotating,
     highlightedModules, activeFaultModule,
     explosionFactor,
+    processorState,
   } = useDashboard();
 
   const { scene: rawScene } = useGLTF("/rc_quadcopter.glb");
@@ -341,6 +342,15 @@ export default function DroneModel({ staticExploded = false }: { staticExploded?
         groupRef.current.position.y = Math.sin(hoverTime.current * 1.5) * 0.1;
       } else {
         groupRef.current.position.y = THREE.MathUtils.lerp(groupRef.current.position.y, 0, delta * 2);
+      }
+
+      // Dynamic Flight Attitude: if processor is trapped/degraded (e.g. DED fault), flight pitches
+      if (processorState === "Degraded") {
+        groupRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 6) * 0.04 + 0.15;
+        groupRef.current.rotation.x = Math.cos(state.clock.elapsedTime * 5) * 0.03 - 0.08;
+      } else {
+        groupRef.current.rotation.z = THREE.MathUtils.lerp(groupRef.current.rotation.z, 0, delta * 4);
+        groupRef.current.rotation.x = THREE.MathUtils.lerp(groupRef.current.rotation.x, 0, delta * 4);
       }
     }
 

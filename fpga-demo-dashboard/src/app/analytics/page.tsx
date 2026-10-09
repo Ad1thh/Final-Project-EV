@@ -33,7 +33,7 @@ function AnalyticsContent() {
       <div className="absolute top-6 left-6 right-[30rem] z-10 pointer-events-none text-center flex flex-col items-center">
         <div className="bg-black/80 px-6 py-3 rounded-xl backdrop-blur-md border border-white/5 shadow-2xl">
           <h1 className="text-xl font-bold tracking-widest text-white/90 uppercase">Fault Tolerant Processor</h1>
-          <p className="text-xs font-mono text-orange-500 mt-1 uppercase tracking-widest">Fault Analytics</p>
+          <p className="text-xs font-mono text-orange-500 mt-1 uppercase tracking-widest">Fault Sandbox</p>
         </div>
       </div>
 
@@ -82,7 +82,7 @@ function AnalyticsContent() {
               <button onClick={() => setIsDemoActive(!isDemoActive)} className="px-4 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-mono text-xs rounded transition-colors uppercase tracking-widest">
                 {isDemoActive ? "Pause Tracking" : "Resume Tracking"}
               </button>
-              <button onClick={resetDemo} className="px-4 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-mono text-xs rounded transition-colors uppercase tracking-widest">
+              <button onClick={() => resetDemo()} className="px-4 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-mono text-xs rounded transition-colors uppercase tracking-widest">
                 Reset Stats
               </button>
             </div>

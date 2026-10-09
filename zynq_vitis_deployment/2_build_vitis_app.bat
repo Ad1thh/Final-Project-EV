@@ -25,6 +25,10 @@ if %ERRORLEVEL% NEQ 0 (
                     )
                 )
             )
+            if exist "%%D:\%%P\2025.2.1\Vitis\settings64.bat" (
+                echo [FOUND] Sourcing %%D:\%%P\2025.2.1\Vitis\settings64.bat
+                call "%%D:\%%P\2025.2.1\Vitis\settings64.bat" >nul 2>&1
+            )
             if exist "%%D:\%%P\2025.2\Vitis\settings64.bat" (
                 echo [FOUND] Sourcing %%D:\%%P\2025.2\Vitis\settings64.bat
                 call "%%D:\%%P\2025.2\Vitis\settings64.bat" >nul 2>&1
@@ -58,4 +62,3 @@ echo.
 echo ==========================================================================
 echo  [STEP 2 COMPLETE] Vitis Application Compiled Successfully!
 echo ==========================================================================
-pause

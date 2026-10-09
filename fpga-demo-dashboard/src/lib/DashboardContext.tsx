@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import { DataSource, FaultEvent } from "./DataProvider";
 import { SimulatedDataSource } from "./SimulatedDataSource";
-import { UARTDataSource } from "./UARTDataSource";
+import { UARTDataSource, REALISTIC_ALU_VALUES } from "./UARTDataSource";
 
 export type FaultType = "SEC" | "DED" | "ALU" | "MODE";
 
@@ -77,7 +77,7 @@ interface DashboardState {
 
   // Actions
   injectFault: (type: FaultType, reg?: string, bit?: string, alu?: string) => void;
-  resetDemo: () => void;
+  resetDemo: (initialMode?: "Simplex" | "Triple Modular Redundancy" | unknown, sendToHardware?: boolean) => void;
   isDemoActive: boolean;
   setIsDemoActive: (v: boolean) => void;
   
@@ -98,6 +98,9 @@ interface DashboardState {
   isTerminalOpen: boolean;
   setIsTerminalOpen: (v: boolean) => void;
   clearTerminal: () => void;
+
+  // Active Protection Event for Hardware Button Highlights
+  activeProtectionEvent: "SEC" | "DED" | "TMR" | "MODE" | "RESET" | null;
 }
 
 let nextToastId = 0;
@@ -146,6 +149,10 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [isTerminalOpen, setIsTerminalOpen] = useState(false);
   const clearTerminal = () => setUartLogs([]);
 
+  // Active Protection Event State (for button highlight sync)
+  const [activeProtectionEvent, setActiveProtectionEvent] = useState<"SEC" | "DED" | "TMR" | "MODE" | "RESET" | null>(null);
+  const aluSimIdx = useRef(0);
+
   // Helper to format hex values
   const toHex = (val?: number) => val !== undefined ? "0x" + val.toString(16).toUpperCase().padStart(8, '0') : "0x00000000";
 
@@ -158,25 +165,32 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     setEventCounter(c => c + 1);
 
     if (event.type === 'SEC') {
+      setActiveProtectionEvent("SEC");
+      setTimeout(() => setActiveProtectionEvent(null), 2500);
       setFaultStats(s => ({ ...s, sec: s.sec + 1, total: s.total + 1 }));
-      const targetReg = `x${event.register || 5}`;
-      const targetBit = `${event.bit || 7}`;
+      const targetReg = `x${event.register || 1}`;
+      const targetBit = `${event.bit ?? 0}`;
       setActiveFaultModule("CPU_SEC");
-      setLiveMonitor({ type: "SEC_INJECTED", register: targetReg, bit: targetBit, badValue: toHex(event.rawValue) });
+
+      const goodSec = (event.correctedValue && event.correctedValue !== 0) ? toHex(event.correctedValue) : "0x0000A5A5";
+      const badSec = (event.rawValue && event.rawValue !== 0 && event.rawValue !== 0xDEADBEEF) ? toHex(event.rawValue) : "0x0000A5A4";
+
+      setLiveMonitor({ type: "SEC_INJECTED", register: targetReg, bit: targetBit, badValue: badSec });
       
       // Auto-recover after short visual delay
       setTimeout(() => {
         if (!hasPersistentFaultRef.current) {
-          setLiveMonitor({ type: "SEC_CORRECTED", register: targetReg, goodValue: toHex(event.correctedValue) });
+          setLiveMonitor({ type: "SEC_CORRECTED", register: targetReg, goodValue: goodSec });
           addToast("ECC corrected single-bit fault", "warning");
           setTimeout(() => {
-            setLiveMonitor({ type: "IDLE", value: toHex(event.correctedValue) });
+            setLiveMonitor({ type: "IDLE", value: goodSec });
             setActiveFaultModule(null);
           }, 2000);
         }
       }, 800);
       
     } else if (event.type === 'DED') {
+      setActiveProtectionEvent("DED");
       setFaultStats(s => ({ ...s, ded: s.ded + 1, total: s.total + 1 }));
       const targetReg = `x${event.register || 9}`;
       setProcessorState("Degraded");
@@ -186,34 +200,56 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       addToast("Double-bit error detected — data unreliable", "error");
       
     } else if (event.type === 'TMR_MISMATCH') {
+      setActiveProtectionEvent("TMR");
+      setTimeout(() => setActiveProtectionEvent(null), 2500);
       setFaultStats(s => ({ ...s, alu: s.alu + 1, total: s.total + 1 }));
       const targetAlu = event.aluInstance || 0;
       setActiveFaultModule(`ALU_${targetAlu}`);
       setProcessorState("Recovering");
-      setLiveMonitor({ type: "ALU_INJECTED", aluId: targetAlu, badValue: toHex(event.rawValue), goodValue: toHex(event.correctedValue) });
+
+      // Use realistic flight calculations from the pool (5-20 values) instead of 0x00000000
+      const goodNum = (event.correctedValue && event.correctedValue !== 0)
+        ? event.correctedValue
+        : REALISTIC_ALU_VALUES[aluSimIdx.current % REALISTIC_ALU_VALUES.length];
+      aluSimIdx.current = (aluSimIdx.current + 1) % REALISTIC_ALU_VALUES.length;
+
+      const badNum = (event.rawValue && event.rawValue !== 0 && event.rawValue !== 0xDEADBEEF)
+        ? event.rawValue
+        : (goodNum ^ (1 << (event.bit || 0)));
+
+      const goodVal = toHex(goodNum);
+      const badVal = toHex(badNum);
+
+      setLiveMonitor({ type: "ALU_INJECTED", aluId: targetAlu, badValue: badVal, goodValue: goodVal });
       
       setTimeout(() => {
         if (!hasPersistentFaultRef.current) {
-          setLiveMonitor({ type: "ALU_RECOVERED", goodValue: toHex(event.correctedValue) });
+          setLiveMonitor({ type: "ALU_RECOVERED", goodValue: goodVal });
           setActiveFaultModule("TMR_RECOVER");
           setProcessorState("Running");
           addToast("TMR masked ALU failure", "success");
           setTimeout(() => {
             setProcessorState("Running");
-            setLiveMonitor({ type: "IDLE", value: toHex(event.correctedValue) });
+            setLiveMonitor({ type: "IDLE", value: goodVal });
             setActiveFaultModule(null);
           }, 2000);
         }
       }, 1500);
       
     } else if (event.type === 'MODE_CHANGE') {
+      setActiveProtectionEvent("MODE");
+      setTimeout(() => setActiveProtectionEvent(null), 2000);
       setCurrentMode((prev) => {
-        const newMode = prev === "Simplex" ? "Triple Modular Redundancy" : "Simplex";
+        const newMode = (event.register !== undefined)
+          ? (event.register === 1 ? "Triple Modular Redundancy" : "Simplex")
+          : (prev === "Simplex" ? "Triple Modular Redundancy" : "Simplex");
         addToast(`Mode switched to ${newMode}`, "info");
         return newMode;
       });
     } else if (event.type === 'RESET') {
-      resetDemo();
+      setActiveProtectionEvent("RESET");
+      setTimeout(() => setActiveProtectionEvent(null), 2000);
+      resetDemo(event.register === 1 ? "Triple Modular Redundancy" : "Simplex", false);
     }
   };
 
@@ -223,6 +259,11 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     uartSource.current.onEvent(handleFaultEvent);
     uartSource.current.onLog((msg) => {
       setUartLogs(prev => [...prev, msg].slice(-100)); // Keep last 100 logs
+    });
+    uartSource.current.onConnectionChange((connected) => {
+      if (!connected) {
+        setDataSourceInfo({ isConnected: false, sourceName: simulatedSource.current.sourceName });
+      }
     });
     
     return () => {
@@ -248,6 +289,22 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     } catch (e: any) {
       addToast(e.message || "Failed to connect to FPGA", "error");
       setDataSourceInfo({ isConnected: false, sourceName: simulatedSource.current.sourceName });
+    }
+  };
+
+  const changeDashboardType = async (type: "software" | "hardware") => {
+    setDashboardType(type);
+    if (type === "hardware" && !dataSourceInfo.isConnected) {
+      if (typeof navigator !== "undefined" && "serial" in navigator) {
+        try {
+          const ports = await (navigator as any).serial.getPorts();
+          if (ports && ports.length > 0) {
+            await connectFPGA();
+          }
+        } catch (e) {
+          console.warn("Auto-connect check error:", e);
+        }
+      }
     }
   };
 
@@ -289,10 +346,18 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
-  const resetDemo = () => {
+  const resetDemo = (
+    initialMode?: "Simplex" | "Triple Modular Redundancy" | unknown,
+    sendToHardware: boolean = true
+  ) => {
     setProcessorState("Running");
-    setCurrentMode("Simplex");
+    const validMode = (initialMode === "Triple Modular Redundancy" || initialMode === "Simplex")
+      ? (initialMode as "Simplex" | "Triple Modular Redundancy")
+      : "Simplex";
+    setCurrentMode(validMode);
     setActiveFaultModule(null);
+    setActiveProtectionEvent("RESET");
+    setTimeout(() => setActiveProtectionEvent(null), 1500);
     setHighlightedModules([]);
     setLiveMonitor({ type: "IDLE", value: "0x00000000" });
     setHasPersistentFault(false);
@@ -300,38 +365,36 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     setFaultStats({ sec: 0, ded: 0, alu: 0, total: 0 });
     setFaultHistory([]);
     triggerCameraReset();
-    addToast("System reset.", "info");
+    addToast("Hardware Reset: Flight computer reset. Nominal flight resumed.", "success");
+    if (sendToHardware && dashboardType === "hardware" && dataSourceInfo.isConnected) {
+      uartSource.current.sendCommand(0x05, 0, 0, 0);
+    }
   };
 
-  // Backwards compatibility for UI buttons that trigger faults manually
+  // Fault injection handler
   const injectFault = (type: FaultType, reg?: string, bit?: string, alu?: string) => {
+    if (dashboardType === "hardware") {
+      addToast("Hardware mode active: Fault injection is controlled exclusively via board buttons (BTN1-3)", "warning");
+      return;
+    }
+
     let convertedType: FaultEvent['type'] = 'SEC';
-    let typeByte = 0x01;
-    if (type === 'DED') { convertedType = 'DED'; typeByte = 0x02; }
-    if (type === 'ALU') { convertedType = 'TMR_MISMATCH'; typeByte = 0x03; }
-    if (type === 'MODE') { convertedType = 'MODE_CHANGE'; typeByte = 0x04; }
+    if (type === 'DED') { convertedType = 'DED'; }
+    if (type === 'ALU') { convertedType = 'TMR_MISMATCH'; }
+    if (type === 'MODE') { convertedType = 'MODE_CHANGE'; }
 
     const regNum = reg ? parseInt(reg.replace('x', ''), 10) : (type === 'DED' ? 9 : 5);
     const bitNum = bit ? parseInt(bit, 10) : 7;
     const aluNum = alu ? parseInt(alu, 10) : 0;
 
-    if (dashboardType === "hardware") {
-      if (!dataSourceInfo.isConnected) {
-        addToast("Cannot inject fault: Hardware disconnected", "error");
-        return;
-      }
-      // Send command to FPGA
-      uartSource.current.sendCommand(typeByte, regNum, bitNum, aluNum);
-    } else {
-      // Simulate locally
-      handleFaultEvent({
-        type: convertedType,
-        register: regNum,
-        bit: bitNum,
-        aluInstance: aluNum,
-        timestamp: Date.now()
-      });
-    }
+    // Simulate locally in software mode
+    handleFaultEvent({
+      type: convertedType,
+      register: regNum,
+      bit: bitNum,
+      aluInstance: aluNum,
+      timestamp: Date.now()
+    });
   };
 
   return (
@@ -352,8 +415,9 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         injectFault, resetDemo,
         isDemoActive, setIsDemoActive,
         dataSourceInfo, connectFPGA, disconnectFPGA, eventCounter,
-        dashboardType, setDashboardType,
-        uartLogs, isTerminalOpen, setIsTerminalOpen, clearTerminal
+        dashboardType, setDashboardType: changeDashboardType,
+        uartLogs, isTerminalOpen, setIsTerminalOpen, clearTerminal,
+        activeProtectionEvent
       }}
     >
       {children}
