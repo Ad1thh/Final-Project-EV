@@ -44,6 +44,7 @@ module if_stage #(
     // All three receive the same next_pc on every clock edge. A majority
     // voter downstream corrects any single-replica SEU transparently.
     // ------------------------------------------------------------------------
+    (* dont_touch = "true", preserve = "true" *)
     logic [DATA_WIDTH-1:0] pc_reg_a, pc_reg_b, pc_reg_c;
     logic [DATA_WIDTH-1:0] pc_voted;   // Authoritative, fault-corrected PC
     logic [DATA_WIDTH-1:0] next_pc;

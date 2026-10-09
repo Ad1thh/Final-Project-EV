@@ -279,16 +279,19 @@ module id_ex_stage #(
     logic [DATA_WIDTH-1:0] alu_result_0_fi, alu_result_1_fi, alu_result_2_fi;
 
     // EX0: Primary Execute Unit (Driven by primary clock & un-isolated operands)
+    (* dont_touch = "true", preserve = "true" *)
     alu #(.DATA_WIDTH(DATA_WIDTH)) u_alu_0 (
         .a(alu_in_a), .b(alu_in_b), .alu_op(ctrl_alu_op), .result(alu_result_0), .zero(alu_zero_0)
     );
 
     // EX1: Redundant Execute Unit 1 (Driven by isolated operands & gated clock)
+    (* dont_touch = "true", preserve = "true" *)
     alu #(.DATA_WIDTH(DATA_WIDTH)) u_alu_1 (
         .a(alu_in_a_ex1), .b(alu_in_b_ex1), .alu_op(ctrl_alu_op_ex1), .result(alu_result_1), .zero(alu_zero_1)
     );
 
     // EX2: Redundant Execute Unit 2 (Driven by isolated operands & gated clock)
+    (* dont_touch = "true", preserve = "true" *)
     alu #(.DATA_WIDTH(DATA_WIDTH)) u_alu_2 (
         .a(alu_in_a_ex2), .b(alu_in_b_ex2), .alu_op(ctrl_alu_op_ex2), .result(alu_result_2), .zero(alu_zero_2)
     );
