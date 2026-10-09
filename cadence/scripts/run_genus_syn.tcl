@@ -24,28 +24,26 @@ set REPORT_DIR      "${CADENCE_ROOT}/reports"
 file mkdir $OUTPUT_DIR
 file mkdir $REPORT_DIR
 
-# PDK Target Library Config (Override via environment variables or edit here)
+# PDK Target Library Config (90nm Digital Standard Cell Library)
+set DEFAULT_LIB_PATH   "/home/install/FOUNDRY/digital/90nm/dig/lib"
+set DEFAULT_TARGET_LIB "slow.lib"
+
 if {[info exists env(PDK_LIB_PATH)]} {
     set LIB_PATH $env(PDK_LIB_PATH)
 } else {
-    set LIB_PATH ""
+    set LIB_PATH $DEFAULT_LIB_PATH
 }
 
 if {[info exists env(PDK_TARGET_LIB)]} {
     set TARGET_LIB $env(PDK_TARGET_LIB)
 } else {
-    set TARGET_LIB ""
+    set TARGET_LIB $DEFAULT_TARGET_LIB
 }
 
-if {$LIB_PATH != "" && $TARGET_LIB != ""} {
-    set_db init_lib_search_path $LIB_PATH
-    set_db target_library $TARGET_LIB
-    set_db link_library   "* $TARGET_LIB"
-    puts "--> Configured Target PDK Library: ${TARGET_LIB}"
-} else {
-    puts "--> INFO: No external PDK_TARGET_LIB set in environment."
-    puts "--> Operating with default available Genus technology library or generic mapping."
-}
+set_db init_lib_search_path $LIB_PATH
+set_db target_library $TARGET_LIB
+set_db link_library   "* $TARGET_LIB"
+puts "--> Configured Target PDK Library: ${LIB_PATH}/${TARGET_LIB}"
 
 # ------------------------------------------------------------------------------
 # 2. READ HDL FILES IN DEPENDENCY ORDER

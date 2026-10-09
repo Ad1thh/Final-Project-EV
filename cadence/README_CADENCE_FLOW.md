@@ -95,13 +95,19 @@ Verify that `genus` is ready:
 genus -version
 ```
 
-### Step 4.2: (Optional) Set Target PDK Library
-If you are targeting a specific foundry library (e.g., TSMC 65nm, GPDK45, Sky130, SCL 180nm), set the environment variables:
+### Step 4.2: Target PDK Library Configuration
+The synthesis script is configured with your 90nm foundry standard cell library by default:
+- **Default Path:** `/home/install/FOUNDRY/digital/90nm/dig/lib`
+- **Default Library:** `slow.lib` (worst-case setup corner for robust timing signoff)
+
+If you wish to switch to typical or fast corners, you can optionally override via environment variables:
 ```bash
-export PDK_LIB_PATH="/path/to/foundry/pdk/lib"
+# Optional override for typical corner:
 export PDK_TARGET_LIB="typical.lib"
+
+# Optional override for fast corner:
+export PDK_TARGET_LIB="fast.lib"
 ```
-*(If unset, Genus will run with the default or generic library configured in your tool environment).*
 
 ### Step 4.3: Execute Synthesis
 From the `cadence/` directory:
