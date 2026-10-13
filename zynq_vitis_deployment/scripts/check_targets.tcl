@@ -1,3 +1,0 @@
-connect
-puts [targets]
-exit
