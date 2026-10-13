@@ -27,8 +27,8 @@ You can pull the repository to any directory on your Linux system where you have
 
 ### Option A: If you are cloning the repo freshly on Linux
 ```bash
-# Clone directly onto the cadence-asic-flow branch:
-git clone -b cadence-asic-flow https://github.com/Ad1thh/Final-Project-EV.git
+# Clone directly onto the cadence branch:
+git clone -b cadence https://github.com/Ad1thh/Final-Project-EV.git
 
 cd Final-Project-EV
 ```
@@ -40,11 +40,11 @@ cd /path/to/Final-Project-EV
 # Fetch latest branches from origin
 git fetch origin
 
-# Switch to the new cadence-asic-flow branch
-git checkout cadence-asic-flow
+# Switch to the dedicated cadence branch
+git checkout cadence
 
 # Ensure you have the latest commits
-git pull origin cadence-asic-flow
+git pull origin cadence
 ```
 
 ---

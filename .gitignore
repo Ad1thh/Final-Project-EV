@@ -35,9 +35,7 @@ riscv-arch-test/
 riscv-gnu-toolchain/
 
 # Node / Next.js Dashboard
-fpga-demo-dashboard/node_modules/
-fpga-demo-dashboard/.next/
-fpga-demo-dashboard/out/
+fpga-demo-dashboard/
 drone-dashboard/
 
 # Vivado / Vitis temporary workspace outputs
