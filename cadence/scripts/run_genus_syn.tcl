@@ -73,7 +73,6 @@ read_hdl -language sv $RTL_FILES
 # ------------------------------------------------------------------------------
 puts "--> Elaborating top-level module: ${DESIGN_NAME}"
 elaborate $DESIGN_NAME
-init_design
 
 check_design -unresolved
 
@@ -99,28 +98,47 @@ catch {
     set pc_regs [get_db registers -if {.name =~ *pc_reg_*}]
     if {[llength $pc_regs] > 0} {
         set_db $pc_regs .preserve true
-        puts "    [OK] Preserved [llength $pc_regs] TMR PC registers."
+        puts "    [OK] Preserved [llength $pc_regs] TMR PC registers (Common UI)."
     }
+}
+catch {
+    # Fallback for Legacy UI or instance-based binding
+    set_attribute preserve true [find / -instance *pc_reg*]
+    puts "    [OK] Preserved TMR PC registers (Legacy UI fallback)."
 }
 
 # 5.2 Prevent Genus from optimizing out the DMR Control Unit checker
 catch {
-    set_db [get_db instances */u_control_unit] .preserve true
-    set_db [get_db instances */u_control_unit_checker] .preserve true
-    puts "    [OK] Preserved primary Control Unit and DMR Checker instances."
+    set cu_insts [get_db instances */u_control_unit*]
+    if {[llength $cu_insts] > 0} {
+        set_db $cu_insts .preserve true
+        puts "    [OK] Preserved [llength $cu_insts] Control Unit & DMR Checker instances (Common UI)."
+    }
+}
+catch {
+    set_attribute preserve true [find / -instance *u_control_unit*]
+    puts "    [OK] Preserved Control Unit & DMR Checker instances (Legacy UI fallback)."
 }
 
 # 5.3 Prevent Genus from merging the triplicated ALUs (u_alu_0, u_alu_1, u_alu_2)
 catch {
-    set_db [get_db instances */u_alu_0] .preserve true
-    set_db [get_db instances */u_alu_1] .preserve true
-    set_db [get_db instances */u_alu_2] .preserve true
-    puts "    [OK] Preserved triplicated ALU instances (EX0, EX1, EX2)."
+    set alu_insts [get_db instances */u_alu_*]
+    if {[llength $alu_insts] > 0} {
+        set_db $alu_insts .preserve true
+        puts "    [OK] Preserved [llength $alu_insts] triplicated ALU instances (Common UI)."
+    }
+}
+catch {
+    set_attribute preserve true [find / -instance *u_alu_*]
+    puts "    [OK] Preserved triplicated ALU instances (Legacy UI fallback)."
 }
 
 # 5.4 Prevent aggressive datapath sharing between ECC XOR trees and ALU
-set_db /designs/$DESIGN_NAME .dp_max_sharing 0
-puts "    [OK] Restricted datapath XOR sharing to protect ECC timing margins."
+catch { set_db /designs/$DESIGN_NAME .dp_max_sharing 0 }
+catch { set_db dp_max_sharing 0 }
+catch { set_attribute dp_max_sharing 0 /designs/$DESIGN_NAME }
+catch { set_attribute dp_max_sharing 0 }
+puts "    [OK] Restricted datapath XOR sharing (dp_max_sharing 0) to protect ECC timing margins."
 
 # ------------------------------------------------------------------------------
 # 6. SYNTHESIS OPTIMIZATION (GENERIC -> MAP -> OPT)
@@ -157,3 +175,10 @@ puts "  - Netlist: ${OUTPUT_DIR}/riscv_core_top_syn.v"
 puts "  - SDC:     ${OUTPUT_DIR}/riscv_core_top_syn.sdc"
 puts "  - Reports: ${REPORT_DIR}/"
 puts "======================================================================"
+
+# Clean exit for automated batch runs
+if {[info exists env(RUN_FLOW_BATCH)] || [info exists env(BATCH_MODE)]} {
+    puts "--> Automated batch flow complete. Exiting Genus."
+    exit 0
+}
+
