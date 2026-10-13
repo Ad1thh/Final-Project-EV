@@ -1,234 +1,160 @@
-# RV32E Fault-Tolerant 3-Stage Pipelined RISC-V Processor Core
+# RV32E Fault-Tolerant Processor Core — Cadence ASIC Implementation
 
-**Targets:** ASIC Synthesis (Cadence Genus 180nm) & FPGA Implementation (Digilent / Xilinx Nexys 4 Artix-7 XC7A100T-1CSG324C)  
-**HDL Standard:** SystemVerilog-2012  
-**Synthesis & Toolchains:** AMD/Xilinx Vivado (Non-Interactive Batch Mode), Cadence Genus, Cadence Xcelium, ModelSim, Verilator, Icarus Verilog  
-
----
-
-## 1. Overview & System Architecture
-
-This repository contains an open-source, synthesizable, 3-stage pipelined **RV32E RISC-V Processor Core** with built-in hardware fault tolerance. It features:
-- **Extended Hamming(38,32) SEC-DED ECC** on the 16-entry register file (`x0`-`x15`).
-- **Selective Triple Modular Redundancy (TMR)** on the ALU with low-power operand isolation and 3-way majority voting.
-- **Hardware Fault Injection & Diagnostic Telemetry** with software mode control via memory-mapped I/O (`0xFFFF_FFF0`) and external pins.
-- **Hardware Hazard Unit** providing zero-cycle internal register forwarding, 1-cycle Load-Use stall insertion, and branch misprediction flushes.
-- **FPGA Deployment**: Verified on Xilinx Nexys 4 FPGA with Unified 32 KB Block RAM and MMIO LED diagnostics (`0x8000_0000`).
-
-```
-       +-------------------------------------------------------------+
-       |                  RISC-V 3-Stage Pipeline                    |
-       |                                                             |
-       |   +------------+      +---------------+      +----------+   |
-       |   | IF Stage   | ---> | ID/EX Stage   | ---> | WB Stage |   |
-       |   | (Fetch)    |      | (Decode/Exec) |      | (Write)  |   |
-       |   +------------+      +---------------+      +----------+   |
-       +---------|--------------------|-------------------|----------+
-                 |                    |                   |
-                 v                    v                   v
-      +------------------------------------------------------------------+
-      |               Unified Block RAM (32 KB Memory)                   |
-      +------------------------------------------------------------------+
-                                      |
-                                      v (Address >= 0x80000000)
-      +------------------------------------------------------------------+
-      |                 MMIO Peripheral: 16 Board LEDs                   |
-      +------------------------------------------------------------------+
-```
+**Target Flow:** Cadence Genus (Synthesis) & Cadence Innovus (Physical P&R)  
+**Target Library:** 90nm Digital Standard Cell Library (`/home/install/FOUNDRY/digital/90nm/dig/lib/slow.lib`)  
+**Design Level:** ASIC Synthesizable SystemVerilog-2012  
+**Clock Target:** 100 MHz (10.0 ns period)  
 
 ---
 
-## 2. Project Development Phase Matrix
+## 1. Overview & Architecture
 
-| Phase | Feature / Component | Status | Summary |
-| :--- | :--- | :---: | :--- |
-| **Phase 1** | Base 3-Stage RV32E Core Pipeline | **100% Complete** | Baseline SystemVerilog RTL (`rtl/*.sv`) fully optimized and verified. |
-| **Phase 2** | Custom RTL Simulation & Stress Fuzzing | **100% Complete** | Automated regression suites passing 100%. |
-| **Phase 3** | Architectural Compliance (ACT 4.0) | **100% Complete** | **195/195 RV32I architectural compliance tests passed**. |
-| **Phase 4** | **Baseline FPGA Synthesis & Silicon Validation** | **100% Complete** | **Baseline Vivado bitstream generated & verified live on Nexys 4 FPGA silicon (`0x80FF` PASS pattern confirmed).** |
-| **Phase 5** | **ECC Register File & Adaptive Fault-Tolerance (TMR / SEC-DED)** | **100% Complete** | **Integrated Hamming(38,32) SEC-DED and Triplicated ALU majority voting with operand isolation.** |
-| **Phase 6** | **Cadence ASIC Synthesis, Power, Area & Timing Evaluation** | **Ready for ASIC** | **ASIC-synthesizable latch-free RTL ready for Cadence Genus / Innovus flow.** |
+This repository contains the complete ASIC-synthesizable delivery package for an open-source, high-reliability **RV32E 3-Stage Pipelined RISC-V Processor Core** (`riscv_core_top`).
 
----
+The core integrates comprehensive multi-layer fault tolerance designed to operate reliably in harsh, radiation-prone environments without functional interruption:
 
-## 3. Microarchitecture & Fault Tolerance
-
-### Pipeline Stages
-1. **Stage 1: Fetch (IF):**
-   - Manages Program Counter (`pc_reg`) generation.
-   - Reads 32-bit instructions from Block RAM (`imem_addr`).
-   - Supports 1-cycle pipeline flushes on taken branches/jumps and freeze on load-use hazards.
-2. **Stage 2: Decode & Execute (ID/EX):**
-   - Decodes RV32E opcodes and extracts 16-entry register operands (`x0-x15`).
-   - Integrates **Hamming(38,32) SEC-DED ECC Register File** (`regfile.sv`) with single-bit correction and double-bit error detection.
-   - Contains **Triplicated ALUs** with **3-way Majority Voter** (`tmr_voter.sv`) and operand isolation in Simplex mode.
-   - Evaluates branch conditions (`BEQ`, `BNE`, `BLT`, `BGE`, `BLTU`, `BGEU`) and computes jump targets (`JAL`, `JALR`).
-   - Formats Data Memory write data (`dmem_wdata`) and write masks (`dmem_wmask`) for byte (`SB`), halfword (`SH`), and word (`SW`) stores.
-3. **Stage 3: Writeback (WB):**
-   - Aligns and sign/zero-extends memory load data (`LB`, `LBU`, `LH`, `LHU`, `LW`).
-   - Selects Writeback result (`ALU`, `Memory`, or `PC+4`).
-   - Forwards writeback data to Decode stage in real time via register file bypass.
-
-### Fault Tolerance & Mode Control
-- **Selective TMR Mode**: Controlled dynamically by external pin `tmr_mode_pin` or a software register mapped to address `0xFFFF_FFF0`.
-- **Fault Injection Interface**:
-  - `fi_reg_en`, `fi_reg_addr`, `fi_reg_bit`: Injects bit flips into the 39-bit register codeword.
-  - `fi_alu_en`, `fi_alu_sel`, `fi_alu_bit`: Injects bit flips directly into ALU instance results.
-- **Diagnostic Telemetry Flags**:
-  - `ecc_sec_1`, `ecc_sec_2`: Single Error Corrected flags for read ports 1 and 2.
-  - `ecc_ded_1`, `ecc_ded_2`: Double Error Detected flags for read ports 1 and 2.
-  - `tmr_mismatch`: Flags when ALU instances disagree.
-  - `tmr_fatal_mismatch`: Flags when all three ALU instances disagree simultaneously.
+1. **TMR Program Counter (Fetch Stage):**
+   - Three independent 32-bit PC register replicas (`pc_reg_a`, `pc_reg_b`, `pc_reg_c`) updated synchronously.
+   - 3-input majority voter (`u_pc_voter`) transparently masks single-replica SEUs (Single-Event Upsets).
+2. **Dual Modular Redundancy (DMR) Control Unit (Decode Stage):**
+   - Parallel duplicate decoder (`u_control_unit_checker`) running concurrently with the primary Control Unit.
+   - Real-time XOR comparator with **Fail-Safe Clamping**: destructive write signals (`mem_write`, `reg_write`) are immediately clamped to zero upon any mismatch to prevent architectural corruption.
+3. **Adaptive Triple Modular Redundancy (TMR) ALU Cluster (Execute Stage):**
+   - Three 32-bit execution units (`u_alu_0`, `u_alu_1`, `u_alu_2`) with 3-input majority voting.
+   - Dynamic mode switching: **Simplex Mode** (lowest power, operands isolated and clamped to zero) vs. **TMR Mode** (all three ALUs active with 2-of-3 majority voting).
+4. **Extended Hamming(38,32) SEC-DED ECC Register File:**
+   - 16 x 32-bit RV32E register file with 6 parity bits and 1 overall parity bit (39 bits storage per register).
+   - Single-bit error correction (SEC) and double-bit error detection (DED) with hardware trap generation.
+5. **Hardware Hazard Handling:**
+   - Full WB-to-ID/EX data forwarding, 1-cycle Load-Use stall insertion, and branch/jump redirection.
 
 ---
 
-## 4. Repository Structure
+## 2. Directory Structure
 
-```
-├── rtl/                          # Synthesizable SystemVerilog RTL
-│   ├── alu.sv                    # 32-bit Arithmetic Logic Unit
-│   ├── control_unit.sv           # Opcode & Control Signal Decoder
-│   ├── hazard_unit.sv            # Load-Use Stall & Flush Detection
-│   ├── id_ex_stage.sv            # Decode/Execute with Triplicated ALU & Voter
-│   ├── if_stage.sv               # Instruction Fetch & PC Generation
-│   ├── regfile.sv                # 16-Entry Regfile with SEC-DED ECC (39 bits)
-│   ├── riscv_core_top.sv         # Top-level processor wrapper & mode register
-│   ├── riscv_pkg.sv              # Opcodes, Enums, and Package Constants
-│   ├── tmr_voter.sv              # 3-Way Majority Voter with Fatal Mismatch
-│   └── wb_stage.sv               # Writeback Multiplexer & Load Alignment
-├── tb/                           # Comprehensive Testbench Suite
-│   ├── tb_compliance_run.sv      # Architectural Compliance Runner
-│   ├── tb_core_stress_adversarial.sv # Pipeline & Fault Stress Fuzzing
-│   ├── tb_fault_tolerance.sv     # Dynamic TMR & Memory Mode Testbench
-│   ├── tb_regfile_unit.sv        # SEC-DED ECC Unit Testbench
-│   ├── tb_reset_probe.sv         # Reset & Power-On Sequence Verification
-│   ├── tb_riscv_core_top.sv      # Full-System Core Integration Testbench
-│   ├── tb_sec_ded_adversarial.sv # Exhaustive 39-bit SEC-DED Injection Test
-│   ├── tb_tmr_adversarial.sv     # Exhaustive ALU Opcode Fault Sweep
-│   └── tb_tmr_unit.sv            # Voter Unit Testbench
-├── fpga/                         # FPGA Top & Assembly Firmware
-│   ├── fpga_top.sv               # Nexys 4 Top-level Wrapper & Clock Synchronizer
-│   └── hardware_test.s           # Diagnostic Self-Testing Firmware
-├── constraints/                  # Xilinx Design Constraints
-│   └── nexys4.xdc                # Pinout for Artix-7 XC7A100T-1CSG324C
-└── fpga-demo-dashboard/          # Interactive Next.js 3D Web Dashboard
+```text
+Final-Project-EV/
+├── rtl/                          # 12 Synthesizable SystemVerilog Core Files
+│   ├── riscv_core_top.sv         # Top-level ASIC module
+│   ├── riscv_pkg.sv              # Opcodes, funct3/7, and control enums
+│   ├── alu.sv                    # 32-bit RV32E Arithmetic Logic Unit
+│   ├── regfile.sv                # 16x39-bit SEC-DED ECC Register File
+│   ├── if_stage.sv               # Stage 1: TMR PC & Fetch
+│   ├── id_ex_stage.sv            # Stage 2: DMR Decoder & Triplicated ALUs
+│   ├── wb_stage.sv               # Stage 3: Load alignment & Writeback mux
+│   ├── control_unit.sv           # Latch-free instruction decoder
+│   ├── hazard_unit.sv            # Forwarding, load-use stall & flush
+│   ├── tmr_voter.sv              # 3-input bitwise majority voter
+│   ├── clock_gater.sv            # Glitch-free clock gating cell
+│   ├── adaptive_redundancy_controller.sv # Operand isolation & TMR voter
+│   ├── HANDOFF_INTERFACE_DOC.md  # Core port and signal specification
+│   └── walkthrough.md            # Microarchitecture pipeline walkthrough
+│
+├── cadence/                      # Cadence ASIC Flow Package
+│   ├── constraints/
+│   │   └── riscv_core_top.sdc    # 100 MHz timing constraints
+│   ├── scripts/
+│   │   ├── run_genus_syn.tcl     # Automated Genus synthesis script
+│   │   ├── run_innovus_pnr.tcl   # Innovus place & route startup script
+│   │   └── run_flow.sh           # 1-command Linux synthesis runner
+│   ├── reports/                  # Generated timing, area, power reports
+│   ├── netlist/                  # Synthesized gate-level netlist & SDC
+│   └── README_CADENCE_FLOW.md    # Detailed Cadence tool documentation
+│
+├── tb/                           # Pure SystemVerilog testbenches (for Cadence Xcelium)
+├── cu_protection_method.md       # Engineering note on Control Unit DMR
+├── memory_protection_method.md   # Engineering note on ECC SEC-DED
+└── .gitignore                    # Ignores Cadence run logs (*.log, *.cmd, fv/)
 ```
 
 ---
 
-## 5. FPGA System Interfaces & Memory Map
+## 3. Quick-Start Guide (Linux Terminal)
 
-### Clocking & Reset System
-- **Input Clock:** 100 MHz board oscillator (`CLK100MHZ`).
-- **Internal Clock:** Divided down to **25 MHz** using a 2-bit counter and driven through a global clock buffer (`BUFG`).
-- **Reset:** Active-low pushbutton `CPU_RESETN` (`E16`) fed into a 2-stage asynchronous reset synchronizer with an Automatic Power-On Reset Generator (256 cycles).
-
-### Address Space Memory Map
-| Address Range | Size | Component | Access Type |
-| :--- | :--- | :--- | :--- |
-| `0x0000_0000` - `0x0000_7FFF` | 32 KB | Unified Block RAM (Instructions & Data) | Read / Write |
-| `0x8000_0000` - `0x8000_0004` | 4 Bytes | MMIO LED Register (`LED[15:0]`) | Read / Write |
-| `0xFFFF_FFF0` | 4 Bytes | Fault-Tolerance Mode Control (`bit 0: TMR enable`) | Read / Write |
-
----
-
-## 6. Complete FPGA Pin & Port Mapping Table
-
-All ports map to physical pins on the **Xilinx Nexys 4 (Artix-7 XC7A100T-1CSG324C)** board configured for `LVCMOS33` in `constraints/nexys4.xdc`.
-
-### System Control Signals
-| Top-Level Port Name | Direction | Nexys 4 Pin | I/O Standard | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| `CLK100MHZ` | Input | **E3** | `LVCMOS33` | 100 MHz Board System Clock |
-| `CPU_RESETN` | Input | **E16** | `LVCMOS33` | Center Pushbutton `BTNC` (Active-High Reset) |
-
-### User LED Outputs (`LED[15:0]`)
-| Top-Level Port Name | Direction | Nexys 4 Pin | I/O Standard | Hardware Assignment |
-| :--- | :--- | :--- | :--- | :--- |
-| `LED[0]` | Output | **T8** | `LVCMOS33` | LED 0 (Diagnostic Stage Bit 0) |
-| `LED[1]` | Output | **V9** | `LVCMOS33` | LED 1 (Diagnostic Stage Bit 1) |
-| `LED[2]` | Output | **R8** | `LVCMOS33` | LED 2 (Diagnostic Stage Bit 2) |
-| `LED[3]` | Output | **T6** | `LVCMOS33` | LED 3 (Diagnostic Stage Bit 3) |
-| `LED[4]` | Output | **T5** | `LVCMOS33` | LED 4 (Pass Chaser Bit 0) |
-| `LED[5]` | Output | **T4** | `LVCMOS33` | LED 5 (Pass Chaser Bit 1) |
-| `LED[6]` | Output | **U7** | `LVCMOS33` | LED 6 (Pass Chaser Bit 2) |
-| `LED[7]` | Output | **U6** | `LVCMOS33` | LED 7 (Pass Chaser Bit 3) |
-| `LED[8]` | Output | **V4** | `LVCMOS33` | LED 8 (Pass Chaser Bit 4) |
-| `LED[9]` | Output | **U3** | `LVCMOS33` | LED 9 (Pass Chaser Bit 5) |
-| `LED[10]` | Output | **V1** | `LVCMOS33` | LED 10 (Pass Chaser Bit 6) |
-| `LED[11]` | Output | **R1** | `LVCMOS33` | LED 11 (Pass Chaser Bit 7) |
-| `LED[12]` | Output | **P5** | `LVCMOS33` | LED 12 (Error Alert Bit 0) |
-| `LED[13]` | Output | **U1** | `LVCMOS33` | LED 13 (Error Alert Bit 1) |
-| `LED[14]` | Output | **R2** | `LVCMOS33` | LED 14 (Error Alert Bit 2) |
-| `LED[15]` | Output | **P2** | `LVCMOS33` | LED 15 (System Pass / Power Status Indicator) |
-
----
-
-## 7. Self-Diagnostic Protocol & LED Status Legend
-
-The core executes `fpga/hardware_test.s` upon boot:
-
-1. **Boot Flash:** Alternates `0xAAAA` → `0x5555` on all 16 LEDs.
-2. **Stage 1 (ALU Test):** Executes ADD, SUB, AND, OR, XOR, SLT. `LED[3:0] = 0x1`.
-3. **Stage 2 (Shift Test):** Executes SLLI, SRLI, SRAI, LUI. `LED[3:0] = 0x2`.
-4. **Stage 3 (Memory Test):** Executes word/halfword/byte loads & stores (`SW`, `SH`, `SB`, `LW`, `LH`, `LB`, `LHU`, `LBU`) at RAM address `0x400`. `LED[3:0] = 0x3`.
-5. **Stage 4 (Branch/Jump Test):** Executes `BEQ`, `BLT`, `JAL`, `JALR`. `LED[3:0] = 0x4`.
-6. **PASS Result:** `LED[15] = 1` ON + lower 8 LEDs run dynamic visual chaser (`0x80FF`).
-7. **FAIL Alert:** `LED[15:12] = 0xF` ON + `LED[3:0]` shows exact failing stage ID (`0xF001` - `0xF004`).
-
----
-
-## 8. Simulation & Verification Commands
-
-### Cadence Xcelium
+### Step 1: Clone or Pull the Branch
 ```bash
-xrun -sv -64bit -access +rwc \
-  rtl/riscv_pkg.sv \
-  rtl/if_stage.sv \
-  rtl/id_ex_stage.sv \
-  rtl/wb_stage.sv \
-  rtl/regfile.sv \
-  rtl/alu.sv \
-  rtl/tmr_voter.sv \
-  rtl/control_unit.sv \
-  rtl/hazard_unit.sv \
-  rtl/riscv_core_top.sv \
-  tb/tb_riscv_core_top.sv
+cd /home/student/EV2327_Projects/Final-Project-EV
+
+# Switch to the dedicated clean branch:
+git checkout cadence
+git pull origin cadence
 ```
 
-### Siemens ModelSim / QuestaSim
+### Step 2: Ensure Cadence Genus is Loaded
+If your lab uses environment modules:
+```bash
+module load cadence/genus
+# OR source your lab's tool profile:
+# source /tools/cadence/cshrc_genus
+```
+Confirm Genus is ready:
+```bash
+genus -version
+```
+
+### Step 3: Run Automated Synthesis
+From the repository root:
+```bash
+cd cadence
+
+# Make script executable (first time only)
+chmod +x scripts/run_flow.sh
+
+# Run synthesis
+./scripts/run_flow.sh
+```
+
+Or run interactively inside Genus:
+```bash
+cd cadence
+genus -f scripts/run_genus_syn.tcl
+```
+
+---
+
+## 4. Synthesis Output Deliverables
+
+After Genus completes, inspect the generated deliverables:
+
+| File Location | Description |
+| :--- | :--- |
+| `cadence/reports/timing_report.rpt` | Static Timing Analysis (slack, critical paths, 100 MHz signoff) |
+| `cadence/reports/area_report.rpt` | Standard cell gate count, instance hierarchy, and area ($\mu m^2$) |
+| `cadence/reports/power_report.rpt` | Leakage, internal, and dynamic switching power dissipation |
+| `cadence/reports/qor_summary.rpt` | Executive Quality-of-Results summary |
+| `cadence/netlist/riscv_core_top_syn.v` | Mapped gate-level Verilog netlist (handoff to Cadence Innovus) |
+| `cadence/netlist/riscv_core_top_syn.sdc` | Synthesized SDC constraints for physical implementation |
+
+---
+
+## 5. Critical Genus Preservation Constraints
+
+Because this core uses **structural redundancy** for fault tolerance, default synthesis optimization will attempt to prune duplicate hardware. The script [`cadence/scripts/run_genus_syn.tcl`](cadence/scripts/run_genus_syn.tcl) automatically enforces these mandatory preservation rules:
+
 ```tcl
-vlib work
-vlog -sv rtl/riscv_pkg.sv rtl/*.sv tb/tb_riscv_core_top.sv
-vsim -c tb_riscv_core_top -do "run -all; quit"
-```
+# 1. Prevent Genus from merging the 3 TMR PC register replicas
+set_db [get_db registers -if {.name =~ *pc_reg_*}] .preserve true
 
-### Verilator (C++ Testbench Driver)
-```bash
-verilator -Wall --trace --cc rtl/riscv_pkg.sv rtl/*.sv --top-module riscv_core_top --exe tb/tb_riscv_core_top.cpp
-make -C obj_dir -f Vriscv_core_top.mk Vriscv_core_top
-./obj_dir/Vriscv_core_top
+# 2. Prevent Genus from merging the DMR Control Unit checker
+set_db [get_db instances */u_control_unit] .preserve true
+set_db [get_db instances */u_control_unit_checker] .preserve true
+
+# 3. Prevent Genus from merging the triplicated ALUs
+set_db [get_db instances */u_alu_0] .preserve true
+set_db [get_db instances */u_alu_1] .preserve true
+set_db [get_db instances */u_alu_2] .preserve true
+
+# 4. Restrict datapath sharing on ECC XOR trees to avoid timing violations
+set_db /designs/riscv_core_top .dp_max_sharing 0
 ```
 
 ---
 
-## 9. How to Build & Load FPGA Bitstream
+## 6. Physical Implementation (Cadence Innovus P&R)
 
-### 1-Click Master Script (Windows CMD or PowerShell)
-Connect your Nexys 4 board via USB, power it on, and execute:
-
-```cmd
-.\fpga\build_and_program.bat
+Once the gate-level netlist is produced:
+```bash
+cd cadence
+innovus -f scripts/run_innovus_pnr.tcl
 ```
-
-### Manual TCL Execution (Vivado Non-Interactive Mode)
-```cmd
-# 1. Assemble Assembly Firmware to Hex
-python sim/asm.py fpga/hardware_test.s fpga/firmware.hex
-
-# 2. Run Non-Interactive Synthesis & Bitstream Build
-vivado -mode batch -source fpga/build_bitstream.tcl
-
-# 3. Flash Bitstream onto Connected Nexys 4 FPGA Board
-vivado -mode batch -source fpga/program_fpga.tcl
-```
+Proceed with floorplanning, power grid creation, standard cell placement, clock tree synthesis (`ccopt_design`), routing (`routeDesign`), and DRC/LVS signoff.
