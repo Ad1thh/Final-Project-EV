@@ -44,6 +44,7 @@ zynq_vitis_deployment/vitis_ws/
 
 # Screenshots
 *.png
+!docs/images/*.png
 
 # OS metadata
 # Xcelium EDA files

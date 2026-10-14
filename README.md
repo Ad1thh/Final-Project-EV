@@ -1,21 +1,20 @@
 # RV32E Fault-Tolerant Processor Core — Cadence ASIC Implementation
 
-**Target EDA Suite:** Cadence Genus (Synthesis), Cadence Innovus (Physical P&R), Cadence Xcelium (Logic & Gate-Level Simulation), Cadence SimVision (Waveform GUI)  
-**Target Process:** TSMC/GPDK 90nm Digital Standard Cell Library (`/home/install/FOUNDRY/digital/90nm/dig/lib/slow.lib`, LEF: `gsclib090_translated.lef`)  
-**Design Standard:** Synthesizable SystemVerilog-2012  
-**Target Operating Frequency:** 100 MHz (10.0 ns Clock Period)  
-**Physical Implementation Status:** **100% ROUTED & SIGNED OFF (0 DRC Violations, 0 Connectivity Open Nets, WNS &ge; 0.00 ns)**  
-**Branch:** `cadence`  
+**Target EDA Suite:** Cadence Genus (Synthesis) & Cadence Innovus (Physical P&R)  
+**Target Process:** 90nm Digital Standard Cell Library (`/home/install/FOUNDRY/digital/90nm/dig/lib/slow.lib`)  
+**Design Specification:** Synthesizable SystemVerilog-2012  
+**Target Frequency:** 100 MHz (10.0 ns Clock Period)  
+**Target Architecture:** RV32E (16 Registers, Integer Base Instruction Set, Zero DSP Primitives)  
 
 ---
 
 ## 1. Overview & Fault-Tolerant Architecture
 
-This repository branch (`cadence`) contains the clean, uncluttered, production-grade ASIC delivery package for the **RV32E 3-Stage Pipelined Fault-Tolerant RISC-V Processor Core** (`riscv_core_top`). All FPGA-specific wrappers, Zynq SoC software drivers, and external web dashboards have been stripped out, leaving a pure digital ASIC implementation ready for synthesis, physical layout, and gate-level signoff in a Linux EDA environment.
+This repository branch (`cadence`) contains the clean, uncluttered ASIC delivery package for the **RV32E 3-Stage Pipelined Fault-Tolerant RISC-V Processor Core** (`riscv_core_top`). All FPGA-specific IP, Zynq SoC software wrappers, and external web dashboards have been stripped out, leaving a pure digital ASIC implementation ready for synthesis and place-and-route in a Linux EDA environment.
 
-The processor integrates four independent layers of hardware fault tolerance designed for mission-critical, radiation-prone aerospace, automotive (ISO 26262 ASIL-D), and edge computing applications:
+The processor integrates four independent layers of hardware fault tolerance designed for mission-critical, radiation-prone aerospace and edge applications:
 
-```
+```text
 +----------------------------------------------------------------------------------------------------+
 |                                    RISCV_CORE_TOP ARCHITECTURE                                     |
 +----------------------------------------------------------------------------------------------------+
@@ -59,7 +58,9 @@ The processor integrates four independent layers of hardware fault tolerance des
 
 ---
 
-## 2. Directory Structure & ASIC Deliverables Map
+## 2. Directory Structure & File Map
+
+Every file in this branch is strictly relevant to RTL design, simulation verification, Cadence synthesis/P&R, or architectural context:
 
 ```text
 Final-Project-EV/
@@ -86,8 +87,8 @@ Final-Project-EV/
 │   │   ├── run_flow.sh                   # 1-Command master bash runner (Synthesis + P&R)
 │   │   ├── run_flow.csh                  # C-shell runner for university /home/install/cshrc environments
 │   │   ├── run_genus_syn.tcl             # Automated Common UI Genus synthesis script
-│   │   ├── run_innovus_pnr.tcl           # Complete Innovus Place & Route automation script
-│   │   ├── run_pnr.csh                   # Standalone C-shell Innovus P&R runner
+│   │   ├── run_innovus_pnr.tcl           # Innovus P&R automation script with explicit I/O pin placement
+│   │   ├── run_pnr.csh                   # Standalone C-shell Innovus P&R runner (batch or GUI)
 │   │   ├── view_layout.csh               # 1-Click GUI script to restore and inspect routed layout
 │   │   ├── run_sim_gui.csh               # Launch Cadence SimVision for interactive RTL simulation
 │   │   ├── run_gls_gui.csh               # Launch SimVision for post-route Gate-Level Simulation
@@ -96,7 +97,7 @@ Final-Project-EV/
 │   │   ├── riscv_core_top_syn.v          # Synthesized gate-level structural Verilog netlist
 │   │   ├── riscv_core_top_syn.sdc        # Synthesized timing constraints for layout
 │   │   ├── riscv_core_top_pr.v           # Post-route physical gate-level netlist
-│   │   ├── riscv_core_top_routed.def     # Post-route complete physical layout DEF file
+│   │   ├── riscv_core_top_routed.def     # Post-route complete physical layout DEF file (229 placed pins)
 │   │   ├── riscv_core_top.enc            # Top-level Innovus design database file
 │   │   └── riscv_core_top.enc.dat/       # Innovus floorplan, cell placement, CTS, and routing data
 │   ├── reports/                          # Complete QoR Signoff Reports
@@ -111,6 +112,12 @@ Final-Project-EV/
 │   │   ├── innovus_connectivity.rpt      # Post-route LVS/connectivity verification (0 open nets)
 │   │   └── innovus_timing/               # Detailed postRoute timing slack and transition reports
 │   └── README_CADENCE_FLOW.md            # Detailed tool command and configuration reference
+│
+├── docs/                                 # Visual Documentation & Deliverables
+│   └── images/
+│       ├── innovus_gui_screenshot.png    # Live Cadence Innovus 21.15 GUI session screenshot
+│       ├── innovus_pnr_layout.png        # High-resolution physical P&R CAD layout render
+│       └── innovus_floorplan_view.png    # Floorplan view with module hierarchy & pin placement
 │
 ├── tb/                                   # Standalone SystemVerilog Testbenches (Cadence Xcelium)
 │   ├── tb_riscv_core_top.sv              # Top-level comprehensive core testbench
@@ -150,6 +157,7 @@ All deliverables on this branch are fully generated and verified using **Cadence
 | - *TMR Program Counter + Voter* | 5,762.28 &mu;m&sup2; | 5,762.28 &mu;m&sup2; (8.0% of core) | Hardened |
 | - *Decode / Control / Writeback* | 6,180.85 &mu;m&sup2; | 9,077.56 &mu;m&sup2; (12.7% of core) | Hardened |
 | **Power Dissipation (@ 100 MHz)** | 1.18 mW | **1.27 mW** (Leakage + Dynamic) | **LOW POWER** |
+| **Placed Top-Level I/O Pins** | 229 logical ports | **229 / 229 Placed (0 unplaced)** | **100% CONSTRAINED** |
 | **Design Rule Check (DRC)** | N/A | **0 Violations found** (`innovus_drc.rpt`) | **PASSED** |
 | **Connectivity & LVS** | N/A | **0 Open Nets / 0 Shorts** | **PASSED** |
 
@@ -185,7 +193,77 @@ To prevent Genus from merging or optimizing away the redundant hardware, the fol
 
 ---
 
-## 5. 🚀 Execution & Layout Inspection Guide
+## 5. 🏛️ Physical Implementation & Routed Silicon Layout (Cadence Innovus)
+
+The physical layout flow is fully automated via Cadence Innovus 21.15 using the GPDK 90nm standard cell technology library.
+
+### 5.1 Routed Silicon Layout & Live Innovus GUI
+Below is the physical layout of the **RV32E Fault-Tolerant Processor Core** after 90nm standard cell placement, Clock Tree Synthesis (ccopt), and NanoRoute detailed routing:
+
+![Cadence Innovus 21.15 Routed Layout](docs/images/innovus_gui_screenshot.png)
+
+#### High-Resolution CAD Physical Layout
+![Innovus P&R Routed Layout](docs/images/innovus_pnr_layout.png)
+
+#### Floorplan & Module Hierarchy View
+![Innovus Floorplan Hierarchy](docs/images/innovus_floorplan_view.png)
+
+---
+
+### 5.2 Floorplanning & I/O Pin Placement Architecture
+During floorplanning, all top-level I/O pins are physically assigned to the core boundary to ensure proper padframe integration, clean signal integrity, and 0 unplaced pins:
+
+- **Core Utilization & Aspect Ratio:** 70% target utilization, square core ($1.0$ aspect ratio), $15\,\mu\text{m}$ core-to-die boundary margins.
+- **Final Routed Core Density:** **73.74%**.
+- **Input Pins (86 total):** Assigned to the **LEFT** boundary on **Metal3** (horizontal routing connects directly into the pipeline stages).
+- **Output Pins (143 total):** Assigned to the **RIGHT** boundary on **Metal3** (horizontal routing directly extracts pipeline and memory outputs).
+- **Total Placed Pins:** **229 / 229 Pins Placed (0 unplaced)** in [`cadence/netlist/riscv_core_top_routed.def`](cadence/netlist/riscv_core_top_routed.def).
+- **Power Grid (VDD & VSS):**
+  - Core power rings on **Metal5** (left/right vertical edges) and **Metal6** (top/bottom horizontal edges), width $2.0\,\mu\text{m}$, spacing $1.0\,\mu\text{m}$.
+  - Standard cell followpins on **Metal1** connected via `sroute`.
+
+---
+
+### 5.3 Physical Verification & Signoff Results
+
+| Metric / Check | Value / Result | Report Reference |
+| :--- | :--- | :--- |
+| **Design Rule Check (DRC)** | **0 Violations** | [`cadence/reports/innovus_drc.rpt`](cadence/reports/innovus_drc.rpt) |
+| **Connectivity (LVS)** | **0 Violations / Clean** | [`cadence/reports/innovus_connectivity.rpt`](cadence/reports/innovus_connectivity.rpt) |
+| **Placed I/O Pins** | **229 / 229 Placed (100%)** | [`cadence/netlist/riscv_core_top_routed.def`](cadence/netlist/riscv_core_top_routed.def) |
+| **Standard Cell Count** | **11,093 Cells** | [`cadence/reports/innovus_area.rpt`](cadence/reports/innovus_area.rpt) |
+| **Total Wire Length** | **277.4 mm** | Post-Route Timing Summary |
+| **Clock Tree Skew** | **< 150 ps (Target Skew Met)** | [`cadence/reports/innovus_timing/`](cadence/reports/innovus_timing/) |
+| **Post-Route GLS** | **100% Passed (4/4 Tests)** | [`cadence/scripts/run_gls_gui.csh`](cadence/scripts/run_gls_gui.csh) |
+
+---
+
+## 6. 🧪 Post-Route Gate-Level Simulation (GLS)
+
+The post-route Verilog netlist ([`cadence/netlist/riscv_core_top_pr.v`](cadence/netlist/riscv_core_top_pr.v)) is fully verified against the 90nm standard cell behavioral models (`/home/install/FOUNDRY/digital/90nm/dig/vlog/slow.v`):
+
+```bash
+# Run GLS in batch mode
+cd /home/student/Final-Project-EV
+xrun -64bit -access +rwc -sv -noparamerr \
+     /home/install/FOUNDRY/digital/90nm/dig/vlog/slow.v \
+     cadence/netlist/riscv_core_top_pr.v \
+     tb/tb_riscv_core_top.sv
+
+# Or launch GLS in Cadence SimVision GUI
+./cadence/scripts/run_gls_gui.csh
+```
+
+### Verification Results:
+- **[Test 1] Single Bit Flip Injection in Reg[5]:** SEC detected and auto-corrected in hardware.
+- **[Test 2] Double Bit Flip Injection in Reg[6]:** DED detected and trap asserted (`reg_ded_err`).
+- **[Test 3] ALU Fault Injection in TMR Mode:** Triplicated ALU majority voter successfully masked fault and asserted `tmr_fault_detected`.
+- **[Test 4] ALU Fault Injection in Simplex Mode:** Simplex low-power mode bypassed voting and correctly propagated result without voter overhead.
+- **Overall Result:** `RESULT: TEST PASSED` across all post-route functional checks.
+
+---
+
+## 7. 🚀 Execution & Layout Inspection Guide
 
 ### Step 1: Pull Branch on EDA Linux Server
 ```bash
@@ -227,7 +305,22 @@ This launches Cadence Innovus GUI, restores the post-route database (`cadence/ne
 
 ---
 
-## 6. 🗺️ Cross-Branch Navigation
+## 8. 🛠️ Interactive GUI Utilities & Workflow Cheatsheet
+
+| Task | Shell Command |
+| :--- | :--- |
+| **View Routed Layout in Innovus GUI** | `cd cadence && ./scripts/view_layout.csh` |
+| **Run Full Innovus P&R Flow (Batch)** | `cd cadence && ./scripts/run_pnr.csh` |
+| **Run Full Innovus P&R Flow (GUI)** | `cd cadence && ./scripts/run_pnr.csh -gui` |
+| **Launch RTL Simulation (SimVision GUI)** | `cd cadence && ./scripts/run_sim_gui.csh` |
+| **Launch Post-Route GLS (SimVision GUI)** | `cd cadence && ./scripts/run_gls_gui.csh` |
+| **Run Genus Synthesis (Batch)** | `cd cadence && ./scripts/run_flow.csh` |
+| **Inspect DRC Report** | `cat cadence/reports/innovus_drc.rpt` |
+| **Inspect Connectivity Report** | `cat cadence/reports/innovus_connectivity.rpt` |
+
+---
+
+## 9. 🗺️ Cross-Branch Navigation
 
 - **Golden Baseline RV32E Core (Nexys 4):** [`RISC-V-Core`](https://github.com/Ad1thh/Final-Project-EV/tree/RISC-V-Core)
 - **Digilent Zybo Zynq-7000 SoC Deployment:** [`vitis-deployment`](https://github.com/Ad1thh/Final-Project-EV/tree/vitis-deployment)
