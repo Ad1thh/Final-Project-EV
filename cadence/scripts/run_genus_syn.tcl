@@ -42,7 +42,7 @@ if {[info exists env(PDK_TARGET_LIB)]} {
 
 set_db init_lib_search_path $LIB_PATH
 set_db target_library $TARGET_LIB
-set_db link_library   "* $TARGET_LIB"
+set_db link_library   $TARGET_LIB
 puts "--> Configured Target PDK Library: ${LIB_PATH}/${TARGET_LIB}"
 
 # ------------------------------------------------------------------------------

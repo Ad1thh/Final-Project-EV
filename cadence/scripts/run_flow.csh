@@ -58,6 +58,14 @@ setenv RUN_FLOW_BATCH 1
 
 echo "--> Launching Cadence Genus in batch mode..."
 genus -batch -f scripts/run_genus_syn.tcl -log reports/genus_syn.log
+set GENUS_STATUS = $status
+if ( $GENUS_STATUS != 0 ) then
+    echo "======================================================================"
+    echo " ERROR: Cadence Genus synthesis failed (exit code $GENUS_STATUS)."
+    echo " Please inspect the log: $CADENCE_DIR/reports/genus_syn.log"
+    echo "======================================================================"
+    exit $GENUS_STATUS
+endif
 
 echo "======================================================================"
 echo " Cadence Genus synthesis completed successfully!"
