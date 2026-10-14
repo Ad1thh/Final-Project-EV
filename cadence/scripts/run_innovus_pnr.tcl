@@ -155,6 +155,14 @@ puts "    \[OK\] Exported Area & Power Reports to ${REPORT_DIR}/"
 saveDesign "${NETLIST_DIR}/riscv_core_top.enc"
 puts "    \[OK\] Saved Innovus Database: ${NETLIST_DIR}/riscv_core_top.enc"
 
+# 9.6 Stream Out Final GDSII Silicon Mask Layout
+set GDS_MAP_FILE "/home/install/FOUNDRY/analog/90nm/soce/soce_gds.map"
+set GDS_CELL_FILES [glob -nocomplain "/home/install/FOUNDRY/digital/90nm/dig/gds/*.gds"]
+if {[file exists $GDS_MAP_FILE] && [llength $GDS_CELL_FILES] > 0} {
+    streamOut "${NETLIST_DIR}/riscv_core_top.gds" -mapFile $GDS_MAP_FILE -merge $GDS_CELL_FILES -units 2000 -mode ALL
+    puts "    \[OK\] Exported Silicon GDSII Layout: ${NETLIST_DIR}/riscv_core_top.gds"
+}
+
 puts "======================================================================"
 puts "  CADENCE INNOVUS PHYSICAL DESIGN COMPLETED SUCCESSFULLY!"
 puts "======================================================================"

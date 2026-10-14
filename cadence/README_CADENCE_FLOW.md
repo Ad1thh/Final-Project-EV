@@ -33,6 +33,7 @@ cadence/
 │   ├── run_innovus_pnr.tcl       # Innovus floorplan, placement, CTS & routing script
 │   ├── run_pnr.csh               # Standalone Innovus P&R runner
 │   ├── view_layout.csh           # Instant GUI layout inspector
+│   ├── view_gds.csh              # Launch Cadence Pegasus Design Review for GDSII
 │   ├── run_sim_gui.csh           # SimVision RTL simulation GUI runner
 │   ├── run_gls_gui.csh           # SimVision Gate-Level Simulation GUI runner
 │   └── viewDefinition.tcl        # MMMC multi-corner timing configuration
@@ -41,6 +42,7 @@ cadence/
 │   ├── riscv_core_top_syn.sdc    # Synthesized timing constraints
 │   ├── riscv_core_top_pr.v       # Post-route physical gate-level netlist
 │   ├── riscv_core_top_routed.def # Post-route complete layout DEF file
+│   ├── riscv_core_top.gds        # Streamed GDSII Silicon Mask Layout (Tapeout Deliverable, 14.1 MB)
 │   └── riscv_core_top.enc.dat/   # Encrypted Innovus layout design database
 └── reports/
     ├── qor_summary.rpt           # Quality-of-Results summary

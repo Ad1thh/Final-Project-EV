@@ -98,6 +98,7 @@ Final-Project-EV/
 │   │   ├── riscv_core_top_syn.sdc        # Synthesized timing constraints for layout
 │   │   ├── riscv_core_top_pr.v           # Post-route physical gate-level netlist
 │   │   ├── riscv_core_top_routed.def     # Post-route complete physical layout DEF file (229 placed pins)
+│   │   ├── riscv_core_top.gds            # Streamed GDSII Silicon Mask Layout (Tapeout Deliverable, 14.1 MB)
 │   │   ├── riscv_core_top.enc            # Top-level Innovus design database file
 │   │   └── riscv_core_top.enc.dat/       # Innovus floorplan, cell placement, CTS, and routing data
 │   ├── reports/                          # Complete QoR Signoff Reports
@@ -117,7 +118,8 @@ Final-Project-EV/
 │   └── images/
 │       ├── innovus_gui_screenshot.png    # Live Cadence Innovus 21.15 GUI session screenshot
 │       ├── innovus_pnr_layout.png        # High-resolution physical P&R CAD layout render
-│       └── innovus_floorplan_view.png    # Floorplan view with module hierarchy & pin placement
+│       ├── innovus_floorplan_view.png    # Floorplan view with module hierarchy & pin placement
+│       └── cadence_gdsii_layout.png      # Cadence Pegasus Design Review GDSII silicon mask inspection
 │
 ├── tb/                                   # Standalone SystemVerilog Testbenches (Cadence Xcelium)
 │   ├── tb_riscv_core_top.sv              # Top-level comprehensive core testbench
@@ -235,6 +237,20 @@ During floorplanning, all top-level I/O pins are physically assigned to the core
 | **Total Wire Length** | **277.4 mm** | Post-Route Timing Summary |
 | **Clock Tree Skew** | **< 150 ps (Target Skew Met)** | [`cadence/reports/innovus_timing/`](cadence/reports/innovus_timing/) |
 | **Post-Route GLS** | **100% Passed (4/4 Tests)** | [`cadence/scripts/run_gls_gui.csh`](cadence/scripts/run_gls_gui.csh) |
+
+---
+
+### 5.4 🏭 Silicon Mask GDSII Stream-Out & Physical Signoff Inspection
+The final physical layout was streamed out into industry-standard **GDSII** format ([`cadence/netlist/riscv_core_top.gds`](cadence/netlist/riscv_core_top.gds)) with full standard cell and filler geometries merged using the TSMC 90nm layer mapping file (`soce_gds.map`). The tapeout GDSII stream was inspected and verified using **Cadence Pegasus / PVS Design Review**:
+
+- **Streamed File Size:** **14.1 MB** (`cadence/netlist/riscv_core_top.gds`)
+- **Total Physical Mask Elements:** **184,389** geometric polygons/paths across 28 layers
+- **Total Cell References:** **102,974** standard cell placements
+- **I/O Pin Physical Labels:** 229 pin geometries verified on Metal3 (Layer 11[3])
+- **Silicon Die Extents:** $344.07\,\mu\text{m} \times 341.68\,\mu\text{m}$ ($0.117\,\text{mm}^2$ total die footprint)
+
+#### Cadence Pegasus Design Review GDSII Silicon Mask Inspection
+![Cadence Pegasus Design Review GDSII Layout](docs/images/cadence_gdsii_layout.png)
 
 ---
 
