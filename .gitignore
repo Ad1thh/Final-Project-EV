@@ -46,9 +46,11 @@ zynq_vitis_deployment/vitis_ws/
 *.png
 
 # OS metadata
-.DS_Store
-Thumbs.db
-.rs_*.tstamp
+# Xcelium EDA files
+xcelium.d/
+xrun.history
+xrun.log*
+.simvision/
 
 # Cadence EDA temporary files
 genus.cmd*
