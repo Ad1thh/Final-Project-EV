@@ -1,172 +1,78 @@
 # Cadence Genus & Innovus ASIC Implementation Guide
 
-This guide describes how to pull the repository and run the Cadence ASIC synthesis and place-and-route (P&R) flow on a Linux server/workstation.
+This guide details how to pull, execute, simulate, and inspect the Cadence ASIC synthesis and place-and-route (P&R) deliverables for the Fault-Tolerant RV32E Core on a Linux EDA server.
 
 ---
 
-## 1. Where to Pull the Code on Your Linux System
+## 1. Quick-Start Pull Instructions
 
-You can pull the repository to any directory on your Linux system where you have write permissions and fast I/O access. 
-
-**Recommended locations:**
-- User project workspace:
-  ```bash
-  cd ~
-  mkdir -p ~/projects
-  cd ~/projects
-  ```
-  or EDA working directory:
-  ```bash
-  cd /home/$USER/cadence_ws/
-  ```
-*(Avoid NFS shares with high latency or read-only mounted filesystems).*
-
----
-
-## 2. How to Pull the Code in Linux
-
-### Option A: If you are cloning the repo freshly on Linux
 ```bash
-# Clone directly onto the cadence branch:
-git clone -b cadence https://github.com/Ad1thh/Final-Project-EV.git
+# Navigate to your EDA directory
+cd ~/projects/Final-Project-EV
 
-cd Final-Project-EV
-```
-
-### Option B: If the repo is already cloned on your Linux machine
-```bash
-cd /path/to/Final-Project-EV
-
-# Fetch latest branches from origin
+# Fetch latest commits
 git fetch origin
 
 # Switch to the dedicated cadence branch
 git checkout cadence
-
-# Ensure you have the latest commits
 git pull origin cadence
 ```
 
 ---
 
-## 3. Directory Layout for Cadence Flow
+## 2. Directory Layout
 
 ```text
-Final-Project-EV/
-├── rtl/                          <-- Synthesizable SystemVerilog source files
-│   ├── riscv_core_top.sv         <-- Top-level module
-│   ├── alu.sv
-│   ├── regfile.sv
-│   ├── if_stage.sv
-│   ├── id_ex_stage.sv
-│   ├── wb_stage.sv
-│   ├── control_unit.sv
-│   ├── hazard_unit.sv
-│   ├── tmr_voter.sv
-│   ├── clock_gater.sv
-│   ├── adaptive_redundancy_controller.sv
-│   └── riscv_pkg.sv
-└── cadence/                      <-- Cadence ASIC Flow Package
-    ├── constraints/
-    │   └── riscv_core_top.sdc    <-- 100 MHz timing constraints
-    ├── scripts/
-    │   ├── run_genus_syn.tcl     <-- Cadence Genus automated synthesis
-    │   ├── run_innovus_pnr.tcl   <-- Cadence Innovus P&R startup script
-    │   └── run_flow.sh           <-- 1-command Linux bash runner
-    ├── reports/                  <-- Generated area, timing, power reports
-    └── netlist/                  <-- Generated gate-level netlist & synthesized SDC
+cadence/
+├── constraints/
+│   └── riscv_core_top.sdc        # 100 MHz timing constraints (10.0 ns period)
+├── scripts/
+│   ├── run_flow.sh               # 1-Click master bash runner (Synthesis + P&R)
+│   ├── run_flow.csh              # 1-Click master C-shell runner
+│   ├── run_genus_syn.tcl         # Genus synthesis Common UI script
+│   ├── run_innovus_pnr.tcl       # Innovus floorplan, placement, CTS & routing script
+│   ├── run_pnr.csh               # Standalone Innovus P&R runner
+│   ├── view_layout.csh           # Instant GUI layout inspector
+│   ├── run_sim_gui.csh           # SimVision RTL simulation GUI runner
+│   ├── run_gls_gui.csh           # SimVision Gate-Level Simulation GUI runner
+│   └── viewDefinition.tcl        # MMMC multi-corner timing configuration
+├── netlist/
+│   ├── riscv_core_top_syn.v      # Synthesized gate-level netlist
+│   ├── riscv_core_top_syn.sdc    # Synthesized timing constraints
+│   ├── riscv_core_top_pr.v       # Post-route physical gate-level netlist
+│   ├── riscv_core_top_routed.def # Post-route complete layout DEF file
+│   └── riscv_core_top.enc.dat/   # Encrypted Innovus layout design database
+└── reports/
+    ├── qor_summary.rpt           # Quality-of-Results summary
+    ├── area_report.rpt           # Genus area report (68,019.58 um^2)
+    ├── timing_report.rpt         # Genus timing slack report (WNS = 0.0 ps)
+    ├── power_report.rpt          # Genus power breakdown
+    ├── innovus_area.rpt          # Innovus standard cell area (71,664.81 um^2)
+    ├── innovus_power.rpt         # Innovus power report (1.27 mW)
+    ├── innovus_drc.rpt           # Innovus DRC verification (0 violations)
+    ├── innovus_connectivity.rpt  # Innovus LVS/connectivity verification (0 opens)
+    └── innovus_timing/           # PostRoute timing slack reports
 ```
 
 ---
 
-## 4. How to Run Cadence Genus Synthesis
+## 3. Tool Scripts Reference
 
-### Step 4.1: Load Cadence Environment & License (sbinternetlab65)
-The Cadence EDA environment on the server is configured via C-Shell (`csh`):
-```csh
-# Step 1: Switch to C-Shell
-csh
-
-# Step 2: Source the lab setup profile
-source /home/install/cshrc
-
-# Step 3: Verify Genus is in your PATH
-genus -version
-```
-
-### Step 4.2: Target PDK Library Configuration
-The synthesis script is configured with your 90nm foundry standard cell library by default:
-- **Default Path:** `/home/install/FOUNDRY/digital/90nm/dig/lib`
-- **Default Library:** `slow.lib` (worst-case setup corner for robust timing signoff)
-
-If you wish to switch to typical or fast corners, you can optionally override via environment variables:
-```csh
-# In csh:
-setenv PDK_TARGET_LIB "typical.lib"
-# In bash:
-export PDK_TARGET_LIB="typical.lib"
-```
-
-### Step 4.3: Execute Synthesis
-From the `cadence/` directory:
-
-#### Option A: 1-Command Automated Script (csh or bash)
-```bash
-cd cadence
-chmod +x scripts/run_flow.csh scripts/run_flow.sh
-
-# If in csh:
-./scripts/run_flow.csh
-
-# If in bash:
-./scripts/run_flow.sh
-```
-
-#### Option B: Direct Batch Execution inside csh
-```csh
-csh
-source /home/install/cshrc
-cd Final-Project-EV/cadence
-genus -batch -f scripts/run_genus_syn.tcl -log reports/genus_syn.log
-```
-
-#### Option C: Interactive / GUI Execution inside Genus
-```csh
-csh
-source /home/install/cshrc
-cd Final-Project-EV/cadence
-genus
-```
-Inside the Genus prompt:
-```tcl
-source scripts/run_genus_syn.tcl
-```
+| Script | Purpose & Usage |
+| :--- | :--- |
+| `scripts/run_flow.sh` | Full automated flow in Bash: Genus synthesis &rarr; Innovus P&R &rarr; Post-route verification &rarr; DEF export. |
+| `scripts/run_flow.csh` | Full automated flow in CSH/TCSH for environments sourcing `/home/install/cshrc`. |
+| `scripts/run_pnr.csh` | Runs physical layout only (assumes `netlist/riscv_core_top_syn.v` is already synthesized). |
+| `scripts/view_layout.csh` | Restores `netlist/riscv_core_top.enc` in the Innovus GUI to visualize the routed silicon die. |
+| `scripts/run_sim_gui.csh` | Compiles RTL with Xcelium and launches SimVision with waveforms pre-loaded. |
+| `scripts/run_gls_gui.csh` | Compiles post-route netlist `riscv_core_top_pr.v` with TSMC 90nm Verilog models and launches SimVision for GLS. |
 
 ---
 
-## 5. What Genus Produces
+## 4. Foundry Library Paths
 
-After synthesis completes, inspect the outputs:
-- **Quality of Results (QoR) Reports (`cadence/reports/`):**
-  - `timing_report.rpt`: Setup & hold slack (target: 10.0 ns / 100 MHz).
-  - `area_report.rpt`: Exact standard cell count, logic area (µm²), and wirelength estimate.
-  - `power_report.rpt`: Dynamic, leakage, and total power dissipation.
-  - `qor_summary.rpt`: Executive summary of design performance.
-- **Handoff Netlists (`cadence/netlist/`):**
-  - `riscv_core_top_syn.v`: Mapped gate-level Verilog netlist.
-  - `riscv_core_top_syn.sdc`: Optimized post-synthesis SDC timing constraints.
-
----
-
-## 6. Physical Design in Cadence Innovus (P&R)
-
-Once `riscv_core_top_syn.v` is generated:
-```bash
-cd cadence
-innovus
-```
-Then inside the Innovus prompt:
-```tcl
-source scripts/run_innovus_pnr.tcl
-```
-Proceed with floorplanning, power planning (`VDD`/`VSS`), placement, clock tree synthesis (`ccopt_design`), and routing (`routeDesign`).
+All scripts target the standard university foundry installation:
+- **Foundry Base:** `/home/install/FOUNDRY/digital/90nm`
+- **Timing Library (Slow Corner):** `/home/install/FOUNDRY/digital/90nm/dig/lib/slow.lib`
+- **Physical LEF:** `/home/install/FOUNDRY/digital/90nm/lef/gsclib090_translated.lef`
+- **Capacitance Table:** `/home/install/FOUNDRY/digital/90nm/CapTbl/gpdk090.lef.extended.CapTbl`
