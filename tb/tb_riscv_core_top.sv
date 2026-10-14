@@ -52,16 +52,18 @@ module tb_riscv_core_top();
     logic        cu_mismatch;
 
     // Sticky status flags for FT verification
-    logic        sec_flag, ded_flag, tmr_flag;
+    logic        sec_flag, ded_flag, tmr_flag, trap_flag;
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            sec_flag <= 0;
-            ded_flag <= 0;
-            tmr_flag <= 0;
+            sec_flag  <= 0;
+            ded_flag  <= 0;
+            tmr_flag  <= 0;
+            trap_flag <= 0;
         end else begin
             if (ecc_sec_1 | ecc_sec_2) sec_flag <= 1;
             if (ecc_ded_1 | ecc_ded_2) ded_flag <= 1;
             if (tmr_mismatch) tmr_flag <= 1;
+            if (trap) trap_flag <= 1;
         end
     end
 
@@ -130,6 +132,13 @@ module tb_riscv_core_top();
     string sig_file;
     int sig_start, sig_end;
 
+    task automatic write_inst(input int byte_addr, input logic [31:0] instr);
+        memory[byte_addr]   = instr[7:0];
+        memory[byte_addr+1] = instr[15:8];
+        memory[byte_addr+2] = instr[23:16];
+        memory[byte_addr+3] = instr[31:24];
+    endtask
+
     initial begin
         // Initialize memory to 0
         for (int i = 0; i < 65536; i++) begin
@@ -141,7 +150,24 @@ module tb_riscv_core_top();
             $readmemh(hex_file, memory);
             $display("Loaded %s into memory.", hex_file);
         end else begin
-            $display("WARNING: No +HEX file provided. Memory is empty.");
+            $display("Loading built-in Fault Tolerance test instructions into memory...");
+            for (int i = 0; i < 65536; i += 4) begin
+                write_inst(i, 32'h0000_0013); // NOP (ADDI x0, x0, 0)
+            end
+            // Instruction program to test SEC-DED and TMR:
+            // 0x00: ADDI x5, x0, 15    (Write clean word into x5)
+            write_inst('h00, 32'h00f00293);
+            // 0x04: ADDI x6, x0, 30    (Write clean word into x6)
+            write_inst('h04, 32'h01e00313);
+            // 0x08 - 0x18: NOPs
+            // 0x1C: ADDI x1, x5, 0     (Read x5 onto read port 1 - triggers SEC)
+            write_inst('h1C, 32'h00028093);
+            // 0x20 - 0x28: NOPs
+            // 0x2C: ADDI x2, x6, 0     (Read x6 onto read port 1 - triggers DED)
+            write_inst('h2C, 32'h00030113);
+            // 0x30 - 0x3C: NOPs
+            // 0x40: EBREAK             (Halts processor with trap)
+            write_inst('h40, 32'h00100073);
         end
 
         // Initialize inputs
@@ -158,22 +184,25 @@ module tb_riscv_core_top();
         // Run Directed FT Tests
         run_fault_tolerance_tests();
 
-        // Run Main Program
-        wait(trap == 1'b1);
-        #50;
-        
-        $display("Trap received. Checking signature...");
-        
-        // Write signature if arguments provided
-        if ($value$plusargs("SIG_FILE=%s", sig_file)) begin
-            if ($value$plusargs("SIG_START=%x", sig_start) && $value$plusargs("SIG_END=%x", sig_end)) begin
-                int fd = $fopen(sig_file, "w");
-                if (fd) begin
-                    for (int i = sig_start; i < sig_end; i += 4) begin
-                        $fdisplay(fd, "%02x%02x%02x%02x", memory[i+3], memory[i+2], memory[i+1], memory[i]);
+        // Run Main Program if HEX file provided
+        if (hex_file != "") begin
+            wait(trap == 1'b1 || trap_flag == 1'b1);
+            #50;
+            
+            $display("Trap received. Checking signature...");
+            
+            // Write signature if arguments provided
+            if ($value$plusargs("SIG_FILE=%s", sig_file)) begin
+                if ($value$plusargs("SIG_START=%x", sig_start) && $value$plusargs("SIG_END=%x", sig_end)) begin
+                    int fd;
+                    fd = $fopen(sig_file, "w");
+                    if (fd) begin
+                        for (int i = sig_start; i < sig_end; i += 4) begin
+                            $fdisplay(fd, "%02x%02x%02x%02x", memory[i+3], memory[i+2], memory[i+1], memory[i]);
+                        end
+                        $fclose(fd);
+                        $display("Signature written to %s", sig_file);
                     end
-                    $fclose(fd);
-                    $display("Signature written to %s", sig_file);
                 end
             end
         end
@@ -198,37 +227,41 @@ module tb_riscv_core_top();
         $display("---------------------------------");
         $display("Starting Fault Tolerance Tests...");
         
+        // Wait until x5 and x6 have been written in the pipeline
+        wait(imem_addr >= 32'h0000_0010);
+
         // --- Test 1: Single Event Upset (SEC) in Register File ---
         $display("[Test 1] Injecting Single Bit Flip into Reg[5]");
-        // Let pipeline run for a bit
-        #100;
-        // Inject single bit fault in x5 (Bit 4)
-        @(posedge clk);
+        @(negedge clk);
         fi_reg_en   = 1'b1;
         fi_reg_addr = 4'd5;
         fi_reg_bit  = 6'd4;
-        @(posedge clk);
+        @(negedge clk);
         fi_reg_en   = 1'b0;
         
-        // Wait for it to be read and check SEC flag
-        #100;
+        // Wait for instruction at 0x1C (ADDI x1, x5, 0) to execute in ID stage
+        wait(imem_addr >= 32'h0000_0020 || sec_flag == 1'b1);
+        @(posedge clk);
+        #1;
         if (sec_flag) $display("  -> SUCCESS: SEC detected and corrected.");
         else          $display("  -> FAIL: SEC not detected.");
         
         // --- Test 2: Double Bit Flip (DED) in Register File ---
         $display("[Test 2] Injecting Double Bit Flip into Reg[6]");
         sec_flag <= 0; ded_flag <= 0;
-        @(posedge clk);
+        @(negedge clk);
         fi_reg_en   = 1'b1;
         fi_reg_addr = 4'd6;
         fi_reg_bit  = 6'd10; // First bit
-        @(posedge clk);
+        @(negedge clk);
         fi_reg_bit  = 6'd11; // Second bit
-        @(posedge clk);
+        @(negedge clk);
         fi_reg_en   = 1'b0;
         
-        // Wait for it to be read and check DED flag
-        #100;
+        // Wait for instruction at 0x2C (ADDI x2, x6, 0) to execute in ID stage
+        wait(imem_addr >= 32'h0000_0030 || ded_flag == 1'b1);
+        @(posedge clk);
+        #1;
         if (ded_flag) $display("  -> SUCCESS: DED detected.");
         else          $display("  -> FAIL: DED not detected.");
 
@@ -237,11 +270,11 @@ module tb_riscv_core_top();
         tmr_mode_pin = 1'b1;
         tmr_flag <= 0;
         #50;
-        @(posedge clk);
+        @(negedge clk);
         fi_alu_en  = 1'b1;
         fi_alu_sel = 2'd1; // Fault in ALU 1
         fi_alu_bit = 5'd15;
-        @(posedge clk);
+        @(negedge clk);
         fi_alu_en  = 1'b0;
         
         #50;
@@ -253,11 +286,11 @@ module tb_riscv_core_top();
         tmr_mode_pin = 1'b0;
         tmr_flag <= 0;
         #50;
-        @(posedge clk);
+        @(negedge clk);
         fi_alu_en  = 1'b1;
         fi_alu_sel = 2'd0; // Fault in ALU 0 (Primary)
         fi_alu_bit = 5'd15;
-        @(posedge clk);
+        @(negedge clk);
         fi_alu_en  = 1'b0;
         
         #50;
