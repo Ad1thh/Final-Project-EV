@@ -48,3 +48,12 @@ zynq_vitis_deployment/vitis_ws/
 # OS metadata
 .DS_Store
 Thumbs.db
+.rs_*.tstamp
+
+# Cadence EDA temporary files
+genus.cmd*
+genus.log*
+cadence/genus.cmd*
+cadence/genus.log*
+fv/
+cadence/fv/
