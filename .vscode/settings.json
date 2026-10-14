@@ -1,1 +1,6 @@
-{}
+{
+  "git.autofetch": "all",
+  "git.autofetchPeriod": 60,
+  "git.autoStash": true,
+  "git.pruneOnFetch": true
+}

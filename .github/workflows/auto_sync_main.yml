@@ -1,0 +1,30 @@
+name: Auto-Sync Main into Navaneeth/Corrections
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge main into Navaneeth/Corrections
+        run: |
+          git checkout Navaneeth/Corrections
+          git merge origin/main --no-edit
+          git push origin Navaneeth/Corrections
