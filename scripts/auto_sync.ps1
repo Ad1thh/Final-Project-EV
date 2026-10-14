@@ -23,7 +23,8 @@ Write-Host "[1/4] Fetching latest commits from GitHub..." -ForegroundColor Yello
 git fetch origin --prune
 
 # 2. Check for local modifications
-$hasChanges = (git status --porcelain).Trim().Length -gt 0
+$statusOutput = git status --porcelain
+$hasChanges = -not [string]::IsNullOrWhiteSpace($statusOutput)
 $stashed = $false
 
 if ($hasChanges) {
