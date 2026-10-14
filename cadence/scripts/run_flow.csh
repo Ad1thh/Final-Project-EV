@@ -25,10 +25,25 @@ if ( $status != 0 ) then
 endif
 
 # 2. Resolve Cadence working directory
-set SCRIPT_PATH = `readlink -f $0 2>/dev/null || which $0`
-set SCRIPT_DIR  = `dirname $SCRIPT_PATH`
-cd $SCRIPT_DIR/..
-set CADENCE_DIR = `pwd`
+if ( -f "scripts/run_genus_syn.tcl" ) then
+    set CADENCE_DIR = `pwd`
+else if ( -f "cadence/scripts/run_genus_syn.tcl" ) then
+    cd cadence
+    set CADENCE_DIR = `pwd`
+else if ( "$0" != "" && "$0" != "csh" && "$0" != "tcsh" ) then
+    set SCRIPT_DIR = `dirname "$0"`
+    cd "$SCRIPT_DIR/.."
+    set CADENCE_DIR = `pwd`
+else if ( -d "/home/student/Final-Project-EV/cadence" ) then
+    cd /home/student/Final-Project-EV/cadence
+    set CADENCE_DIR = `pwd`
+else
+    echo "======================================================================"
+    echo "ERROR: Could not locate cadence working directory."
+    echo "Please cd to the 'cadence' directory and re-run this script."
+    echo "======================================================================"
+    exit 1
+endif
 
 echo "======================================================================"
 echo " Starting Cadence ASIC Flow for RV32E Fault-Tolerant Core (csh)"
