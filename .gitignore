@@ -1,0 +1,27 @@
+# Vivado / EDA Temporary Files
+*.log
+*.jou
+*.backup.log
+*.backup.jou
+.Xil/
+vivado_output/
+vitis_ws/
+output/
+synth_impl_out/
+project_testing/
+project_tmr/
+RV32E-fpga-impl/
+
+# Node / Dashboard Temporary Files
+node_modules/
+.next/
+drone-dashboard/
+fpga-demo-dashboard/
+*.png
+
+# Build artifacts & packages
+zynq_vitis_deployment/
+fpga/
+*.zip
+*.bit
+*.dcp
