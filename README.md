@@ -1,6 +1,6 @@
-# RV32E Fault-Tolerant Processor Core — Cadence ASIC Implementation
+# Selective Fault-Tolerant RV32E RISC-V Processor — Cadence ASIC Implementation
 
-**Target EDA Suite:** Cadence Genus (Synthesis) & Cadence Innovus (Physical P&R)  
+**Target EDA Suite:** Cadence Xcelium (Simulation), Cadence Genus (Synthesis) & Cadence Innovus (Physical P&R)  
 **Target Process:** 90nm Digital Standard Cell Library (`/home/install/FOUNDRY/digital/90nm/dig/lib/slow.lib`)  
 **Design Specification:** Synthesizable SystemVerilog-2012  
 **Target Frequency:** 100 MHz (10.0 ns Clock Period)  
@@ -84,12 +84,11 @@ Final-Project-EV/
 │   ├── constraints/
 │   │   └── riscv_core_top.sdc            # 100 MHz timing constraints, clock uncertainty, false paths
 │   ├── scripts/
-│   │   ├── run_flow.sh                   # 1-Command master bash runner (Synthesis + P&R)
-│   │   ├── run_flow.csh                  # C-shell runner for university /home/install/cshrc environments
+│   │   ├── run_flow.csh                  # C-shell runner
 │   │   ├── run_genus_syn.tcl             # Automated Common UI Genus synthesis script
 │   │   ├── run_innovus_pnr.tcl           # Innovus P&R automation script with explicit I/O pin placement
 │   │   ├── run_pnr.csh                   # Standalone C-shell Innovus P&R runner (batch or GUI)
-│   │   ├── view_layout.csh               # 1-Click GUI script to restore and inspect routed layout
+│   │   ├── view_layout.csh               # GUI script to restore and inspect routed layout
 │   │   ├── run_sim_gui.csh               # Launch Cadence SimVision for interactive RTL simulation
 │   │   ├── run_gls_gui.csh               # Launch SimVision for post-route Gate-Level Simulation
 │   │   └── viewDefinition.tcl            # MMMC multi-corner timing view configuration
