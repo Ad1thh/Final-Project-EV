@@ -1,2 +1,0 @@
-puts [help rst]
-exit

@@ -27,8 +27,8 @@ You can pull the repository to any directory on your Linux system where you have
 
 ### Option A: If you are cloning the repo freshly on Linux
 ```bash
-# Clone directly onto the cadence-asic-flow branch:
-git clone -b cadence-asic-flow https://github.com/Ad1thh/Final-Project-EV.git
+# Clone directly onto the cadence branch:
+git clone -b cadence https://github.com/Ad1thh/Final-Project-EV.git
 
 cd Final-Project-EV
 ```
@@ -40,11 +40,11 @@ cd /path/to/Final-Project-EV
 # Fetch latest branches from origin
 git fetch origin
 
-# Switch to the new cadence-asic-flow branch
-git checkout cadence-asic-flow
+# Switch to the dedicated cadence branch
+git checkout cadence
 
 # Ensure you have the latest commits
-git pull origin cadence-asic-flow
+git pull origin cadence
 ```
 
 ---
@@ -81,17 +81,16 @@ Final-Project-EV/
 
 ## 4. How to Run Cadence Genus Synthesis
 
-### Step 4.1: Load Cadence Environment & License
-Ensure Cadence Genus is in your `$PATH`. Typical environment setups in universities/labs:
-```bash
-# Environment module system:
-module load cadence/genus
-# OR source your lab's cshrc / bashrc profile:
-source /tools/cadence/cshrc_genus
-```
+### Step 4.1: Load Cadence Environment & License (sbinternetlab65)
+The Cadence EDA environment on the server is configured via C-Shell (`csh`):
+```csh
+# Step 1: Switch to C-Shell
+csh
 
-Verify that `genus` is ready:
-```bash
+# Step 2: Source the lab setup profile
+source /home/install/cshrc
+
+# Step 3: Verify Genus is in your PATH
 genus -version
 ```
 
@@ -101,31 +100,46 @@ The synthesis script is configured with your 90nm foundry standard cell library 
 - **Default Library:** `slow.lib` (worst-case setup corner for robust timing signoff)
 
 If you wish to switch to typical or fast corners, you can optionally override via environment variables:
-```bash
-# Optional override for typical corner:
+```csh
+# In csh:
+setenv PDK_TARGET_LIB "typical.lib"
+# In bash:
 export PDK_TARGET_LIB="typical.lib"
-
-# Optional override for fast corner:
-export PDK_TARGET_LIB="fast.lib"
 ```
 
 ### Step 4.3: Execute Synthesis
 From the `cadence/` directory:
 
+#### Option A: 1-Command Automated Script (csh or bash)
 ```bash
 cd cadence
+chmod +x scripts/run_flow.csh scripts/run_flow.sh
 
-# Make script executable (first time only)
-chmod +x scripts/run_flow.sh
+# If in csh:
+./scripts/run_flow.csh
 
-# Run synthesis
+# If in bash:
 ./scripts/run_flow.sh
 ```
 
-Or run interactively inside Genus:
-```bash
-cd cadence
-genus -f scripts/run_genus_syn.tcl
+#### Option B: Direct Batch Execution inside csh
+```csh
+csh
+source /home/install/cshrc
+cd Final-Project-EV/cadence
+genus -batch -f scripts/run_genus_syn.tcl -log reports/genus_syn.log
+```
+
+#### Option C: Interactive / GUI Execution inside Genus
+```csh
+csh
+source /home/install/cshrc
+cd Final-Project-EV/cadence
+genus
+```
+Inside the Genus prompt:
+```tcl
+source scripts/run_genus_syn.tcl
 ```
 
 ---

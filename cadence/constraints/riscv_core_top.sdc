@@ -14,7 +14,7 @@ set_clock_uncertainty -hold  0.100 [get_clocks clk]
 set_clock_transition 0.100 [get_clocks clk]
 
 # 2. Input Delays (Assuming 20% external budget for I/O paths)
-set core_inputs [remove_from_collection [all_inputs] [get_ports {clk rst_n tmr_mode_pin fi_reg_en fi_reg_addr fi_reg_bit fi_alu_en fi_alu_sel fi_alu_bit}]]
+set core_inputs [remove_from_collection [all_inputs] [get_ports {clk rst_n tmr_mode_pin fi_reg_en fi_reg_addr* fi_reg_bit* fi_alu_en fi_alu_sel* fi_alu_bit*}]]
 set_input_delay -clock clk -max 2.000 $core_inputs
 set_input_delay -clock clk -min 0.500 $core_inputs
 

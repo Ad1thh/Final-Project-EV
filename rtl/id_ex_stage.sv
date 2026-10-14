@@ -390,7 +390,15 @@ module id_ex_stage #(
     // EX/WB PIPELINE REGISTER
     // ------------------------------------------------------------------------
     always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n || flush_id_ex) begin
+        if (!rst_n) begin
+            pc_wb            <= '0;
+            alu_result_wb    <= '0;
+            dmem_rdata_raw_wb<= '0;
+            rd_wb            <= '0;
+            reg_write_wb     <= 1'b0;
+            wb_sel_wb        <= WB_SEL_ALU;
+            funct3_wb        <= '0;
+        end else if (flush_id_ex) begin
             pc_wb            <= '0;
             alu_result_wb    <= '0;
             dmem_rdata_raw_wb<= '0;

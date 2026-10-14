@@ -35,9 +35,7 @@ riscv-arch-test/
 riscv-gnu-toolchain/
 
 # Node / Next.js Dashboard
-fpga-demo-dashboard/node_modules/
-fpga-demo-dashboard/.next/
-fpga-demo-dashboard/out/
+fpga-demo-dashboard/
 drone-dashboard/
 
 # Vivado / Vitis temporary workspace outputs
@@ -50,3 +48,23 @@ zynq_vitis_deployment/vitis_ws/
 # OS metadata
 .DS_Store
 Thumbs.db
+.rs_*.tstamp
+
+# Cadence EDA temporary files
+genus.cmd*
+genus.log*
+cadence/genus.cmd*
+cadence/genus.log*
+innovus.cmd*
+innovus.log*
+innovus.logv*
+cadence/innovus.cmd*
+cadence/innovus.log*
+cadence/innovus.logv*
+cadence/power.rpt
+cadence/reports/*.cmd*
+cadence/reports/*.log*
+timingReports/
+cadence/timingReports/
+fv/
+cadence/fv/
