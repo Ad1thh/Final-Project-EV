@@ -49,6 +49,7 @@ zynq_vitis_deployment/vitis_ws/
 # Xcelium EDA files
 xcelium.d/
 xrun.history
+xrun.key
 xrun.log*
 .simvision/
 
