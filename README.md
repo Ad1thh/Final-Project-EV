@@ -1,261 +1,150 @@
-# RV32E Fault-Tolerant Processor Core — Cadence ASIC Implementation
+# RV32E Fault-Tolerant Core — Continuous Sync DevOps & ASIC Utilization Signoff
 
-**Target EDA Suite:** Cadence Genus (Synthesis) & Cadence Innovus (Physical P&R)  
-**Target Process:** 90nm Digital Standard Cell Library (`/home/install/FOUNDRY/digital/90nm/dig/lib/slow.lib`)  
-**Design Specification:** Synthesizable SystemVerilog-2012  
-**Target Frequency:** 100 MHz (10.0 ns Clock Period)  
-**Target Architecture:** RV32E (16 Registers, Integer Base Instruction Set, Zero DSP Primitives)  
+**Branch:** `navaneeth/corrections`  
+**Focus Areas:** Automated Branch Synchronization Daemon, ASIC/FPGA Utilization Reporting Suite, and Cadence 90nm P&R Signoff Deliverables  
+**Target Architecture:** Synthesizable RV32E Core with Selective TMR & Hamming SEC-DED ECC  
 
 ---
 
-## 1. Overview & Fault-Tolerant Architecture
+## 1. 📌 Executive Summary & Branch Purpose
 
-This repository branch (`cadence`) contains the clean, uncluttered ASIC delivery package for the **RV32E 3-Stage Pipelined Fault-Tolerant RISC-V Processor Core** (`riscv_core_top`). All FPGA-specific IP, Zynq SoC software wrappers, and external web dashboards have been stripped out, leaving a pure digital ASIC implementation ready for synthesis and place-and-route in a Linux EDA environment.
+The **`navaneeth/corrections`** branch serves as the DevOps automation and analytical reporting hub of the project:
 
-The processor integrates four independent layers of hardware fault tolerance designed for mission-critical, radiation-prone aerospace and edge applications:
+1. **Continuous Branch Synchronization Infrastructure:**
+   - Features automated bidirectional synchronization scripts and daemons (`scripts/auto_sync.ps1`) to ensure developer workspaces stay continuously in sync with `main` without manual merge overhead.
+   - Includes Windows Task Scheduler installers (`scripts/install_auto_sync_task.bat`, `scripts/uninstall_auto_sync_task.bat`) and GitHub Actions automation (`.github/workflows/auto_sync.yml`).
+2. **ASIC & FPGA Utilization Comparison Reporting Engine:**
+   - Complete analytical report generator (`scripts/generate_pdf_report.py`) compiling synthesis and place-and-route metrics across the baseline core (`RISC-V-Core`) and fault-tolerant core (`cadence`).
+   - Generates publication-ready HTML (`utilization_comparison_report.html`) and PDF (`utilization_comparison_report.pdf`) comparison documents.
+3. **Full Cadence 90nm ASIC Delivery Package:**
+   - Merged the complete Cadence Genus synthesis and Innovus place-and-route deliverables from `cadence`, including post-route gate-level netlists (`riscv_core_top_pr.v`), routed DEF (`riscv_core_top_routed.def`), and Innovus database (`riscv_core_top.enc.dat`).
 
 ```
 +----------------------------------------------------------------------------------------------------+
-|                                    RISCV_CORE_TOP ARCHITECTURE                                     |
+|                                  NAVANEETH/CORRECTIONS ARCHITECTURE                                |
 +----------------------------------------------------------------------------------------------------+
 |                                                                                                    |
-|  [ STAGE 1: FETCH (if_stage.sv) ]                                                                  |
-|   +---------------+ +---------------+ +---------------+                                            |
-|   |   PC Reg A    | |   PC Reg B    | |   PC Reg C    |  (TMR Program Counter Replicas)            |
-|   +-------+-------+ +-------+-------+ +-------+-------+                                            |
-|           +-----------------+-----------------+                                                    |
-|                             v                                                                      |
-|                    [ TMR Voter (2-of-3) ] ===> instr_addr (32-bit)                                 |
+|  +---------------------------+       +----------------------------+       +---------------------+  |
+|  |   BRANCH SYNC DEVOPS      |       |  UTILIZATION REPORT SUITE  |       |  CADENCE 90nm ASIC  |  |
+|  |                           |       |                            |       |                     |  |
+|  | - scripts/auto_sync.ps1   |       | - generate_pdf_report.py   |       | - Genus Synthesis   |  |
+|  | - install_auto_sync_task  | ====> | - utilization_report.html  | ====> | - Innovus Layout    |  |
+|  | - .github/auto_sync.yml   |       | - utilization_report.pdf   |       | - 100 MHz Signoff   |  |
+|  | - .vscode/settings.json   |       |   (Area, Timing, Power)    |       | - 0 DRC, 0 LVS Opens|  |
+|  +---------------------------+       +----------------------------+       +---------------------+  |
 |                                                                                                    |
-|  [ STAGE 2: DECODE & EXECUTE (id_ex_stage.sv) ]                                                    |
-|   +------------------------------------+    +------------------------------------+                 |
-|   |    Primary Control Unit Decoder    |    |   Duplicate DMR Checker Decoder    |                 |
-|   +-----------------+------------------+    +-----------------+------------------+                 |
-|                     +-----------------+-----------------------+                                    |
-|                                       v                                                            |
-|                        [ Real-Time XOR Comparator ]                                                |
-|                        - Match: Pass decoded control signals to datapath                           |
-|                        - Mismatch: Assert dmr_error & CLAMP mem_write=0, reg_write=0               |
-|                                                                                                    |
-|   +-------------------+  +-------------------+  +-------------------+                              |
-|   |    ALU Unit 0     |  |    ALU Unit 1     |  |    ALU Unit 2     |                              |
-|   +---------+---------+  +---------+---------+  +---------+---------+                              |
-|             +----------------------+----------------------+                                        |
-|                                    v                                                               |
-|          [ Adaptive Redundancy Controller / Voter (Simplex vs TMR) ] ===> alu_result               |
-|                                                                                                    |
-|  [ REGISTER FILE WITH SEC-DED ECC (regfile.sv) ]                                                   |
-|   - 16 Architectural Registers x 32-bit data + 7 parity bits = 39 bits storage per register        |
-|   - Extended Hamming(38,32) SEC-DED Code                                                           |
-|   - Single-Bit Error Correction (SEC): Transparent 1-cycle auto-correction                         |
-|   - Double-Bit Error Detection (DED): Hardware trap assert (ecc_double_error)                       |
-|                                                                                                    |
-|  [ STAGE 3: WRITEBACK (wb_stage.sv) ]                                                              |
-|   - Load data sign/zero extension (LB, LH, LW, LBU, LHU)                                           |
-|   - Writeback multiplexer (ALU result vs Memory load data vs PC+4)                                 |
 +----------------------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 2. Directory Structure & File Map
-
-Every file in this branch is strictly relevant to RTL design, simulation verification, Cadence synthesis/P&R, or architectural context:
+## 2. 📁 Repository File Tree
 
 ```text
 Final-Project-EV/
-├── rtl/                                  # Pure Synthesizable SystemVerilog RTL (ASIC Ready)
-│   ├── riscv_core_top.sv                 # Top-level ASIC module integrating all stages & interfaces
-│   ├── riscv_pkg.sv                      # Opcodes, funct3/7 definitions, ALU operations, and state enums
-│   ├── alu.sv                            # 32-bit RV32E Arithmetic Logic Unit (zero DSP primitives)
-│   ├── regfile.sv                        # 16x39-bit SEC-DED ECC protected register file
-│   ├── if_stage.sv                       # Fetch Stage: Triplicated PC registers + majority voter
-│   ├── id_ex_stage.sv                    # Decode & Execute: DMR Control Unit + Triplicated ALUs
-│   ├── wb_stage.sv                       # Writeback Stage: Load alignment & result multiplexing
-│   ├── control_unit.sv                   # Latch-free single-cycle instruction decoder
-│   ├── hazard_unit.sv                    # Data forwarding, load-use interlock stall, and branch flush
-│   ├── tmr_voter.sv                      # Parameterized 3-input bitwise majority voter
-│   ├── clock_gater.sv                    # Glitch-free clock gating cell for low-power Simplex mode
-│   ├── adaptive_redundancy_controller.sv # Dynamic mode switch (Simplex vs TMR) & operand isolation
-│   ├── uart_tx.sv                        # Compact diagnostic UART transmitter
-│   ├── HANDOFF_INTERFACE_DOC.md          # Architectural interface reference (pinout & protocol)
-│   └── walkthrough.md                    # Detailed microarchitectural pipeline walkthrough
+├── .github/
+│   └── workflows/
+│       └── auto_sync.yml                 # GitHub Actions workflow for automated branch sync
+├── .vscode/
+│   └── settings.json                     # VS Code auto-fetch and git editor integration
 │
-├── cadence/                              # Cadence ASIC Flow Package
+├── scripts/                              # DevOps & Reporting Scripts
+│   ├── auto_sync.ps1                     # Robust PowerShell background synchronization script
+│   ├── install_auto_sync_task.bat        # Registers Windows Task Scheduler background sync job
+│   ├── uninstall_auto_sync_task.bat      # Unregisters Windows Task Scheduler background job
+│   └── generate_pdf_report.py            # Python report compiler (HTML to PDF)
+│
+├── utilization_comparison_report.html    # Interactive HTML resource & utilization comparison
+├── utilization_comparison_report.pdf     # Publication-grade PDF utilization report
+│
+├── cadence/                              # Complete Cadence ASIC Flow Package
 │   ├── constraints/
-│   │   └── riscv_core_top.sdc            # 100 MHz timing constraints, clock uncertainty, false paths
+│   │   └── riscv_core_top.sdc            # 100 MHz timing constraints
 │   ├── scripts/
-│   │   ├── run_genus_syn.tcl             # Automated Common UI Genus synthesis script
-│   │   ├── run_innovus_pnr.tcl           # Innovus Place & Route startup script
-│   │   └── run_flow.sh                   # 1-command executable Linux bash runner
-│   ├── reports/                          # Generated timing, area, power, and QoR reports
-│   ├── netlist/                          # Output gate-level netlist (Verilog) & synthesized SDC
-│   └── README_CADENCE_FLOW.md            # Cadence tool command and parameter reference
+│   │   ├── run_flow.sh                   # 1-Click master bash runner
+│   │   ├── run_flow.csh                  # 1-Click master C-shell runner
+│   │   ├── run_genus_syn.tcl             # Genus synthesis script
+│   │   ├── run_innovus_pnr.tcl           # Innovus Place & Route script
+│   │   ├── run_pnr.csh                   # Standalone Innovus P&R runner
+│   │   ├── view_layout.csh               # Instant GUI layout inspector
+│   │   └── viewDefinition.tcl            # MMMC timing view setup
+│   ├── netlist/                          # Generated Netlists & Physical Design Databases
+│   │   ├── riscv_core_top_syn.v          # Synthesized netlist
+│   │   ├── riscv_core_top_syn.sdc        # Synthesized SDC
+│   │   ├── riscv_core_top_pr.v           # Post-route physical netlist
+│   │   ├── riscv_core_top_routed.def     # Post-route routed DEF
+│   │   └── riscv_core_top.enc.dat/       # Innovus design database
+│   ├── reports/                          # Signoff Reports (Area, Timing, Power, DRC, LVS)
+│   └── README_CADENCE_FLOW.md            # Cadence tool manual
 │
-├── tb/                                   # Standalone SystemVerilog Testbenches (Cadence Xcelium)
-│   ├── tb_riscv_core_top.sv              # Top-level comprehensive core testbench
-│   ├── tb_fault_tolerance.sv             # End-to-end fault injection and masking verification
-│   ├── tb_tmr_adversarial.sv             # Negative & positive controls for ALU & PC voting
-│   ├── tb_sec_ded_adversarial.sv         # Single-bit correction and double-bit trap tests
-│   ├── tb_adaptive_redundancy_control.sv # Simplex vs TMR dynamic transition verification
-│   ├── tb_regfile_unit.sv                # ECC register file unit testbench
-│   ├── tb_tmr_unit.sv                    # Majority voter unit testbench
-│   ├── tb_reset_probe.sv                 # Asynchronous and synchronous reset behavior
-│   ├── tb_compliance_run.sv              # RV32E base instruction compliance verification
-│   ├── tb_core_stress_adversarial.sv     # Pipeline hazard & multi-fault stress testbench
-│   └── tb_uart_tx.sv                     # UART diagnostic output testbench
-│
-├── cu_protection_method.md               # Context: Formal derivation of DMR Control Unit protection
-├── memory_protection_method.md           # Context: Extended Hamming(38,32) parity matrix & syndrome equations
-├── README.md                             # This document
-└── .gitignore                            # Filters Cadence logs (*.log, *.cmd, fv/), temporary files
+├── rtl/                                  # Synthesizable SystemVerilog RTL
+└── tb/                                   # Standalone SystemVerilog Testbenches
 ```
 
 ---
 
-## 3. Quick-Start Guide (Linux EDA Workstation)
+## 3. 🔄 Continuous Synchronization Guide
 
-### Step 1: Pull the Branch on Your Linux Machine
-```bash
-# Navigate to your project directory
-cd /home/student/EV2327_Projects/Final-Project-EV
+### A. How `auto_sync.ps1` Works
+The synchronization script performs intelligent safe syncing:
+1. Checks working tree status with `git status --porcelain`.
+2. Fetches upstream changes from `origin`.
+3. If clean, merges upstream tracking commits via fast-forward.
+4. If local uncommitted work exists, automatically creates a safe stash or commit checkpoint before updating.
+5. Pushes validated commits to remote if permitted.
 
-# Fetch all remote branches
-git fetch origin
-
-# Switch to the dedicated cadence branch
-git checkout cadence
-
-# Ensure your local branch is updated to the latest commit
-git pull origin cadence
+### B. Installing the Background Sync Daemon (Windows)
+Run from an elevated or standard Windows Command Prompt / PowerShell:
+```cmd
+.\scripts\install_auto_sync_task.bat
 ```
+This registers a Windows Task Scheduler task that runs silently in the background, keeping your branch in sync with the team.
 
-### Step 2: Cadence Environment Setup & Troubleshooting
-If running `genus` yields `bash: genus: command not found`, configure your lab shell environment:
-
-```bash
-# Method A: Using Environment Modules (Standard in university labs)
-module avail
-module load cadence/genus
-module load cadence/innovus
-
-# Method B: Source Lab Setup Script (if provided by sysadmin)
-# source /home/install/cadence_profile.sh
-# source /home/install/cshrc_genus
-
-# Method C: Manually locate the Cadence binary
-find /home/install -name genus -type f 2>/dev/null
-
-# Once located (e.g., /home/install/GENUS/bin/genus), add it to your PATH:
-export PATH=/home/install/GENUS/bin:$PATH
-```
-
-Verify that the tool executes correctly:
-```bash
-genus -version
+### C. Uninstalling the Background Sync Daemon
+```cmd
+.\scripts\uninstall_auto_sync_task.bat
 ```
 
 ---
 
-## 4. Running Cadence Genus Synthesis
+## 4. 📊 Utilization Comparison Reporting Engine
 
-### Option 1: One-Command Automated Execution (Recommended)
-From the repository root:
+The script [`scripts/generate_pdf_report.py`](scripts/generate_pdf_report.py) parses synthesis results and formats comparative metrics across the baseline core and the fault-tolerant core:
+
+### Summary Utilization Metrics (90nm ASIC @ 100 MHz)
+| Metric | Baseline RV32E | Fault-Tolerant RV32E | Overhead | Protection Provided |
+| :--- | :---: | :---: | :---: | :--- |
+| **Clock Frequency** | 100 MHz | 100 MHz | 0.0% | Zero frequency degradation |
+| **Setup Timing Slack (WNS)** | +0.420 ns | **+0.138 ns** | -0.282 ns | Passes with positive margin |
+| **Total Standard Cells** | ~6,410 | **11,463** | +78.8% | Full structural redundancy |
+| **Total Core Area** | ~38,900 &mu;m&sup2; | **71,664.81 &mu;m&sup2;** | +84.2% | SEC-DED, TMR ALU, TMR PC, DMR CU |
+| **Power Dissipation** | 0.72 mW | **1.27 mW** | +76.4% | Mitigated by operand isolation |
+| **DRC Violations** | 0 | **0** | 0 | Clean physical layout signoff |
+| **LVS Open Nets** | 0 | **0** | 0 | Clean connectivity verification |
+
+To regenerate the PDF report:
 ```bash
+python scripts/generate_pdf_report.py
+```
+
+---
+
+## 5. 🚀 Cadence Flow & Layout Inspection
+
+To inspect the post-route ASIC layout directly from this branch on an EDA workstation:
+```csh
 cd cadence
-chmod +x scripts/run_flow.sh
-./scripts/run_flow.sh
+./scripts/view_layout.csh
 ```
-
-### Option 2: Running Genus in Batch Mode
-```bash
-cd cadence
-genus -f scripts/run_genus_syn.tcl -log reports/genus_syn.log
-```
-
-### Option 3: Running Genus in Interactive GUI Mode
-```bash
-cd cadence
-genus -gui
-```
-Inside the Genus Common UI console prompt:
-```tcl
-source scripts/run_genus_syn.tcl
-```
+This launches Cadence Innovus, restores `cadence/netlist/riscv_core_top.enc`, and opens the 90nm routed die layout.
 
 ---
 
-## 5. Synthesis Deliverables & Quality-of-Results (QoR) Verification
+## 6. 🗺️ Cross-Branch Navigation
 
-Once synthesis completes, all deliverables and analytical reports are automatically stored in `cadence/`:
-
-| Output File | Content & Signoff Verification Criteria |
-| :--- | :--- |
-| `cadence/reports/timing_report.rpt` | **Static Timing Analysis (STA):** Verify **Worst Negative Slack (WNS) &ge; 0.00 ns** at 100 MHz (10.0 ns period). No setup or hold violations. |
-| `cadence/reports/area_report.rpt` | **Area Breakdown:** Standard cell instance counts, logic area ($\mu m^2$), and hierarchical module breakdown. |
-| `cadence/reports/power_report.rpt` | **Power Dissipation:** Leakage, internal, and dynamic switching power in mW. |
-| `cadence/reports/qor_summary.rpt` | **Quality of Results Summary:** Top-level clock frequency, critical endpoint, total cell count, and run runtime. |
-| `cadence/netlist/riscv_core_top_syn.v` | **Gate-Level Netlist:** Synthesized structural Verilog netlist mapped to 90nm standard cells for Innovus P&R. |
-| `cadence/netlist/riscv_core_top_syn.sdc` | **Synthesized SDC:** Preserved and mapped timing constraints for physical layout. |
-
----
-
-## 6. Critical Redundancy Preservation Rules (Anti-Pruning)
-
-Because this core uses **hardware structural redundancy** (TMR and DMR) for fault tolerance, default synthesis optimization algorithms assume identical parallel logic cones are redundant and prune them to minimize area.
-
-To prevent Genus from merging or optimizing away the redundant hardware, the following protection mechanisms are implemented:
-
-1. **RTL Attributes:**
-   - [`rtl/if_stage.sv`](rtl/if_stage.sv): `(* dont_touch = "true", preserve = "true" *)` on PC registers (`pc_reg_a`, `pc_reg_b`, `pc_reg_c`).
-   - [`rtl/id_ex_stage.sv`](rtl/id_ex_stage.sv): `(* dont_touch = "true", preserve = "true" *)` on triplicated ALUs (`u_alu_0`, `u_alu_1`, `u_alu_2`) and DMR decoder (`u_control_unit_checker`).
-
-2. **Synthesis TCL Constraints ([`cadence/scripts/run_genus_syn.tcl`](cadence/scripts/run_genus_syn.tcl)):**
-   ```tcl
-   # 1. Prevent Genus from merging the 3 TMR PC register replicas
-   set_db [get_db registers -if {.name =~ *pc_reg_*}] .preserve true
-
-   # 2. Prevent Genus from merging the DMR Control Unit checker
-   set_db [get_db instances */u_control_unit] .preserve true
-   set_db [get_db instances */u_control_unit_checker] .preserve true
-
-   # 3. Prevent Genus from merging the triplicated ALUs
-   set_db [get_db instances */u_alu_0] .preserve true
-   set_db [get_db instances */u_alu_1] .preserve true
-   set_db [get_db instances */u_alu_2] .preserve true
-
-   # 4. Disable datapath sharing on ECC XOR trees to avoid timing degradation
-   set_db /designs/riscv_core_top .dp_max_sharing 0
-   ```
-
----
-
-## 7. Physical Implementation (Cadence Innovus P&R)
-
-Once `riscv_core_top_syn.v` is generated by Genus, proceed to physical layout:
-
-```bash
-cd cadence
-innovus -f scripts/run_innovus_pnr.tcl
-```
-
-Inside the Innovus environment:
-1. **Floorplanning:** Set core utilization (e.g., 0.70) and aspect ratio (1.0).
-2. **Power Planning:** Create `VDD` and `VSS` power rings, power stripes, and follow-pins.
-3. **Standard Cell Placement:** Run `place_opt_design` to place standard cells with timing-driven optimization.
-4. **Clock Tree Synthesis (CTS):** Run `ccopt_design` to build low-skew clock distribution trees for the 100 MHz clock.
-5. **Detailed Routing:** Run `routeDesign` with NanoRoute to complete signal routing without DRC violations.
-6. **Signoff:** Perform RC extraction (`extractRC`), final static timing verification, and export GDSII / OASIS.
-
----
-
-## 8. Summary Command Cheatsheet
-
-| Task | Shell Command |
-| :--- | :--- |
-| **Check Current Branch** | `git branch --show-current` |
-| **Update Branch** | `git pull origin cadence` |
-| **Run Synthesis** | `cd cadence && ./scripts/run_flow.sh` |
-| **Inspect Timing Slack** | `grep -E "Slack|Endpoint" cadence/reports/timing_report.rpt` |
-| **Inspect Total Area** | `grep -E "Total Area|Cell Count" cadence/reports/area_report.rpt` |
-| **Launch Innovus P&R** | `cd cadence && innovus -f scripts/run_innovus_pnr.tcl` |
+- **Dedicated Clean ASIC Package:** Switch to [`cadence`](https://github.com/Ad1thh/Final-Project-EV/tree/cadence)
+- **Golden Baseline RV32E Core (Nexys 4):** Switch to [`RISC-V-Core`](https://github.com/Ad1thh/Final-Project-EV/tree/RISC-V-Core)
+- **Zynq SoC & Vitis Deployment:** Switch to [`vitis-deployment`](https://github.com/Ad1thh/Final-Project-EV/tree/vitis-deployment)
+- **Interactive 3D Web Dashboard:** Switch to [`arpith/corrections`](https://github.com/Ad1thh/Final-Project-EV/tree/arpith/corrections)
+- **Research Literature & Project Theory:** Switch to [`docs`](https://github.com/Ad1thh/Final-Project-EV/tree/docs)
+- **Unified Master Integration:** Switch to [`main`](https://github.com/Ad1thh/Final-Project-EV/tree/main)
