@@ -27,8 +27,7 @@ cadence/
 ├── constraints/
 │   └── riscv_core_top.sdc        # 100 MHz timing constraints (10.0 ns period)
 ├── scripts/
-│   ├── run_flow.sh               # 1-Click master bash runner (Synthesis + P&R)
-│   ├── run_flow.csh              # 1-Click master C-shell runner
+│   ├── run_flow.csh              # C-shell runner for Automated 
 │   ├── run_genus_syn.tcl         # Genus synthesis Common UI script
 │   ├── run_innovus_pnr.tcl       # Innovus floorplan, placement, CTS & routing script
 │   ├── run_pnr.csh               # Standalone Innovus P&R runner
@@ -62,7 +61,6 @@ cadence/
 
 | Script | Purpose & Usage |
 | :--- | :--- |
-| `scripts/run_flow.sh` | Full automated flow in Bash: Genus synthesis &rarr; Innovus P&R &rarr; Post-route verification &rarr; DEF export. |
 | `scripts/run_flow.csh` | Full automated flow in CSH/TCSH for environments sourcing `/home/install/cshrc`. |
 | `scripts/run_pnr.csh` | Runs physical layout only (assumes `netlist/riscv_core_top_syn.v` is already synthesized). |
 | `scripts/view_layout.csh` | Restores `netlist/riscv_core_top.enc` in the Innovus GUI to visualize the routed silicon die. |
