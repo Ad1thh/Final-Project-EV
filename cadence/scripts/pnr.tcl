@@ -1,5 +1,5 @@
 # ==============================================================================
-# Script: run_innovus_pnr.tcl
+# Script: pnr.tcl
 # Description: Automated Cadence Innovus Physical Implementation (P&R) Flow
 # Technology: 90nm GPDK Standard Cell Library (gsclib090)
 # Design: RV32E Fault-Tolerant Processor Core (riscv_core_top)
@@ -22,7 +22,7 @@ puts "======================================================================"
 # ------------------------------------------------------------------------------
 if {![file exists $VERILOG_NETLIST]} {
     puts "ERROR: Synthesized netlist not found at: ${VERILOG_NETLIST}"
-    puts "Please execute synthesis first: ./scripts/run_flow.csh"
+    puts "Please execute synthesis first: genus -f scripts/syn.tcl"
     exit 1
 }
 

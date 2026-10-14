@@ -1,6 +1,6 @@
 # ==============================================================================
-# Script: run_genus_syn.tcl
-# Description: Automated Cadence Genus Synthesis Script
+# Script: syn.tcl
+# Description: Cadence Genus Synthesis Script
 # Design: RV32E Fault-Tolerant Processor Core
 # Flow: Cadence Common UI (Genus 19.x / 20.x / 21.x / 22.x)
 # ==============================================================================

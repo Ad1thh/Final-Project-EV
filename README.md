@@ -84,13 +84,8 @@ Final-Project-EV/
 │   ├── constraints/
 │   │   └── riscv_core_top.sdc            # 100 MHz timing constraints, clock uncertainty, false paths
 │   ├── scripts/
-│   │   ├── run_flow.csh                  # C-shell runner
-│   │   ├── run_genus_syn.tcl             # Automated Common UI Genus synthesis script
-│   │   ├── run_innovus_pnr.tcl           # Innovus P&R automation script with explicit I/O pin placement
-│   │   ├── run_pnr.csh                   # Standalone C-shell Innovus P&R runner (batch or GUI)
-│   │   ├── view_layout.csh               # GUI script to restore and inspect routed layout
-│   │   ├── run_sim_gui.csh               # Launch Cadence SimVision for interactive RTL simulation
-│   │   ├── run_gls_gui.csh               # Launch SimVision for post-route Gate-Level Simulation
+│   │   ├── syn.tcl                       # Cadence Genus synthesis script (Common UI)
+│   │   ├── pnr.tcl                       # Cadence Innovus P&R automation script
 │   │   └── viewDefinition.tcl            # MMMC multi-corner timing view configuration
 │   ├── netlist/                          # Generated Netlists & Physical Design Databases
 │   │   ├── riscv_core_top_syn.v          # Synthesized gate-level structural Verilog netlist
@@ -174,7 +169,7 @@ To prevent Genus from merging or optimizing away the redundant hardware, the fol
    - [`rtl/if_stage.sv`](rtl/if_stage.sv): `(* dont_touch = "true", preserve = "true" *)` on PC registers (`pc_reg_a`, `pc_reg_b`, `pc_reg_c`).
    - [`rtl/id_ex_stage.sv`](rtl/id_ex_stage.sv): `(* dont_touch = "true", preserve = "true" *)` on triplicated ALUs (`u_alu_0`, `u_alu_1`, `u_alu_2`) and DMR decoder (`u_control_unit_checker`).
 
-2. **Synthesis TCL Constraints ([`cadence/scripts/run_genus_syn.tcl`](cadence/scripts/run_genus_syn.tcl)):**
+2. **Synthesis TCL Constraints ([`cadence/scripts/syn.tcl`](cadence/scripts/syn.tcl)):**
    ```tcl
    # 1. Prevent Genus from merging the 3 TMR PC register replicas
    set_db [get_db registers -if {.name =~ *pc_reg_*}] .preserve true
@@ -287,51 +282,50 @@ git checkout cadence
 git pull origin cadence
 ```
 
-### Step 2: 1-Click Complete Flow Execution
-For standard Bash environments:
-```bash
-cd cadence
-./scripts/run_flow.sh
-```
-For university C-shell (`csh`/`tcsh`) environments:
+### Step 2: Environment Setup
 ```csh
+csh
+source /home/install/cshrc
 cd cadence
-./scripts/run_flow.csh
 ```
 
-### Step 3: Instantly View the Routed Silicon Layout in Innovus GUI
+### Step 3: Run Logic Synthesis (Cadence Genus)
 ```csh
-cd cadence
-./scripts/view_layout.csh
+genus -f scripts/syn.tcl
 ```
-This launches Cadence Innovus GUI, restores the post-route database (`cadence/netlist/riscv_core_top.enc`), and displays the full standard cell placement, power grid rings (`VDD`/`VSS`), clock distribution trees, and detailed NanoRoute metal routing.
+*(Or interactively in Genus: `genus` &rarr; `source scripts/syn.tcl`)*
 
-### Step 4: Run Interactive GUI Simulations in SimVision
-- **RTL Simulation:**
-  ```csh
-  cd cadence
-  ./scripts/run_sim_gui.csh
-  ```
-- **Post-Route Gate-Level Simulation (GLS):**
-  ```csh
-  cd cadence
-  ./scripts/run_gls_gui.csh
-  ```
+### Step 4: Run Physical Place & Route (Cadence Innovus)
+```csh
+innovus -f scripts/pnr.tcl
+```
+*(Or interactively in Innovus: `innovus` &rarr; `source scripts/pnr.tcl`)*
+
+### Step 5: View Routed Layout in Innovus GUI
+```csh
+innovus
+```
+Inside the Innovus console prompt:
+```tcl
+restoreDesign netlist/riscv_core_top.enc.dat riscv_core_top
+```
+This restores the post-route design database and displays the complete placed standard cells, power rings (`VDD`/`VSS`), clock tree buffers, and NanoRoute metal routing.
 
 ---
 
-## 8. 🛠️ Interactive GUI Utilities & Workflow Cheatsheet
+## 8. 🛠️ Cadence Tool Commands & Verification Cheatsheet
 
-| Task | Shell Command |
+| Task | EDA Command |
 | :--- | :--- |
-| **View Routed Layout in Innovus GUI** | `cd cadence && ./scripts/view_layout.csh` |
-| **Run Full Innovus P&R Flow (Batch)** | `cd cadence && ./scripts/run_pnr.csh` |
-| **Run Full Innovus P&R Flow (GUI)** | `cd cadence && ./scripts/run_pnr.csh -gui` |
-| **Launch RTL Simulation (SimVision GUI)** | `cd cadence && ./scripts/run_sim_gui.csh` |
-| **Launch Post-Route GLS (SimVision GUI)** | `cd cadence && ./scripts/run_gls_gui.csh` |
-| **Run Genus Synthesis (Batch)** | `cd cadence && ./scripts/run_flow.csh` |
-| **Inspect DRC Report** | `cat cadence/reports/innovus_drc.rpt` |
-| **Inspect Connectivity Report** | `cat cadence/reports/innovus_connectivity.rpt` |
+| **Run Genus Synthesis (Batch)** | `genus -f scripts/syn.tcl` |
+| **Run Genus Synthesis (Interactive)** | `genus` &rarr; `source scripts/syn.tcl` |
+| **Run Innovus P&R (Batch)** | `innovus -f scripts/pnr.tcl` |
+| **Run Innovus P&R (Interactive GUI)** | `innovus` &rarr; `source scripts/pnr.tcl` |
+| **Restore Routed Layout in GUI** | `innovus` &rarr; `restoreDesign netlist/riscv_core_top.enc.dat riscv_core_top` |
+| **Inspect Static Timing Slack** | `cat reports/timing_report.rpt` |
+| **Inspect DRC Clean Verification** | `cat reports/innovus_drc.rpt` |
+| **Inspect LVS Connectivity** | `cat reports/innovus_connectivity.rpt` |
+| **Inspect Post-Route Power** | `cat reports/innovus_power.rpt` |
 
 ---
 

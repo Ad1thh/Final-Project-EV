@@ -1,19 +1,17 @@
 # Cadence Genus & Innovus ASIC Implementation Guide
 
-This guide details how to pull, execute, simulate, and inspect the Cadence ASIC synthesis and place-and-route (P&R) deliverables for the Fault-Tolerant RV32E Core on a Linux EDA server.
+This guide details the standard Cadence ASIC synthesis and place-and-route (P&R) implementation for the Fault-Tolerant RV32E Core using standard EDA tool commands.
 
 ---
 
 ## 1. Quick-Start Pull Instructions
 
 ```bash
-# Navigate to your EDA directory
+# Navigate to your project directory
 cd ~/projects/Final-Project-EV
 
-# Fetch latest commits
+# Fetch latest commits and switch to cadence branch
 git fetch origin
-
-# Switch to the dedicated cadence branch
 git checkout cadence
 git pull origin cadence
 ```
@@ -27,22 +25,16 @@ cadence/
 ├── constraints/
 │   └── riscv_core_top.sdc        # 100 MHz timing constraints (10.0 ns period)
 ├── scripts/
-│   ├── run_flow.csh              # C-shell runner for Automated 
-│   ├── run_genus_syn.tcl         # Genus synthesis Common UI script
-│   ├── run_innovus_pnr.tcl       # Innovus floorplan, placement, CTS & routing script
-│   ├── run_pnr.csh               # Standalone Innovus P&R runner
-│   ├── view_layout.csh           # Instant GUI layout inspector
-│   ├── view_gds.csh              # Launch Cadence Pegasus Design Review for GDSII
-│   ├── run_sim_gui.csh           # SimVision RTL simulation GUI runner
-│   ├── run_gls_gui.csh           # SimVision Gate-Level Simulation GUI runner
+│   ├── syn.tcl                   # Cadence Genus synthesis script (Common UI)
+│   ├── pnr.tcl                   # Cadence Innovus floorplanning, placement, CTS & routing script
 │   └── viewDefinition.tcl        # MMMC multi-corner timing configuration
 ├── netlist/
 │   ├── riscv_core_top_syn.v      # Synthesized gate-level netlist
 │   ├── riscv_core_top_syn.sdc    # Synthesized timing constraints
 │   ├── riscv_core_top_pr.v       # Post-route physical gate-level netlist
 │   ├── riscv_core_top_routed.def # Post-route complete layout DEF file
-│   ├── riscv_core_top.gds        # Streamed GDSII Silicon Mask Layout (Tapeout Deliverable, 14.1 MB)
-│   └── riscv_core_top.enc.dat/   # Encrypted Innovus layout design database
+│   ├── riscv_core_top.gds        # Streamed GDSII Silicon Mask Layout (14.1 MB)
+│   └── riscv_core_top.enc.dat/   # Innovus layout design database
 └── reports/
     ├── qor_summary.rpt           # Quality-of-Results summary
     ├── area_report.rpt           # Genus area report (68,019.58 um^2)
@@ -57,22 +49,34 @@ cadence/
 
 ---
 
-## 3. Tool Scripts Reference
+## 3. How to Run Synthesis & Physical Design
 
-| Script | Purpose & Usage |
-| :--- | :--- |
-| `scripts/run_flow.csh` | Full automated flow in CSH/TCSH for environments sourcing `/home/install/cshrc`. |
-| `scripts/run_pnr.csh` | Runs physical layout only (assumes `netlist/riscv_core_top_syn.v` is already synthesized). |
-| `scripts/view_layout.csh` | Restores `netlist/riscv_core_top.enc` in the Innovus GUI to visualize the routed silicon die. |
-| `scripts/run_sim_gui.csh` | Compiles RTL with Xcelium and launches SimVision with waveforms pre-loaded. |
-| `scripts/run_gls_gui.csh` | Compiles post-route netlist `riscv_core_top_pr.v` with TSMC 90nm Verilog models and launches SimVision for GLS. |
+### Step 3.1: Environment Setup
+```csh
+# Switch to C-Shell and source the lab profile
+csh
+source /home/install/cshrc
+```
+
+### Step 3.2: Logic Synthesis (Cadence Genus)
+From the `cadence/` directory:
+```csh
+genus -f scripts/syn.tcl
+```
+*(Or inside the interactive Genus prompt: `genus` &rarr; `source scripts/syn.tcl`)*
+
+### Step 3.3: Physical Place & Route (Cadence Innovus)
+Once the synthesized netlist is generated in `netlist/`:
+```csh
+innovus -f scripts/pnr.tcl
+```
+*(Or inside the interactive Innovus GUI: `innovus` &rarr; `source scripts/pnr.tcl`)*
 
 ---
 
-## 4. Foundry Library Paths
+## 4. Foundry Library Configuration (GPDK090)
 
-All scripts target the standard university foundry installation:
-- **Foundry Base:** `/home/install/FOUNDRY/digital/90nm`
+The scripts target the university 90nm digital standard cell library:
 - **Timing Library (Slow Corner):** `/home/install/FOUNDRY/digital/90nm/dig/lib/slow.lib`
-- **Physical LEF:** `/home/install/FOUNDRY/digital/90nm/lef/gsclib090_translated.lef`
-- **Capacitance Table:** `/home/install/FOUNDRY/digital/90nm/CapTbl/gpdk090.lef.extended.CapTbl`
+- **Physical LEF:** `/home/install/FOUNDRY/digital/90nm/dig/lef/gsclib090_translated.lef`
+- **Capacitance Table:** `/home/install/FOUNDRY/digital/90nm/dig/captable/gpdk090.lef.extended.CapTbl`
