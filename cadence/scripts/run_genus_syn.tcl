@@ -93,52 +93,17 @@ if {[file exists $SDC_FILE]} {
 # ------------------------------------------------------------------------------
 puts "--> Applying Fault-Tolerance preservation rules to protect redundancy..."
 
-# 5.1 Prevent Genus from merging identical TMR PC register replicas
-catch {
-    set pc_regs [get_db registers -if {.name =~ *pc_reg_*}]
-    if {[llength $pc_regs] > 0} {
-        set_db $pc_regs .preserve true
-        puts "    [OK] Preserved [llength $pc_regs] TMR PC registers (Common UI)."
-    }
-}
-catch {
-    # Fallback for Legacy UI or instance-based binding
-    set_attribute preserve true [find / -instance *pc_reg*]
-    puts "    [OK] Preserved TMR PC registers (Legacy UI fallback)."
-}
+# 5.1 Preserve hierarchical module boundaries (prevents un-grouping or merging of ALUs / Control Units)
+set_db auto_ungroup none
+puts "    \[OK\] Preserved module hierarchy boundaries (auto_ungroup none)."
 
-# 5.2 Prevent Genus from optimizing out the DMR Control Unit checker
-catch {
-    set cu_insts [get_db instances */u_control_unit*]
-    if {[llength $cu_insts] > 0} {
-        set_db $cu_insts .preserve true
-        puts "    [OK] Preserved [llength $cu_insts] Control Unit & DMR Checker instances (Common UI)."
-    }
-}
-catch {
-    set_attribute preserve true [find / -instance *u_control_unit*]
-    puts "    [OK] Preserved Control Unit & DMR Checker instances (Legacy UI fallback)."
-}
+# 5.2 Prevent Genus from merging identical flip-flops (protects TMR PC registers pc_reg_a, pc_reg_b, pc_reg_c)
+set_db optimize_merge_flops false
+puts "    \[OK\] Disabled register merging (optimize_merge_flops false) to protect TMR registers."
 
-# 5.3 Prevent Genus from merging the triplicated ALUs (u_alu_0, u_alu_1, u_alu_2)
-catch {
-    set alu_insts [get_db instances */u_alu_*]
-    if {[llength $alu_insts] > 0} {
-        set_db $alu_insts .preserve true
-        puts "    [OK] Preserved [llength $alu_insts] triplicated ALU instances (Common UI)."
-    }
-}
-catch {
-    set_attribute preserve true [find / -instance *u_alu_*]
-    puts "    [OK] Preserved triplicated ALU instances (Legacy UI fallback)."
-}
-
-# 5.4 Prevent aggressive datapath sharing between ECC XOR trees and ALU
-catch { set_db /designs/$DESIGN_NAME .dp_max_sharing 0 }
-catch { set_db dp_max_sharing 0 }
-catch { set_attribute dp_max_sharing 0 /designs/$DESIGN_NAME }
-catch { set_attribute dp_max_sharing 0 }
-puts "    [OK] Restricted datapath XOR sharing (dp_max_sharing 0) to protect ECC timing margins."
+# 5.3 Prevent constant-0 / constant-1 flop removal
+set_db optimize_constant_0_flops false
+puts "    \[OK\] Preserved constant-state registers (optimize_constant_0_flops false)."
 
 # ------------------------------------------------------------------------------
 # 6. SYNTHESIS OPTIMIZATION (GENERIC -> MAP -> OPT)
