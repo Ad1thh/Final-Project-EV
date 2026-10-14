@@ -73,6 +73,15 @@ init_design
 puts "--> Step 4.1: Creating Floorplan (70% utilization, square core)..."
 floorPlan -site gsclib090site -r 1.0 0.70 15 15 15 15
 
+puts "--> Step 4.1b: Placing Top-Level I/O Pins on Core Boundary..."
+setPinAssignMode -pinEditInBatch true
+set in_ports  [get_db [get_db ports -if {.direction == in}] .name]
+set out_ports [get_db [get_db ports -if {.direction == out}] .name]
+puts "    Assigning [llength $in_ports] input pins to LEFT boundary (Metal3)..."
+editPin -pin $in_ports  -spreadType SIDE -layer Metal3 -side LEFT  -spreadDirection clockwise
+puts "    Assigning [llength $out_ports] output pins to RIGHT boundary (Metal3)..."
+editPin -pin $out_ports -spreadType SIDE -layer Metal3 -side RIGHT -spreadDirection clockwise
+
 puts "--> Step 4.2: Connecting Global Power & Ground Nets..."
 globalNetConnect VDD -type pgpin -pin VDD -all
 globalNetConnect VSS -type pgpin -pin VSS -all

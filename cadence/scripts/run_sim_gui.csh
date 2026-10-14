@@ -26,7 +26,6 @@ xrun -64bit -gui -access +rwc -sv \
      rtl/if_stage.sv \
      rtl/regfile.sv \
      rtl/tmr_voter.sv \
-     rtl/uart_tx.sv \
      rtl/wb_stage.sv \
      rtl/riscv_core_top.sv \
      tb/tb_riscv_core_top.sv

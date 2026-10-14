@@ -77,7 +77,6 @@ Final-Project-EV/
 │   ├── tmr_voter.sv                      # Parameterized 3-input bitwise majority voter
 │   ├── clock_gater.sv                    # Glitch-free clock gating cell for low-power Simplex mode
 │   ├── adaptive_redundancy_controller.sv # Dynamic mode switch (Simplex vs TMR) & operand isolation
-│   ├── uart_tx.sv                        # Compact diagnostic UART transmitter
 │   ├── HANDOFF_INTERFACE_DOC.md          # Architectural interface reference (pinout & protocol)
 │   └── walkthrough.md                    # Detailed microarchitectural pipeline walkthrough
 │
@@ -102,8 +101,7 @@ Final-Project-EV/
 │   ├── tb_tmr_unit.sv                    # Majority voter unit testbench
 │   ├── tb_reset_probe.sv                 # Asynchronous and synchronous reset behavior
 │   ├── tb_compliance_run.sv              # RV32E base instruction compliance verification
-│   ├── tb_core_stress_adversarial.sv     # Pipeline hazard & multi-fault stress testbench
-│   └── tb_uart_tx.sv                     # UART diagnostic output testbench
+│   └── tb_core_stress_adversarial.sv     # Pipeline hazard & multi-fault stress testbench
 │
 ├── cu_protection_method.md               # Context: Formal derivation of DMR Control Unit protection
 ├── memory_protection_method.md           # Context: Extended Hamming(38,32) parity matrix & syndrome equations

@@ -38,6 +38,7 @@ catch { setDelayCalMode -engine aae }
 catch { setDelayCalMode -ignoreNetLoad false }
 catch { setDelayCalMode -SIAware false }
 catch { setDelayCalMode -socv_accuracy_mode low }
+catch { setPinAssignMode -pinEditInBatch true }
 catch { setHierMode -disableArt false }
 catch { setHierMode -reportPostRouteArtTiming false }
 catch { setHierMode -trialRouteHonorReadOnly false }
