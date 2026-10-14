@@ -21,6 +21,12 @@ mkdir -p reports netlist
 
 # 1. Check if genus executable is available in PATH
 if ! command -v genus &> /dev/null; then
+    # If csh and /home/install/cshrc exist, delegate directly to run_flow.csh
+    if command -v csh &> /dev/null && [ -f /home/install/cshrc ]; then
+        echo "--> Sourcing Cadence environment via csh (/home/install/cshrc)..."
+        exec csh -f "${SCRIPT_DIR}/run_flow.csh"
+    fi
+
     echo "--> 'genus' not currently in PATH. Attempting automated environment setup..."
     if [ -f "${SCRIPT_DIR}/setup_cadence_env.sh" ]; then
         # shellcheck disable=SC1091
@@ -31,10 +37,10 @@ fi
 if ! command -v genus &> /dev/null; then
     echo "======================================================================"
     echo "ERROR: 'genus' command could not be found."
-    echo "Please configure your environment manually:"
-    echo "  1) Run: source ${SCRIPT_DIR}/setup_cadence_env.sh"
-    echo "  2) Or find the binary: find /home/install -name genus -type f"
-    echo "  3) Add it to PATH: export PATH=/path/to/genus/bin:\$PATH"
+    echo "On your server (sbinternetlab65), use the C-shell environment:"
+    echo "  1) csh"
+    echo "  2) source /home/install/cshrc"
+    echo "  3) ./scripts/run_flow.csh"
     echo "======================================================================"
     exit 1
 fi
