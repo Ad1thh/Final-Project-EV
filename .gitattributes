@@ -1,0 +1,7 @@
+# Git LFS tracking proposal for large CAD layout and database files
+# History is preserved without rewriting commits.
+# To activate Git LFS in environments where git-lfs is installed:
+#   git lfs install
+#   git lfs track "*.gds" "*.def"
+*.gds filter=lfs diff=lfs merge=lfs -text
+*.def filter=lfs diff=lfs merge=lfs -text

@@ -61,7 +61,8 @@ if ( ! -f "$CADENCE_DIR/netlist/riscv_core_top_syn.v" ) then
     exit 1
 endif
 
-mkdir -p reports netlist
+mkdir -p reports netlist reports/innovus_timing
+rm -f reports/innovus_pnr.log* reports/innovus_pnr.cmd*
 
 setenv BATCH_MODE 1
 
@@ -75,12 +76,14 @@ else
 endif
 
 set INNOVUS_STATUS = $status
-if ( $INNOVUS_STATUS != 0 ) then
+set ERROR_COUNT = `grep -E "^\*\*ERROR:" reports/innovus_pnr.log | grep -v "IMPSP-9099" | wc -l`
+if ( $INNOVUS_STATUS != 0 || $ERROR_COUNT > 0 ) then
     echo "======================================================================"
-    echo " ERROR: Cadence Innovus physical design failed (exit code $INNOVUS_STATUS)."
+    echo " ERROR: Cadence Innovus physical design failed ($ERROR_COUNT errors, exit code $INNOVUS_STATUS)."
     echo " Please inspect the log: $CADENCE_DIR/reports/innovus_pnr.log"
     echo "======================================================================"
-    exit $INNOVUS_STATUS
+    grep -E "^\*\*ERROR:" reports/innovus_pnr.log | grep -v "IMPSP-9099" | head -n 10
+    exit 1
 endif
 
 echo "======================================================================"

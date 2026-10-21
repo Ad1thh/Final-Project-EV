@@ -31,12 +31,14 @@ module regfile #(
     // Write Port
     input  logic                  we,
     input  logic [ADDR_WIDTH-1:0] waddr,
-    input  logic [DATA_WIDTH-1:0] wdata,
-    
-    // Fault Injection Interface
+    input  logic [DATA_WIDTH-1:0] wdata
+`ifdef FAULT_INJECT
+    ,
+    // Fault Injection Interface (Only present during fault verification)
     input  logic                  fi_reg_en,
     input  logic [ADDR_WIDTH-1:0] fi_reg_addr,
     input  logic [5:0]            fi_reg_bit
+`endif
 );
 
     // Register Array Storage (39 bits for SEC-DED: 32 data + 6 parity + 1 overall parity)
@@ -140,11 +142,12 @@ module regfile #(
                 rf[i] <= '0;
             end
         end else begin
-            // Normal write and fault injection
+            // Normal write
             if (we && (waddr != '0)) begin
                 rf[waddr] <= encoded_wdata;
             end
             
+`ifdef FAULT_INJECT
             // Fault injection overrides write for the specific bit
             if (fi_reg_en && (fi_reg_addr != '0)) begin
                 if (we && (waddr == fi_reg_addr)) begin
@@ -155,6 +158,7 @@ module regfile #(
                     rf[fi_reg_addr][fi_reg_bit] <= ~rf[fi_reg_addr][fi_reg_bit];
                 end
             end
+`endif
         end
     end
 

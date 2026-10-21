@@ -35,7 +35,8 @@ module riscv_core_top #(
     // Fault Tolerance & Mode Control
     input  logic        tmr_mode_pin,
     
-    // Regfile Fault Injection
+`ifdef FAULT_INJECT
+    // Regfile Fault Injection (Only present in simulation/verification builds)
     input  logic        fi_reg_en,
     input  logic [3:0]  fi_reg_addr,
     input  logic [5:0]  fi_reg_bit,
@@ -44,8 +45,9 @@ module riscv_core_top #(
     input  logic        fi_alu_en,
     input  logic [1:0]  fi_alu_sel,
     input  logic [4:0]  fi_alu_bit,
+`endif
     
-    // Status Outputs — Register File ECC
+    // Status Outputs — Register File ECC (Synchronously registered for clean ASIC timing)
     output logic        ecc_sec_1,
     output logic        ecc_ded_1,
     output logic        ecc_sec_2,
@@ -107,6 +109,43 @@ module riscv_core_top #(
     assign pc_debug = imem_addr;
 
     // ------------------------------------------------------------------------
+    // INTERNAL COMBINATIONAL STATUS SIGNALS
+    // ------------------------------------------------------------------------
+    logic ecc_sec_1_comb, ecc_ded_1_comb;
+    logic ecc_sec_2_comb, ecc_ded_2_comb;
+    logic tmr_mismatch_comb, tmr_fatal_mismatch_comb;
+    logic pc_tmr_mismatch_comb, pc_tmr_fatal_mismatch_comb;
+    logic cu_mismatch_comb;
+
+    // ------------------------------------------------------------------------
+    // OUTPUT REGISTERS FOR STATUS & TELEMETRY
+    // Isolates internal combinational logic from ASIC boundary output delay constraints
+    // ------------------------------------------------------------------------
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            ecc_sec_1             <= 1'b0;
+            ecc_ded_1             <= 1'b0;
+            ecc_sec_2             <= 1'b0;
+            ecc_ded_2             <= 1'b0;
+            tmr_mismatch          <= 1'b0;
+            tmr_fatal_mismatch    <= 1'b0;
+            pc_tmr_mismatch       <= 1'b0;
+            pc_tmr_fatal_mismatch <= 1'b0;
+            cu_mismatch           <= 1'b0;
+        end else begin
+            ecc_sec_1             <= ecc_sec_1_comb;
+            ecc_ded_1             <= ecc_ded_1_comb;
+            ecc_sec_2             <= ecc_sec_2_comb;
+            ecc_ded_2             <= ecc_ded_2_comb;
+            tmr_mismatch          <= tmr_mismatch_comb;
+            tmr_fatal_mismatch    <= tmr_fatal_mismatch_comb;
+            pc_tmr_mismatch       <= pc_tmr_mismatch_comb;
+            pc_tmr_fatal_mismatch <= pc_tmr_fatal_mismatch_comb;
+            cu_mismatch           <= cu_mismatch_comb;
+        end
+    end
+
+    // ------------------------------------------------------------------------
     // STAGE 1: FETCH (IF)
     // ------------------------------------------------------------------------
     if_stage #(
@@ -122,8 +161,8 @@ module riscv_core_top #(
         .imem_rdata            (imem_rdata),
         .pc_id                 (pc_id),
         .instr_id              (instr_id),
-        .pc_tmr_mismatch       (pc_tmr_mismatch),
-        .pc_tmr_fatal_mismatch (pc_tmr_fatal_mismatch)
+        .pc_tmr_mismatch       (pc_tmr_mismatch_comb),
+        .pc_tmr_fatal_mismatch (pc_tmr_fatal_mismatch_comb)
     );
 
     // ------------------------------------------------------------------------
@@ -159,19 +198,21 @@ module riscv_core_top #(
         .funct3_wb            (funct3_wb),
         .trap                 (trap),
         .tmr_mode             (tmr_mode),
+`ifdef FAULT_INJECT
         .fi_reg_en            (fi_reg_en),
         .fi_reg_addr          (fi_reg_addr),
         .fi_reg_bit           (fi_reg_bit),
         .fi_alu_en            (fi_alu_en),
         .fi_alu_sel           (fi_alu_sel),
         .fi_alu_bit           (fi_alu_bit),
-        .ecc_sec_1            (ecc_sec_1),
-        .ecc_ded_1            (ecc_ded_1),
-        .ecc_sec_2            (ecc_sec_2),
-        .ecc_ded_2            (ecc_ded_2),
-        .tmr_mismatch         (tmr_mismatch),
-        .tmr_fatal_mismatch   (tmr_fatal_mismatch),
-        .cu_mismatch          (cu_mismatch)
+`endif
+        .ecc_sec_1            (ecc_sec_1_comb),
+        .ecc_ded_1            (ecc_ded_1_comb),
+        .ecc_sec_2            (ecc_sec_2_comb),
+        .ecc_ded_2            (ecc_ded_2_comb),
+        .tmr_mismatch         (tmr_mismatch_comb),
+        .tmr_fatal_mismatch   (tmr_fatal_mismatch_comb),
+        .cu_mismatch          (cu_mismatch_comb)
     );
 
     // ------------------------------------------------------------------------

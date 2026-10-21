@@ -66,12 +66,14 @@ module tb_core_stress_adversarial;
         .pc_debug     (pc_debug),
         .trap         (trap),
         .tmr_mode_pin (tmr_mode_pin),
+    `ifdef FAULT_INJECT
         .fi_reg_en    (fi_reg_en),
         .fi_reg_addr  (fi_reg_addr),
         .fi_reg_bit   (fi_reg_bit),
         .fi_alu_en    (fi_alu_en),
         .fi_alu_sel   (fi_alu_sel),
         .fi_alu_bit   (fi_alu_bit),
+    `endif
         .ecc_sec_1    (ecc_sec_1),
         .ecc_ded_1    (ecc_ded_1),
         .ecc_sec_2    (ecc_sec_2),
@@ -258,7 +260,7 @@ module tb_core_stress_adversarial;
 
             // Force transient single-event upset (SEU) on primary mem_write
             force dut.u_id_ex_stage.ctrl_mem_write = 1'b1;
-            #1;
+            @(posedge clk); #1;
 
             if (cu_mismatch == 1'b1 && dut.u_id_ex_stage.safe_mem_write == 1'b0 && trap == 1'b1) begin
                 p3_5_passed++;
@@ -269,7 +271,6 @@ module tb_core_stress_adversarial;
                          cu_mismatch, dut.u_id_ex_stage.safe_mem_write, trap);
             end
 
-            @(posedge clk); #1;
             release dut.u_id_ex_stage.ctrl_mem_write;
 
             // Check sentinel memory location was preserved
@@ -285,7 +286,7 @@ module tb_core_stress_adversarial;
             rst_n = 1'b0; #20; rst_n = 1'b1; #10;
             @(posedge clk); @(posedge clk);
             force dut.u_id_ex_stage.chk_reg_write = ~dut.u_id_ex_stage.ctrl_reg_write;
-            #1;
+            @(posedge clk); #1;
             if (cu_mismatch == 1'b1 && dut.u_id_ex_stage.safe_reg_write == 1'b0 && trap == 1'b1) begin
                 p3_5_passed++;
                 $display("  Case 3 (Checker reg_write fault): cu_mismatch asserted, safe_reg_write clamped to 0, trap asserted.");

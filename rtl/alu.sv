@@ -41,3 +41,52 @@ module alu #(
     assign zero = (result == '0);
 
 endmodule
+
+// ============================================================================
+// Discrete Module Wrappers for Triple Modular Redundancy (TMR) Preservation
+// Prevents Cadence Genus from merging identical execution instances.
+// ============================================================================
+(* dont_touch = "true" *)
+module alu_0 #(
+    parameter int DATA_WIDTH = 32
+)(
+    input  logic [DATA_WIDTH-1:0] a,
+    input  logic [DATA_WIDTH-1:0] b,
+    input  logic [3:0]            alu_op,
+    output logic [DATA_WIDTH-1:0] result,
+    output logic                  zero
+);
+    alu #(.DATA_WIDTH(DATA_WIDTH)) u_core (
+        .a(a), .b(b), .alu_op(alu_op), .result(result), .zero(zero)
+    );
+endmodule
+
+(* dont_touch = "true" *)
+module alu_1 #(
+    parameter int DATA_WIDTH = 32
+)(
+    input  logic [DATA_WIDTH-1:0] a,
+    input  logic [DATA_WIDTH-1:0] b,
+    input  logic [3:0]            alu_op,
+    output logic [DATA_WIDTH-1:0] result,
+    output logic                  zero
+);
+    alu #(.DATA_WIDTH(DATA_WIDTH)) u_core (
+        .a(a), .b(b), .alu_op(alu_op), .result(result), .zero(zero)
+    );
+endmodule
+
+(* dont_touch = "true" *)
+module alu_2 #(
+    parameter int DATA_WIDTH = 32
+)(
+    input  logic [DATA_WIDTH-1:0] a,
+    input  logic [DATA_WIDTH-1:0] b,
+    input  logic [3:0]            alu_op,
+    output logic [DATA_WIDTH-1:0] result,
+    output logic                  zero
+);
+    alu #(.DATA_WIDTH(DATA_WIDTH)) u_core (
+        .a(a), .b(b), .alu_op(alu_op), .result(result), .zero(zero)
+    );
+endmodule

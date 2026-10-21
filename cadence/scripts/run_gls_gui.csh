@@ -8,15 +8,18 @@ if ( -f /home/install/cshrc ) then
     source /home/install/cshrc
 endif
 
-cd /home/student/Final-Project-EV
+set SCRIPT_DIR = `dirname $0`
+set SCRIPT_DIR = `cd "$SCRIPT_DIR" && pwd`
+set PROJECT_DIR = `cd "$SCRIPT_DIR/../.." && pwd`
+cd "$PROJECT_DIR"
 
 echo "======================================================================"
 echo " Launching Cadence SimVision GUI for Gate-Level Simulation (GLS)"
 echo " Netlist: cadence/netlist/riscv_core_top_pr.v (90nm GPDK Post-Route)"
-echo " Testbench: tb/tb_riscv_core_top.sv"
+echo " SDF    : cadence/netlist/riscv_core_top_setup.sdf (Slow Corner 0.9V 125C)"
 echo "======================================================================"
 
-xrun -64bit -gui -access +rwc -sv -noparamerr \
+xrun -64bit -gui -access +rwc -sv -noparamerr +define+SDF_ANNOTATE -maxdelay \
      /home/install/FOUNDRY/digital/90nm/dig/vlog/slow.v \
      cadence/netlist/riscv_core_top_pr.v \
-     tb/tb_riscv_core_top.sv
+     tb/tb_gls_fault_injection.sv

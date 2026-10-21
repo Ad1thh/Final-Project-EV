@@ -77,7 +77,7 @@ elaborate $DESIGN_NAME
 check_design -unresolved
 
 # ------------------------------------------------------------------------------
-# 4. READ SDC TIMING CONSTRAINTS
+# 4. READ SDC TIMING CONSTRAINTS & SYNTHESIS MARGIN
 # ------------------------------------------------------------------------------
 set SDC_FILE "${CONSTRAINTS_DIR}/riscv_core_top.sdc"
 if {[file exists $SDC_FILE]} {
@@ -88,37 +88,115 @@ if {[file exists $SDC_FILE]} {
     create_clock -name clk -period 10.0 [get_ports clk]
 }
 
-# ------------------------------------------------------------------------------
-# 5. FAULT-TOLERANCE PRESERVATION CONSTRAINTS (CRITICAL FOR ASIC)
-# ------------------------------------------------------------------------------
-puts "--> Applying Fault-Tolerance preservation rules to protect redundancy..."
+# Synthesis margin override: synthesize against tighter clock period
+# so Innovus physical implementation has positive timing margin.
+set SIGNOFF_CLOCK_PERIOD 10.0
+if {[info exists env(SYNTH_CLOCK_PERIOD)]} {
+    set TARGET_SYNTH_PERIOD $env(SYNTH_CLOCK_PERIOD)
+} else {
+    set TARGET_SYNTH_PERIOD 9.2
+}
+create_clock -name clk -period $TARGET_SYNTH_PERIOD [get_ports clk]
+set_clock_uncertainty -setup 0.250 [get_clocks clk]
+set_clock_uncertainty -hold  0.100 [get_clocks clk]
+set_clock_transition 0.100 [get_clocks clk]
+puts "--> \[MARGIN\] Applied synthesis margin clock period: ${TARGET_SYNTH_PERIOD} ns (Signoff target: ${SIGNOFF_CLOCK_PERIOD} ns)"
 
-# 5.1 Preserve hierarchical module boundaries (prevents un-grouping or merging of ALUs / Control Units)
+# ------------------------------------------------------------------------------
+# 5. PRE-GENERIC FAULT-TOLERANCE PRESERVATION CONSTRAINTS
+# ------------------------------------------------------------------------------
+puts "--> Applying pre-generic Fault-Tolerance preservation rules..."
+
+# 5.1 Prevent automatic ungrouping across hierarchy
 set_db auto_ungroup none
 puts "    \[OK\] Preserved module hierarchy boundaries (auto_ungroup none)."
 
-# 5.2 Prevent Genus from merging identical flip-flops (protects TMR PC registers pc_reg_a, pc_reg_b, pc_reg_c)
+# 5.2 Prevent register merging, constant pruning, and unloaded instance pruning
 set_db optimize_merge_flops false
-puts "    \[OK\] Disabled register merging (optimize_merge_flops false) to protect TMR registers."
-
-# 5.3 Prevent constant-0 / constant-1 flop removal
 set_db optimize_constant_0_flops false
-puts "    \[OK\] Preserved constant-state registers (optimize_constant_0_flops false)."
+set_db optimize_constant_1_flops false
+set_db delete_unloaded_insts false
+puts "    \[OK\] Disabled register merging, constant pruning, and unloaded instance deletion."
+
+# 5.3 Lock ungroup_ok and boundary_opto on redundant submodules
+set_db [get_db modules alu*] .ungroup_ok false
+set_db [get_db modules control_unit*] .ungroup_ok false
+set_db [get_db modules tmr_voter*] .ungroup_ok false
+set_db [get_db modules adaptive_redundancy_controller*] .ungroup_ok false
+
+set_db [get_db modules alu*] .boundary_opto false
+set_db [get_db modules control_unit*] .boundary_opto false
+set_db [get_db modules tmr_voter*] .boundary_opto false
+set_db [get_db modules adaptive_redundancy_controller*] .boundary_opto false
+puts "    \[OK\] Disabled ungrouping and boundary optimization on alu*, control_unit*, tmr_voter*, and ARC modules."
+
+# 5.4 Lock instance ungrouping
+set alu_insts [get_db hinsts u_id_ex_stage/u_alu_*]
+if {[llength $alu_insts] > 0} {
+    set_db $alu_insts .ungroup_ok false
+    puts "    \[OK\] Disabled ungrouping on [llength $alu_insts] ALU instances: [get_db $alu_insts .name]"
+}
+
+set cu_insts [get_db hinsts u_id_ex_stage/u_control_unit*]
+if {[llength $cu_insts] > 0} {
+    set_db $cu_insts .ungroup_ok false
+    puts "    \[OK\] Disabled ungrouping on [llength $cu_insts] Control Unit instances: [get_db $cu_insts .name]"
+}
+
+set voter_insts [get_db hinsts -if {.name =~ "*voter*"}]
+if {[llength $voter_insts] > 0} {
+    set_db $voter_insts .ungroup_ok false
+    puts "    \[OK\] Disabled ungrouping on [llength $voter_insts] Voter instances: [get_db $voter_insts .name]"
+}
 
 # ------------------------------------------------------------------------------
-# 6. SYNTHESIS OPTIMIZATION (GENERIC -> MAP -> OPT)
+# 6. GENERIC SYNTHESIS
 # ------------------------------------------------------------------------------
 puts "--> Executing generic synthesis (syn_generic)..."
 syn_generic
 
+# ------------------------------------------------------------------------------
+# 7. TECHNOLOGY MAPPING, POST-MAP PRESERVATION & OPTIMIZATION
+# ------------------------------------------------------------------------------
 puts "--> Mapping to target technology library (syn_map)..."
 syn_map
+
+puts "--> Applying post-mapping instance and net preservation rules..."
+set alu_insts [get_db hinsts u_id_ex_stage/u_alu_*]
+if {[llength $alu_insts] > 0} {
+    set_db $alu_insts .preserve true
+    puts "    \[OK\] Preserved [llength $alu_insts] TMR ALU instances: [get_db $alu_insts .name]"
+}
+
+set cu_insts [get_db hinsts u_id_ex_stage/u_control_unit*]
+if {[llength $cu_insts] > 0} {
+    set_db $cu_insts .preserve true
+    puts "    \[OK\] Preserved [llength $cu_insts] Control Unit DMR instances: [get_db $cu_insts .name]"
+}
+
+set arc_insts [get_db hinsts u_id_ex_stage/u_adaptive_redundancy_controller*]
+if {[llength $arc_insts] > 0} {
+    set_db $arc_insts .preserve true
+    puts "    \[OK\] Preserved [llength $arc_insts] ARC instances: [get_db $arc_insts .name]"
+}
+
+set voter_insts [get_db hinsts -if {.name =~ "*voter*"}]
+if {[llength $voter_insts] > 0} {
+    set_db $voter_insts .preserve true
+    puts "    \[OK\] Preserved [llength $voter_insts] Voter instances: [get_db $voter_insts .name]"
+}
+
+set chk_nets [get_db nets -if {.name =~ "*chk_*"}]
+if {[llength $chk_nets] > 0} {
+    set_db $chk_nets .preserve true
+    puts "    \[OK\] Preserved [llength $chk_nets] DMR checker nets."
+}
 
 puts "--> Executing gate-level timing and area optimization (syn_opt)..."
 syn_opt
 
 # ------------------------------------------------------------------------------
-# 7. GENERATE COMPREHENSIVE QoR REPORTS
+# 8. GENERATE COMPREHENSIVE QoR REPORTS
 # ------------------------------------------------------------------------------
 puts "--> Generating Quality of Results (QoR) reports in: ${REPORT_DIR}"
 report_timing > "${REPORT_DIR}/timing_report.rpt"
@@ -128,8 +206,15 @@ report_qor > "${REPORT_DIR}/qor_summary.rpt"
 report_gates > "${REPORT_DIR}/gates_report.rpt"
 
 # ------------------------------------------------------------------------------
-# 8. EXPORT DELIVERABLES FOR CADENCE INNOVUS (P&R)
+# 9. EXPORT DELIVERABLES FOR CADENCE INNOVUS (P&R)
 # ------------------------------------------------------------------------------
+# Restore signoff clock period of 10.0ns (100 MHz) before exporting SDC for Innovus
+create_clock -name clk -period $SIGNOFF_CLOCK_PERIOD [get_ports clk]
+set_clock_uncertainty -setup 0.250 [get_clocks clk]
+set_clock_uncertainty -hold  0.100 [get_clocks clk]
+set_clock_transition 0.100 [get_clocks clk]
+puts "--> Restored signoff clock period to ${SIGNOFF_CLOCK_PERIOD} ns for Innovus deliverable SDC."
+
 puts "--> Writing synthesized gate-level Verilog netlist & SDC to: ${OUTPUT_DIR}"
 write_hdl -mapped > "${OUTPUT_DIR}/riscv_core_top_syn.v"
 write_sdc > "${OUTPUT_DIR}/riscv_core_top_syn.sdc"
@@ -146,4 +231,3 @@ if {[info exists env(RUN_FLOW_BATCH)] || [info exists env(BATCH_MODE)]} {
     puts "--> Automated batch flow complete. Exiting Genus."
     exit 0
 }
-

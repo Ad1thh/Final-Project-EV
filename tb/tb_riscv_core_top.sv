@@ -108,12 +108,14 @@ module tb_riscv_core_top();
         .pc_debug     (pc_debug),
         .trap         (trap),
         .tmr_mode_pin (tmr_mode_pin),
+    `ifdef FAULT_INJECT
         .fi_reg_en    (fi_reg_en),
         .fi_reg_addr  (fi_reg_addr),
         .fi_reg_bit   (fi_reg_bit),
         .fi_alu_en    (fi_alu_en),
         .fi_alu_sel   (fi_alu_sel),
         .fi_alu_bit   (fi_alu_bit),
+    `endif
         .ecc_sec_1    (ecc_sec_1),
         .ecc_ded_1    (ecc_ded_1),
         .ecc_sec_2    (ecc_sec_2),
@@ -182,7 +184,11 @@ module tb_riscv_core_top();
         #20 rst_n = 1;
 
         // Run Directed FT Tests
+`ifdef FAULT_INJECT
         run_fault_tolerance_tests();
+`else
+        $display("Clean ASIC mode (FAULT_INJECT off): skipping port-level FI tests.");
+`endif
 
         // Run Main Program if HEX file provided
         if (hex_file != "") begin
@@ -241,7 +247,7 @@ module tb_riscv_core_top();
         
         // Wait for instruction at 0x1C (ADDI x1, x5, 0) to execute in ID stage
         wait(imem_addr >= 32'h0000_0020 || sec_flag == 1'b1);
-        @(posedge clk);
+        repeat(2) @(posedge clk);
         #1;
         if (sec_flag) $display("  -> SUCCESS: SEC detected and corrected.");
         else          $display("  -> FAIL: SEC not detected.");
@@ -260,7 +266,7 @@ module tb_riscv_core_top();
         
         // Wait for instruction at 0x2C (ADDI x2, x6, 0) to execute in ID stage
         wait(imem_addr >= 32'h0000_0030 || ded_flag == 1'b1);
-        @(posedge clk);
+        repeat(2) @(posedge clk);
         #1;
         if (ded_flag) $display("  -> SUCCESS: DED detected.");
         else          $display("  -> FAIL: DED not detected.");

@@ -52,12 +52,14 @@ module id_ex_stage #(
 
     // Fault Tolerance Mode & Injection Interfaces
     input  logic                  tmr_mode,
+`ifdef FAULT_INJECT
     input  logic                  fi_reg_en,
     input  logic [ADDR_WIDTH-1:0] fi_reg_addr,
     input  logic [5:0]            fi_reg_bit,
     input  logic                  fi_alu_en,
     input  logic [1:0]            fi_alu_sel,
     input  logic [4:0]            fi_alu_bit,
+`endif
     
     // Fault Tolerance Status Outputs
     output logic                  ecc_sec_1,
@@ -168,9 +170,9 @@ module id_ex_stage #(
         .trap      (ctrl_trap_raw)
     );
 
-    // Duplicate Checker Control Unit instance
-    (* dont_touch = "true" *)
-    control_unit u_control_unit_checker (
+    // Duplicate Checker Control Unit instance (Distinct Module for Cadence Genus Redundancy Preservation)
+    (* dont_touch = "true", preserve = "true" *)
+    control_unit_checker u_control_unit_checker (
         .opcode    (opcode),
         .funct3    (funct3),
         .funct7    (funct7),
@@ -232,10 +234,13 @@ module id_ex_stage #(
         .double_err_detected_2  (ecc_ded_2),
         .we                     (wb_reg_write),
         .waddr                  (wb_rd),
-        .wdata                  (wb_result),
+        .wdata                  (wb_result)
+`ifdef FAULT_INJECT
+        ,
         .fi_reg_en              (fi_reg_en),
         .fi_reg_addr            (fi_reg_addr),
         .fi_reg_bit             (fi_reg_bit)
+`endif
     );
 
     // ------------------------------------------------------------------------
@@ -273,6 +278,7 @@ module id_ex_stage #(
 
     // ------------------------------------------------------------------------
     // THREE EXECUTION UNITS (EX0, EX1, EX2)
+    // Wrapped into discrete modules (alu_0, alu_1, alu_2) for ASIC redundancy preservation.
     // ------------------------------------------------------------------------
     logic [DATA_WIDTH-1:0] alu_result_0, alu_result_1, alu_result_2;
     logic                  alu_zero_0, alu_zero_1, alu_zero_2;
@@ -280,29 +286,36 @@ module id_ex_stage #(
 
     // EX0: Primary Execute Unit (Driven by primary clock & un-isolated operands)
     (* dont_touch = "true", preserve = "true" *)
-    alu #(.DATA_WIDTH(DATA_WIDTH)) u_alu_0 (
+    alu_0 #(.DATA_WIDTH(DATA_WIDTH)) u_alu_0 (
         .a(alu_in_a), .b(alu_in_b), .alu_op(ctrl_alu_op), .result(alu_result_0), .zero(alu_zero_0)
     );
 
     // EX1: Redundant Execute Unit 1 (Driven by isolated operands & gated clock)
     (* dont_touch = "true", preserve = "true" *)
-    alu #(.DATA_WIDTH(DATA_WIDTH)) u_alu_1 (
+    alu_1 #(.DATA_WIDTH(DATA_WIDTH)) u_alu_1 (
         .a(alu_in_a_ex1), .b(alu_in_b_ex1), .alu_op(ctrl_alu_op_ex1), .result(alu_result_1), .zero(alu_zero_1)
     );
 
     // EX2: Redundant Execute Unit 2 (Driven by isolated operands & gated clock)
     (* dont_touch = "true", preserve = "true" *)
-    alu #(.DATA_WIDTH(DATA_WIDTH)) u_alu_2 (
+    alu_2 #(.DATA_WIDTH(DATA_WIDTH)) u_alu_2 (
         .a(alu_in_a_ex2), .b(alu_in_b_ex2), .alu_op(ctrl_alu_op_ex2), .result(alu_result_2), .zero(alu_zero_2)
     );
 
-    // Fault Injection Masks
+`ifdef FAULT_INJECT
+    // Fault Injection Masks (Active only during verification/emulation)
     logic [DATA_WIDTH-1:0] fi_mask;
     assign fi_mask = (fi_alu_en) ? (32'd1 << fi_alu_bit) : '0;
 
     assign alu_result_0_fi = alu_result_0 ^ ((fi_alu_sel == 2'd0) ? fi_mask : '0);
     assign alu_result_1_fi = alu_result_1 ^ ((fi_alu_sel == 2'd1) ? fi_mask : '0);
     assign alu_result_2_fi = alu_result_2 ^ ((fi_alu_sel == 2'd2) ? fi_mask : '0);
+`else
+    // Production ASIC Path: Direct, uncorrupted ALU connections to voter
+    assign alu_result_0_fi = alu_result_0;
+    assign alu_result_1_fi = alu_result_1;
+    assign alu_result_2_fi = alu_result_2;
+`endif
 
     // Adaptive Redundancy Controller
     logic [DATA_WIDTH-1:0] alu_result;

@@ -1,0 +1,759 @@
+
+Cadence Innovus(TM) Implementation System.
+Copyright 2021 Cadence Design Systems, Inc. All rights reserved worldwide.
+
+Version:	v21.15-s110_1, built Fri Sep 23 13:08:12 PDT 2022
+Options:	-batch -no_gui -init cadence/scripts/run_power_analysis.tcl -log cadence/reports/innovus_power_run.log 
+Date:		Wed Oct 21 18:41:55 2026
+Host:		sbinternetlab65 (x86_64 w/Linux 4.18.0-425.3.1.el8.x86_64) (14cores*20cpus*Intel(R) Core(TM) i5-14500 24576KB)
+OS:		Red Hat Enterprise Linux release 8.7 (Ootpa)
+
+License:
+		[18:41:55.260545] Configured Lic search path (21.01-s002): 5280@Cadenceserver
+
+		invs	Innovus Implementation System	21.1	checkout succeeded
+		8 CPU jobs allowed with the current license(s). Use setMultiCpuUsage to set your required CPU count.
+Change the soft stacksize limit to 0.2%RAM (31 mbytes). Set global soft_stack_size_limit to change the value.
+
+**INFO:  MMMC transition support version v31-84 
+
+<CMD> set_global _enable_mmmc_by_default_flow      $CTE::mmmc_default
+<CMD> suppressMessage ENCEXT-2799
+<CMD> getVersion
+[INFO] Loading PVS 22.20 fill procedures
+**WARN: Tk package not loaded. The PVS fill DRC monitor is disabled.
+Sourcing file "cadence/scripts/run_power_analysis.tcl" ...
+<CMD> is_common_ui_mode
+<CMD> restoreDesign /home/student/Final-Project-EV/cadence/netlist/riscv_core_top.enc.dat riscv_core_top
+#% Begin load design ... (date=10/21 18:42:05, mem=909.3M)
+Loading design 'riscv_core_top' saved by 'Innovus' '21.15-s110_1' on 'Wed Oct 21 18:11:36 2026'.
+% Begin Load MMMC data ... (date=10/21 18:42:05, mem=911.9M)
+% End Load MMMC data ... (date=10/21 18:42:05, total cpu=0:00:00.0, real=0:00:00.0, peak res=912.6M, current mem=912.6M)
+rc_fast rc_slow
+
+Loading LEF file /home/student/Final-Project-EV/cadence/netlist/riscv_core_top.enc.dat/libs/lef/gsclib090_translated.lef ...
+**WARN: (IMPLF-105):	The layer 'Oxide' specified in SAMENET spacing
+rule is neither a routing layer nor a cut layer. The rule is ignored.
+**WARN: (IMPLF-105):	The layer 'Poly' specified in SAMENET spacing
+rule is neither a routing layer nor a cut layer. The rule is ignored.
+Set DBUPerIGU to M2 pitch 580.
+**WARN: (IMPLF-200):	Pin 'A' in macro 'ANTENNA' has no ANTENNAGATEAREA value defined. The library data is incomplete and some process antenna rules will not be checked correctly.
+Type 'man IMPLF-200' for more detail.
+
+##  Check design process and node:  
+##  Both design process and tech node are not set.
+
+Loading view definition file from /home/student/Final-Project-EV/cadence/netlist/riscv_core_top.enc.dat/viewDefinition.tcl
+Reading slow_libs timing library '/home/install/FOUNDRY/digital/90nm/dig/lib/slow.lib' ...
+Read 479 cells in library 'slow' 
+Reading fast_libs timing library '/home/install/FOUNDRY/digital/90nm/dig/lib/fast.lib' ...
+Read 479 cells in library 'fast' 
+*** End library_loading (cpu=0.01min, real=0.02min, mem=40.0M, fe_cpu=0.17min, fe_real=0.18min, fe_mem=992.8M) ***
+% Begin Load netlist data ... (date=10/21 18:42:06, mem=935.2M)
+*** Begin netlist parsing (mem=992.8M) ***
+**WARN: (IMPVL-159):	Pin 'VDD' of cell 'XOR3XL' is defined in LEF but not in the timing library.
+Type 'man IMPVL-159' for more detail.
+**WARN: (IMPVL-159):	Pin 'VSS' of cell 'XOR3XL' is defined in LEF but not in the timing library.
+Type 'man IMPVL-159' for more detail.
+**WARN: (IMPVL-159):	Pin 'VDD' of cell 'XOR3X1' is defined in LEF but not in the timing library.
+Type 'man IMPVL-159' for more detail.
+**WARN: (IMPVL-159):	Pin 'VSS' of cell 'XOR3X1' is defined in LEF but not in the timing library.
+Type 'man IMPVL-159' for more detail.
+**WARN: (IMPVL-159):	Pin 'VSS' of cell 'XOR2XL' is defined in LEF but not in the timing library.
+Type 'man IMPVL-159' for more detail.
+**WARN: (IMPVL-159):	Pin 'VDD' of cell 'XOR2XL' is defined in LEF but not in the timing library.
+Type 'man IMPVL-159' for more detail.
+**WARN: (IMPVL-159):	Pin 'VSS' of cell 'XOR2X4' is defined in LEF but not in the timing library.
+Type 'man IMPVL-159' for more detail.
+**WARN: (IMPVL-159):	Pin 'VDD' of cell 'XOR2X4' is defined in LEF but not in the timing library.
+Type 'man IMPVL-159' for more detail.
+**WARN: (IMPVL-159):	Pin 'VSS' of cell 'XOR2X2' is defined in LEF but not in the timing library.
+Type 'man IMPVL-159' for more detail.
+**WARN: (IMPVL-159):	Pin 'VDD' of cell 'XOR2X2' is defined in LEF but not in the timing library.
+Type 'man IMPVL-159' for more detail.
+**WARN: (IMPVL-159):	Pin 'VSS' of cell 'XOR2X1' is defined in LEF but not in the timing library.
+Type 'man IMPVL-159' for more detail.
+**WARN: (IMPVL-159):	Pin 'VDD' of cell 'XOR2X1' is defined in LEF but not in the timing library.
+Type 'man IMPVL-159' for more detail.
+**WARN: (IMPVL-159):	Pin 'VSS' of cell 'XNOR3XL' is defined in LEF but not in the timing library.
+Type 'man IMPVL-159' for more detail.
+**WARN: (IMPVL-159):	Pin 'VDD' of cell 'XNOR3XL' is defined in LEF but not in the timing library.
+Type 'man IMPVL-159' for more detail.
+**WARN: (IMPVL-159):	Pin 'VDD' of cell 'XNOR3X1' is defined in LEF but not in the timing library.
+Type 'man IMPVL-159' for more detail.
+**WARN: (IMPVL-159):	Pin 'VSS' of cell 'XNOR3X1' is defined in LEF but not in the timing library.
+Type 'man IMPVL-159' for more detail.
+**WARN: (IMPVL-159):	Pin 'VSS' of cell 'XNOR2XL' is defined in LEF but not in the timing library.
+Type 'man IMPVL-159' for more detail.
+**WARN: (IMPVL-159):	Pin 'VDD' of cell 'XNOR2XL' is defined in LEF but not in the timing library.
+Type 'man IMPVL-159' for more detail.
+**WARN: (IMPVL-159):	Pin 'VSS' of cell 'XNOR2X4' is defined in LEF but not in the timing library.
+Type 'man IMPVL-159' for more detail.
+**WARN: (IMPVL-159):	Pin 'VDD' of cell 'XNOR2X4' is defined in LEF but not in the timing library.
+Type 'man IMPVL-159' for more detail.
+**WARN: (EMS-27):	Message (IMPVL-159) has exceeded the current message display limit of 20.
+To increase the message display limit, refer to the product command reference manual.
+Created 479 new cells from 2 timing libraries.
+Reading netlist ...
+Backslashed names will retain backslash and a trailing blank character.
+Reading verilogBinary netlist '/home/student/Final-Project-EV/cadence/netlist/riscv_core_top.enc.dat/riscv_core_top.v.bin'
+
+*** Memory Usage v#1 (Current mem = 1000.824M, initial mem = 483.863M) ***
+*** End netlist parsing (cpu=0:00:00.0, real=0:00:00.0, mem=1000.8M) ***
+% End Load netlist data ... (date=10/21 18:42:06, total cpu=0:00:00.0, real=0:00:00.0, peak res=951.8M, current mem=951.8M)
+Set top cell to riscv_core_top.
+Hooked 958 DB cells to tlib cells.
+Starting recursive module instantiation check.
+No recursion found.
+Building hierarchical netlist for Cell riscv_core_top ...
+*** Netlist is unique.
+** info: there are 986 modules.
+** info: there are 9607 stdCell insts.
+
+*** Memory Usage v#1 (Current mem = 1053.738M, initial mem = 483.863M) ***
+*info: set bottom ioPad orient R0
+**WARN: (IMPFP-3961):	The techSite 'pad' has no related standard cells in the LEF/OA library. The calculations for this site type cannot be made unless standard cell models of this type exist in the LEF/OA library. Ignore this warning if the SITE is not used by the library. Alternatively, remove the SITE definition for the LEF/OA library to avoid this message.
+Type 'man IMPFP-3961' for more detail.
+**WARN: (IMPFP-3961):	The techSite 'corner' has no related standard cells in the LEF/OA library. The calculations for this site type cannot be made unless standard cell models of this type exist in the LEF/OA library. Ignore this warning if the SITE is not used by the library. Alternatively, remove the SITE definition for the LEF/OA library to avoid this message.
+Type 'man IMPFP-3961' for more detail.
+Horizontal Layer M1 offset = 290 (derived)
+Vertical Layer M2 offset = 290 (derived)
+Start create_tracks
+Generated pitch 0.29 in Metal8 is different from 0.87 defined in technology file in unpreferred direction.
+Loading preference file /home/student/Final-Project-EV/cadence/netlist/riscv_core_top.enc.dat/gui.pref.tcl ...
+##  Process: 90            (User Set)               
+##     Node: (not set)                           
+
+##  Check design process and node:  
+##  Design tech node is not set.
+
+Applying the recommended capacitance filtering threshold values for 90nm process node: total_c_th=0, relative_c_th=1 and coupling_c_th=0.2.
+	These values will be used by all post-route extraction engines, including TQuantus, IQuantus and Quantus QRC extraction.
+	Capacitance filtering mode(-capFilterMode option of the setExtractRCMode) is 'relAndCoup' for all engines.
+	The accuracy mode for postRoute effortLevel low extraction will be set to 'standard'.
+	Default value for EffortLevel(-effortLevel option of the setExtractRCMode) in postRoute extraction mode is 'low'.
+**WARN: (IMPOPT-3602):	The specified path group name reg2reg is not defined.
+Type 'man IMPOPT-3602' for more detail.
+Effort level <high> specified for reg2reg path_group
+**WARN: (IMPOPT-3602):	The specified path group name tdgp_reg2reg_default is not defined.
+Type 'man IMPOPT-3602' for more detail.
+Effort level <high> specified for tdgp_reg2reg_default path_group
+**WARN: (IMPTCM-77):	Option "-drouteStartIteration" for command setNanoRouteMode is obsolete and will be removed in a future release. The obsolete option still works in this release but to avoid this warning and to ensure compatibility with future releases, remove the obsolete option from your script.
+AAE_INFO: switching -siAware from false to true ...
+AAE_INFO: The setting is changed from false to true in setDelayCalMode -SIAware
+Change floorplan default-technical-site to 'gsclib090site'.
+*Info: initialize multi-corner CTS.
+Total number of combinational cells: 317
+Total number of sequential cells: 152
+Total number of tristate cells: 10
+Total number of level shifter cells: 0
+Total number of power gating cells: 0
+Total number of isolation cells: 0
+Total number of power switch cells: 0
+Total number of pulse generator cells: 0
+Total number of always on buffers: 0
+Total number of retention cells: 0
+List of usable buffers: BUFX2 BUFX12 BUFX16 BUFX20 CLKBUFX2 BUFX3 BUFX4 BUFX6 BUFX8 CLKBUFX12 CLKBUFX16 CLKBUFX20 CLKBUFX3 CLKBUFX4 CLKBUFX6 CLKBUFX8
+Total number of usable buffers: 16
+List of unusable buffers:
+Total number of unusable buffers: 0
+List of usable inverters: CLKINVX1 CLKINVX2 CLKINVX12 CLKINVX16 CLKINVX20 CLKINVX3 CLKINVX4 CLKINVX6 CLKINVX8 INVX1 INVX2 INVX12 INVX16 INVX20 INVXL INVX3 INVX4 INVX6 INVX8
+Total number of usable inverters: 19
+List of unusable inverters:
+Total number of unusable inverters: 0
+List of identified usable delay cells: DLY1X1 DLY1X4 DLY2X1 DLY2X4 DLY3X1 DLY3X4 DLY4X1 DLY4X4
+Total number of identified usable delay cells: 8
+List of identified unusable delay cells:
+Total number of identified unusable delay cells: 0
+Reading floorplan file - /home/student/Final-Project-EV/cadence/netlist/riscv_core_top.enc.dat/riscv_core_top.fp.gz (mem = 1308.8M).
+% Begin Load floorplan data ... (date=10/21 18:42:06, mem=1244.0M)
+*info: reset 9943 existing net BottomPreferredLayer and AvoidDetour
+Deleting old partition specification.
+Set FPlanBox to (0 0 640900 639740)
+**WARN: (IMPFP-3961):	The techSite 'pad' has no related standard cells in the LEF/OA library. The calculations for this site type cannot be made unless standard cell models of this type exist in the LEF/OA library. Ignore this warning if the SITE is not used by the library. Alternatively, remove the SITE definition for the LEF/OA library to avoid this message.
+Type 'man IMPFP-3961' for more detail.
+**WARN: (IMPFP-3961):	The techSite 'corner' has no related standard cells in the LEF/OA library. The calculations for this site type cannot be made unless standard cell models of this type exist in the LEF/OA library. Ignore this warning if the SITE is not used by the library. Alternatively, remove the SITE definition for the LEF/OA library to avoid this message.
+Type 'man IMPFP-3961' for more detail.
+Horizontal Layer M1 offset = 290 (derived)
+Vertical Layer M2 offset = 290 (derived)
+Start create_tracks
+Generated pitch 0.29 in Metal8 is different from 0.87 defined in technology file in unpreferred direction.
+ ... processed partition successfully.
+Reading binary special route file /home/student/Final-Project-EV/cadence/netlist/riscv_core_top.enc.dat/riscv_core_top.fp.spr.gz (Created by Innovus v21.15-s110_1 on Wed Oct 21 18:11:35 2026, version: 1)
+Convert 0 swires and 0 svias from compressed groups
+58 swires and 262 svias were compressed
+72 swires and 410 svias were decompressed from small or sparse groups
+Ending "Read special route file" (total cpu=0:00:00.0, real=0:00:00.0, peak res=1244.0M, current mem=1244.0M)
+There are 10 nets with weight being set
+There are 10 nets with bottomPreferredRoutingLayer being set
+There are 10 nets with avoidDetour being set
+Extracting standard cell pins and blockage ...... 
+Pin and blockage extraction finished
+% End Load floorplan data ... (date=10/21 18:42:06, total cpu=0:00:00.0, real=0:00:00.0, peak res=1247.0M, current mem=1247.0M)
+Reading congestion map file /home/student/Final-Project-EV/cadence/netlist/riscv_core_top.enc.dat/riscv_core_top.route.congmap.gz ...
+% Begin Load SymbolTable ... (date=10/21 18:42:06, mem=1247.0M)
+Suppress "**WARN ..." messages.
+Un-suppress "**WARN ..." messages.
+% End Load SymbolTable ... (date=10/21 18:42:06, total cpu=0:00:00.0, real=0:00:00.0, peak res=1249.7M, current mem=1249.6M)
+Loading place ...
+% Begin Load placement data ... (date=10/21 18:42:06, mem=1249.6M)
+Reading placement file - /home/student/Final-Project-EV/cadence/netlist/riscv_core_top.enc.dat/riscv_core_top.place.gz.
+** Reading stdCellPlacement_binary (Created by Innovus v21.15-s110_1 on Wed Oct 21 18:11:35 2026, version# 2) ...
+Read Views for adaptive view pruning ...
+Read 0 views from Binary DB for adaptive view pruning
+*** Checked 4 GNC rules.
+*** applyConnectGlobalNets disabled.
+*** Completed restorePlace (cpu=0:00:00.0 real=0:00:00.0 mem=1313.9M) ***
+Total net length = 2.182e+05 (1.201e+05 9.808e+04) (ext = 1.931e+04)
+% End Load placement data ... (date=10/21 18:42:06, total cpu=0:00:00.0, real=0:00:00.0, peak res=1256.0M, current mem=1253.9M)
+Reading PG file /home/student/Final-Project-EV/cadence/netlist/riscv_core_top.enc.dat/riscv_core_top.pg.gz, version#2, (Created by Innovus v21.15-s110_1 on       Wed Oct 21 18:11:35 2026)
+*** Completed restorePGFile (cpu=0:00:00.0 real=0:00:00.0 mem=1310.9M) ***
+% Begin Load routing data ... (date=10/21 18:42:06, mem=1254.8M)
+Reading routing file - /home/student/Final-Project-EV/cadence/netlist/riscv_core_top.enc.dat/riscv_core_top.route.gz.
+Reading Innovus routing data (Created by Innovus v21.15-s110_1 on Wed Oct 21 18:11:35 2026 Format: 20.1) ...
+*** Total 9682 nets are successfully restored.
+*** Completed restoreRoute (cpu=0:00:00.0 real=0:00:01.0 mem=1324.9M) ***
+% End Load routing data ... (date=10/21 18:42:07, total cpu=0:00:00.0, real=0:00:01.0, peak res=1269.9M, current mem=1269.0M)
+TAT_INFO: restoreCongMap REAL = 0 : CPU = 0 : MEM = 0.
+Reading property file /home/student/Final-Project-EV/cadence/netlist/riscv_core_top.enc.dat/riscv_core_top.prop
+*** Completed restoreProperty (cpu=0:00:00.0 real=0:00:00.0 mem=1328.9M) ***
+Reading dirtyarea snapshot file /home/student/Final-Project-EV/cadence/netlist/riscv_core_top.enc.dat/riscv_core_top.db.da.gz (Create by Innovus v21.15-s110_1 on Wed Oct 21 18:11:35 2026, version: 4).
+Extraction setup Started 
+Initializing multi-corner RC extraction with 2 active RC Corners ...
+Reading Capacitance Table File /home/student/Final-Project-EV/cadence/netlist/riscv_core_top.enc.dat/libs/mmmc/gpdk090.lef.extended.CapTbl ...
+Cap table was created using Encounter 05.20-s112_1.
+Process name: gpdk090_9l.
+Reading Capacitance Table File /home/student/Final-Project-EV/cadence/netlist/riscv_core_top.enc.dat/libs/mmmc/gpdk090.lef.extended.CapTbl ...
+Cap table was created using Encounter 05.20-s112_1.
+Process name: gpdk090_9l.
+Importing multi-corner RC tables ... 
+Summary of Active RC-Corners : 
+ 
+ Analysis View: setup_view
+    RC-Corner Name        : rc_slow
+    RC-Corner Index       : 0
+    RC-Corner Temperature : 125 Celsius
+    RC-Corner Cap Table   : '/home/student/Final-Project-EV/cadence/netlist/riscv_core_top.enc.dat/libs/mmmc/gpdk090.lef.extended.CapTbl'
+    RC-Corner PreRoute Res Factor         : 1
+    RC-Corner PreRoute Cap Factor         : 1
+    RC-Corner PostRoute Res Factor        : 1 {1 1 1}
+    RC-Corner PostRoute Cap Factor        : 1 {1 1 1}
+    RC-Corner PostRoute XCap Factor       : 1 {1 1 1}
+    RC-Corner PreRoute Clock Res Factor   : 1	[Derived from postRoute_res (effortLevel low)]
+    RC-Corner PreRoute Clock Cap Factor   : 1	[Derived from postRoute_cap (effortLevel low)]
+    RC-Corner PostRoute Clock Cap Factor  : 1 {1 1 1} 	[Derived from postRoute_cap (effortLevel low)]
+    RC-Corner PostRoute Clock Res Factor  : 1 {1 1 1} 	[Derived from postRoute_res (effortLevel low)]
+    RC-Corner PostRoute Clock coupling capacitance Factor : 1 {1 1 1} 
+ 
+ Analysis View: hold_view
+    RC-Corner Name        : rc_fast
+    RC-Corner Index       : 1
+    RC-Corner Temperature : 0 Celsius
+    RC-Corner Cap Table   : '/home/student/Final-Project-EV/cadence/netlist/riscv_core_top.enc.dat/libs/mmmc/gpdk090.lef.extended.CapTbl'
+    RC-Corner PreRoute Res Factor         : 1
+    RC-Corner PreRoute Cap Factor         : 1
+    RC-Corner PostRoute Res Factor        : 1 {1 1 1}
+    RC-Corner PostRoute Cap Factor        : 1 {1 1 1}
+    RC-Corner PostRoute XCap Factor       : 1 {1 1 1}
+    RC-Corner PreRoute Clock Res Factor   : 1	[Derived from postRoute_res (effortLevel low)]
+    RC-Corner PreRoute Clock Cap Factor   : 1	[Derived from postRoute_cap (effortLevel low)]
+    RC-Corner PostRoute Clock Cap Factor  : 1 {1 1 1} 	[Derived from postRoute_cap (effortLevel low)]
+    RC-Corner PostRoute Clock Res Factor  : 1 {1 1 1} 	[Derived from postRoute_res (effortLevel low)]
+    RC-Corner PostRoute Clock coupling capacitance Factor : 1 {1 1 1} 
+Initializing multi-corner capacitance tables ... 
+Initializing multi-corner resistance tables ...
+Start generating vias ..
+#Skip building auto via since it is not turned on.
+Extracting standard cell pins and blockage ...... 
+Pin and blockage extraction finished
+Via generation completed.
+% Begin Load power constraints ... (date=10/21 18:42:07, mem=1295.9M)
+'set_default_switching_activity' finished successfully.
+% End Load power constraints ... (date=10/21 18:42:07, total cpu=0:00:00.0, real=0:00:00.0, peak res=1303.0M, current mem=1303.0M)
+**WARN: (IMPCTE-290):	Could not locate cell BUFX2 in any library for view hold_view.
+Type 'man IMPCTE-290' for more detail.
+**WARN: (IMPCTE-290):	Could not locate cell BUFX2 in any library for view hold_view.
+Type 'man IMPCTE-290' for more detail.
+**WARN: (IMPCTE-290):	Could not locate cell BUFX2 in any library for view hold_view.
+Type 'man IMPCTE-290' for more detail.
+**WARN: (IMPCTE-290):	Could not locate cell BUFX2 in any library for view hold_view.
+Type 'man IMPCTE-290' for more detail.
+**WARN: (IMPCTE-290):	Could not locate cell BUFX2 in any library for view hold_view.
+Type 'man IMPCTE-290' for more detail.
+**WARN: (IMPCTE-290):	Could not locate cell BUFX2 in any library for view hold_view.
+Type 'man IMPCTE-290' for more detail.
+**WARN: (IMPCTE-290):	Could not locate cell BUFX2 in any library for view hold_view.
+Type 'man IMPCTE-290' for more detail.
+**WARN: (IMPCTE-290):	Could not locate cell BUFX2 in any library for view hold_view.
+Type 'man IMPCTE-290' for more detail.
+**WARN: (IMPCTE-290):	Could not locate cell BUFX2 in any library for view hold_view.
+Type 'man IMPCTE-290' for more detail.
+**WARN: (IMPCTE-290):	Could not locate cell BUFX2 in any library for view hold_view.
+Type 'man IMPCTE-290' for more detail.
+**WARN: (IMPCTE-290):	Could not locate cell BUFX2 in any library for view hold_view.
+Type 'man IMPCTE-290' for more detail.
+**WARN: (IMPCTE-290):	Could not locate cell BUFX2 in any library for view hold_view.
+Type 'man IMPCTE-290' for more detail.
+**WARN: (IMPCTE-290):	Could not locate cell BUFX2 in any library for view hold_view.
+Type 'man IMPCTE-290' for more detail.
+**WARN: (IMPCTE-290):	Could not locate cell BUFX2 in any library for view hold_view.
+Type 'man IMPCTE-290' for more detail.
+**WARN: (IMPCTE-290):	Could not locate cell BUFX2 in any library for view hold_view.
+Type 'man IMPCTE-290' for more detail.
+**WARN: (IMPCTE-290):	Could not locate cell BUFX2 in any library for view hold_view.
+Type 'man IMPCTE-290' for more detail.
+**WARN: (IMPCTE-290):	Could not locate cell BUFX2 in any library for view hold_view.
+Type 'man IMPCTE-290' for more detail.
+**WARN: (IMPCTE-290):	Could not locate cell BUFX2 in any library for view hold_view.
+Type 'man IMPCTE-290' for more detail.
+**WARN: (IMPCTE-290):	Could not locate cell BUFX2 in any library for view hold_view.
+Type 'man IMPCTE-290' for more detail.
+**WARN: (IMPCTE-290):	Could not locate cell BUFX2 in any library for view hold_view.
+Type 'man IMPCTE-290' for more detail.
+**WARN: (EMS-27):	Message (IMPCTE-290) has exceeded the current message display limit of 20.
+To increase the message display limit, refer to the product command reference manual.
+slow_corner fast_corner
+% Begin load AAE data ... (date=10/21 18:42:07, mem=1349.5M)
+AAE DB initialization (MEM=1442.09 CPU=0:00:00.0 REAL=0:00:00.0) 
+% End load AAE data ... (date=10/21 18:42:08, total cpu=0:00:00.4, real=0:00:01.0, peak res=1357.2M, current mem=1357.2M)
+Restoring CCOpt config...
+  Extracting original clock gating for clk...
+    clock_tree clk contains 865 sinks and 0 clock gates.
+  Extracting original clock gating for clk done.
+  The skew group clk/func_mode was created. It contains 865 sinks and 1 sources.
+  The skew group clk/func_mode was created. It contains 865 sinks and 1 sources.
+Restoring CCOpt config done.
+Total number of combinational cells: 317
+Total number of sequential cells: 152
+Total number of tristate cells: 10
+Total number of level shifter cells: 0
+Total number of power gating cells: 0
+Total number of isolation cells: 0
+Total number of power switch cells: 0
+Total number of pulse generator cells: 0
+Total number of always on buffers: 0
+Total number of retention cells: 0
+List of usable buffers: BUFX2 BUFX12 BUFX16 BUFX20 CLKBUFX2 BUFX3 BUFX4 BUFX6 BUFX8 CLKBUFX12 CLKBUFX16 CLKBUFX20 CLKBUFX3 CLKBUFX4 CLKBUFX6 CLKBUFX8
+Total number of usable buffers: 16
+List of unusable buffers:
+Total number of unusable buffers: 0
+List of usable inverters: CLKINVX1 CLKINVX2 CLKINVX12 CLKINVX16 CLKINVX20 CLKINVX3 CLKINVX4 CLKINVX6 CLKINVX8 INVX1 INVX2 INVX12 INVX16 INVX20 INVXL INVX3 INVX4 INVX6 INVX8
+Total number of usable inverters: 19
+List of unusable inverters:
+Total number of unusable inverters: 0
+List of identified usable delay cells: DLY1X1 DLY1X4 DLY2X1 DLY2X4 DLY3X1 DLY3X4 DLY4X1 DLY4X4
+Total number of identified usable delay cells: 8
+List of identified unusable delay cells:
+Total number of identified unusable delay cells: 0
+**WARN: (IMPCTE-107):	The following globals have been obsoleted since version . They will be removed in the next release. 
+timing_enable_separate_device_slew_effect_sensitivities
+#% End load design ... (date=10/21 18:42:08, total cpu=0:00:02.2, real=0:00:03.0, peak res=1380.3M, current mem=1364.5M)
+
+*** Summary of all messages that are not suppressed in this session:
+Severity  ID               Count  Summary                                  
+WARNING   IMPLF-200            1  Pin '%s' in macro '%s' has no ANTENNAGAT...
+WARNING   IMPLF-105            2  The layer '%s' specified in SAMENET spac...
+WARNING   IMPFP-3961           4  The techSite '%s' has no related standar...
+WARNING   IMPVL-159          958  Pin '%s' of cell '%s' is defined in LEF ...
+WARNING   IMPOPT-3602          2  The specified path group name %s is not ...
+WARNING   IMPCTE-290        1056  Could not locate cell %s in any library ...
+WARNING   IMPCTE-107           1  The following globals have been obsolete...
+WARNING   IMPTCM-77            1  Option "%s" for command %s is obsolete a...
+*** Message Summary: 2025 warning(s), 0 error(s)
+
+<CMD> spefIn -rc_corner rc_slow /home/student/Final-Project-EV/cadence/netlist/riscv_core_top.spef
+<CMD> set_power_analysis_mode -reset
+<CMD> set_power_analysis_mode -method static
+<CMD> read_activity_file -format VCD -scope tb_compliance_run/dut -start 0ps -end 24335000ps /home/student/Final-Project-EV/cadence/reports/workload.vcd
+#################################################################################
+# Design Stage: PostRoute
+# Design Name: riscv_core_top
+# Design Mode: 90nm
+# Analysis Mode: MMMC OCV 
+# Parasitics Mode: No SPEF/RCDB 
+# Signoff Settings: SI On 
+#################################################################################
+#################################################################################
+# Design Stage: PostRoute
+# Design Name: riscv_core_top
+# Design Mode: 90nm
+# Analysis Mode: MMMC OCV 
+# Parasitics Mode: No SPEF/RCDB 
+# Signoff Settings: SI On 
+#################################################################################
+#################################################################################
+# Design Stage: PostRoute
+# Design Name: riscv_core_top
+# Design Mode: 90nm
+# Analysis Mode: MMMC OCV 
+# Parasitics Mode: No SPEF/RCDB 
+# Signoff Settings: SI On 
+#################################################################################
+#################################################################################
+# Design Stage: PostRoute
+# Design Name: riscv_core_top
+# Design Mode: 90nm
+# Analysis Mode: MMMC OCV 
+# Parasitics Mode: No SPEF/RCDB 
+# Signoff Settings: SI On 
+#################################################################################
+clk(100MHz) Parsing VCD file
+/home/student/Final-Project-EV/cadence/reports/workload.vcd
+
+Starting Reading VCD variables
+2026-Oct-21 18:42:08 (2026-Oct-21 13:12:08 GMT)
+2026-Oct-21 18:42:08 (2026-Oct-21 13:12:08 GMT): 10%
+2026-Oct-21 18:42:08 (2026-Oct-21 13:12:08 GMT): 20%
+2026-Oct-21 18:42:08 (2026-Oct-21 13:12:08 GMT): 30%
+2026-Oct-21 18:42:08 (2026-Oct-21 13:12:08 GMT): 40%
+2026-Oct-21 18:42:08 (2026-Oct-21 13:12:08 GMT): 50%
+2026-Oct-21 18:42:08 (2026-Oct-21 13:12:08 GMT): 60%
+2026-Oct-21 18:42:08 (2026-Oct-21 13:12:08 GMT): 70%
+2026-Oct-21 18:42:08 (2026-Oct-21 13:12:08 GMT): 80%
+2026-Oct-21 18:42:08 (2026-Oct-21 13:12:08 GMT): 90%
+
+Finished Reading VCD variables
+2026-Oct-21 18:42:09 (2026-Oct-21 13:12:09 GMT)
+
+Starting Reading VCD toggles
+2026-Oct-21 18:42:09 (2026-Oct-21 13:12:09 GMT)
+2026-Oct-21 18:42:09 (2026-Oct-21 13:12:09 GMT): 10%
+2026-Oct-21 18:42:09 (2026-Oct-21 13:12:09 GMT): 20%
+2026-Oct-21 18:42:09 (2026-Oct-21 13:12:09 GMT): 30%
+2026-Oct-21 18:42:09 (2026-Oct-21 13:12:09 GMT): 40%
+2026-Oct-21 18:42:09 (2026-Oct-21 13:12:09 GMT): 50%
+2026-Oct-21 18:42:09 (2026-Oct-21 13:12:09 GMT): 60%
+2026-Oct-21 18:42:09 (2026-Oct-21 13:12:09 GMT): 70%
+2026-Oct-21 18:42:09 (2026-Oct-21 13:12:09 GMT): 80%
+2026-Oct-21 18:42:09 (2026-Oct-21 13:12:09 GMT): 90%
+   
+The vcd command required:
+   		1.29 user, 0.08 system, and 1.37 real seconds
+
+   Total number of value changes: 5099492.
+
+   Total simulation time: 2.4335e-05s.
+
+
+Finished Reading VCD toggles
+2026-Oct-21 18:42:10 (2026-Oct-21 13:12:10 GMT)
+   With this vcd command,  5089988 value changes and 2.4335e-05 second
+simulation time were counted for power consumption calculation.
+
+  Filename (activity)                    :
+/home/student/Final-Project-EV/cadence/reports/workload.vcd
+  Names in file that matched to design   : 47473/65305
+  Annotation coverage for this file
+   (Unique nets matched/Total nets)       : 9680/9680 = 100%
+
+  17832 nets were found in the VCD file(s) but were not in
+  the design.  These nets are not reported because
+  'set_power_analysis_mode' -report_missing_nets' is set to false
+(default).
+
+  Total annotation coverage for all files of type VCD: 9680/9680 = 100%
+  Percent of VCD annotated nets with zero toggles: 1/9680 = 0.0103306%
+
+'read_activity_file' finished successfully.
+<CMD> report_power -outfile /home/student/Final-Project-EV/cadence/reports/innovus_power_vectored.rpt -hierarchy all
+env CDS_WORKAREA is set to /home/student/Final-Project-EV
+
+Power Net Detected:
+        Voltage	    Name
+             0V	    VSS
+           0.9V	    VDD
+Using Power View: setup_view.
+AAE_INFO: opIsDesignInPostRouteState() is 1
+AAE_INFO: resetNetProps viewIdx 0 
+Starting SI iteration 1 using Infinite Timing Windows
+#################################################################################
+# Design Stage: PostRoute
+# Design Name: riscv_core_top
+# Design Mode: 90nm
+# Analysis Mode: MMMC OCV 
+# Parasitics Mode: No SPEF/RCDB 
+# Signoff Settings: SI On 
+#################################################################################
+Extraction called for design 'riscv_core_top' of instances=17162 and nets=9943 using extraction engine 'postRoute' at effort level 'low' .
+PostRoute (effortLevel low) RC Extraction called for design riscv_core_top.
+RC Extraction called in multi-corner(2) mode.
+Process corner(s) are loaded.
+ Corner: rc_slow
+ Corner: rc_fast
+extractDetailRC Option : -outfile /tmp/innovus_temp_270738_sbinternetlab65_student_6zIZc8/riscv_core_top_270738_47QpHg.rcdb.d  -extended
+RC Mode: PostRoute -effortLevel low [Extended CapTable, RC Table Resistances]
+      RC Corner Indexes            0       1   
+Capacitance Scaling Factor   : 1.00000 1.00000 
+Coupling Cap. Scaling Factor : 1.00000 1.00000 
+Resistance Scaling Factor    : 1.00000 1.00000 
+Clock Cap. Scaling Factor    : 1.00000 1.00000 
+Clock Res. Scaling Factor    : 1.00000 1.00000 
+Shrink Factor                : 1.00000
+Initializing multi-corner capacitance tables ... 
+Initializing multi-corner resistance tables ...
+Checking LVS Completed (CPU Time= 0:00:00.0  MEM= 1526.9M)
+Extracted 10.0019% (CPU Time= 0:00:00.1  MEM= 1582.4M)
+Extracted 20.0019% (CPU Time= 0:00:00.2  MEM= 1585.4M)
+Extracted 30.0019% (CPU Time= 0:00:00.2  MEM= 1587.4M)
+Extracted 40.0019% (CPU Time= 0:00:00.2  MEM= 1589.4M)
+Extracted 50.0019% (CPU Time= 0:00:00.2  MEM= 1591.4M)
+Extracted 60.0019% (CPU Time= 0:00:00.3  MEM= 1592.4M)
+Extracted 70.0019% (CPU Time= 0:00:00.3  MEM= 1593.4M)
+Extracted 80.0019% (CPU Time= 0:00:00.3  MEM= 1595.4M)
+Extracted 90.0019% (CPU Time= 0:00:00.4  MEM= 1596.4M)
+Extracted 100% (CPU Time= 0:00:00.5  MEM= 1601.4M)
+Number of Extracted Resistors     : 192022
+Number of Extracted Ground Cap.   : 189707
+Number of Extracted Coupling Cap. : 337716
+Filtering XCap in 'relativeAndCoupling' mode using values coupling_c_threshold=0.2fF, relative_c_threshold=1, and total_c_threshold=0fF.
+ Corner: rc_slow
+ Corner: rc_fast
+Checking LVS Completed (CPU Time= 0:00:00.0  MEM= 1585.4M)
+PostRoute (effortLevel low) RC Extraction DONE (CPU Time: 0:00:00.8  Real Time: 0:00:01.0  MEM: 1589.434M)
+AAE_INFO: 1 threads acquired from CTE.
+Start delay calculation (fullDC) (1 T). (MEM=1589.43)
+Initializing multi-corner capacitance tables ... 
+Initializing multi-corner resistance tables ...
+Total number of fetched objects 9680
+AAE_INFO-618: Total number of nets in the design is 9943,  99.2 percent of the nets selected for SI analysis
+End delay calculation. (MEM=1711.59 CPU=0:00:01.0 REAL=0:00:01.0)
+End delay calculation (fullDC). (MEM=1711.59 CPU=0:00:01.2 REAL=0:00:01.0)
+Loading CTE timing window with TwFlowType 0...(CPU = 0:00:00.0, REAL = 0:00:00.0, MEM = 1711.6M)
+Add other clocks and setupCteToAAEClockMapping during iter 1
+Loading CTE timing window is completed (CPU = 0:00:00.0, REAL = 0:00:00.0, MEM = 1711.6M)
+Starting SI iteration 2
+Start delay calculation (fullDC) (1 T). (MEM=1673.71)
+Glitch Analysis: View setup_view -- Total Number of Nets Skipped = 14. 
+Glitch Analysis: View setup_view -- Total Number of Nets Analyzed = 9680. 
+Total number of fetched objects 9680
+AAE_INFO-618: Total number of nets in the design is 9943,  2.9 percent of the nets selected for SI analysis
+End delay calculation. (MEM=1720.41 CPU=0:00:00.1 REAL=0:00:00.0)
+End delay calculation (fullDC). (MEM=1720.41 CPU=0:00:00.2 REAL=0:00:00.0)
+
+Begin Power Analysis
+
+             0V	    VSS
+           0.9V	    VDD
+Begin Processing Timing Library for Power Calculation
+
+Begin Processing Timing Library for Power Calculation
+
+
+
+Begin Processing Power Net/Grid for Power Calculation
+
+Ended Processing Power Net/Grid for Power Calculation: (cpu=0:00:00, real=0:00:00, mem(process/total/peak)=1562.62MB/3064.68MB/1602.13MB)
+
+Begin Processing Timing Window Data for Power Calculation
+
+Ended Processing Timing Window Data for Power Calculation: (cpu=0:00:00, real=0:00:00, mem(process/total/peak)=1562.62MB/3064.68MB/1602.13MB)
+
+** WARN:  (VOLTUS_POWR-1784): The SDC clock frequency 100MHz is being overwritten with the VCD clock frequency 99.9795MHz for the clock 'clk' associated with the net
+'clk' from the TCF file. If the SDC clock frequency is required for static power calculation, use the command
+'set_switching_activity -clock <clock name> -scale_factor <num>' to scale frequency of this clock.
+
+Begin Processing User Attributes
+
+Ended Processing User Attributes: (cpu=0:00:00, real=0:00:00, mem(process/total/peak)=1562.89MB/3064.68MB/1602.13MB)
+
+Begin Processing Signal Activity
+
+
+Starting Levelizing
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT)
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT): 10%
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT): 20%
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT): 30%
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT): 40%
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT): 50%
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT): 60%
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT): 70%
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT): 80%
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT): 90%
+
+Finished Levelizing
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT)
+
+Starting Activity Propagation
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT)
+
+Finished Activity Propagation
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT)
+
+Activity annotation summary:
+        Primary Inputs : 67/67 = 100%
+          Flop outputs : 865/865 = 100%
+  Memory/Macro outputs : 0/0 = 0%
+      Tristate outputs : 0/0 = 0%
+            Total Nets : 9680/9680 = 100%
+
+Ended Processing Signal Activity: (cpu=0:00:00, real=0:00:00, mem(process/total/peak)=1563.70MB/3064.68MB/1602.13MB)
+
+Begin Power Computation
+
+      ----------------------------------------------------------
+      # of cell(s) missing both power/leakage table: 0
+      # of cell(s) missing power table: 0
+      # of cell(s) missing leakage table: 0
+      ----------------------------------------------------------
+
+
+
+Starting Calculating power
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT)
+ ... Calculating switching power
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT): 10%
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT): 20%
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT): 30%
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT): 40%
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT): 50%
+ ... Calculating internal and leakage power
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT): 60%
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT): 70%
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT): 80%
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT): 90%
+
+Finished Calculating power
+2026-Oct-21 18:42:13 (2026-Oct-21 13:12:13 GMT)
+      # of MSMV cell(s) missing power_level: 0
+Ended Power Computation: (cpu=0:00:00, real=0:00:00, mem(process/total/peak)=1564.84MB/3072.68MB/1602.13MB)
+
+Begin Processing User Attributes
+
+Ended Processing User Attributes: (cpu=0:00:00, real=0:00:00, mem(process/total/peak)=1564.84MB/3072.68MB/1602.13MB)
+
+Ended Power Analysis: (cpu=0:00:00, real=0:00:00, mem(process/total/peak)=1564.84MB/3072.68MB/1602.13MB)
+
+Begin Boundary Leakage Calculation
+Ended Boundary Leakage Calculation: (cpu=0:00:00, real=0:00:00,
+mem(process/total/peak)=1564.84MB/3072.68MB/1602.13MB)
+Begin Static Power Report Generation
+*
+
+
+
+Total Power
+-----------------------------------------------------------------------------------------
+Total Internal Power:        2.99212189 	   68.0173%
+Total Switching Power:       1.07973586 	   24.5447%
+Total Leakage Power:         0.32720249 	    7.4380%
+Total Power:                 4.39906024
+-----------------------------------------------------------------------------------------
+** INFO:  (VOLTUS_POWR-3465): There are 0 decaps and 0 fillers in the design
+
+Ended Static Power Report Generation: (cpu=0:00:00, real=0:00:00,
+mem(process/total/peak)=1568.59MB/3072.68MB/1602.13MB)
+
+
+Output file is
+/home/student/Final-Project-EV/cadence/reports/innovus_power_vectored.rpt.
+<CMD> set_power_analysis_mode -reset
+<CMD> set_power_analysis_mode -method static
+<CMD> read_activity_file -reset
+<CMD> set_default_switching_activity -input_activity 0.2 -seq_activity 0.2
+'set_default_switching_activity' finished successfully.
+<CMD> report_power -outfile /home/student/Final-Project-EV/cadence/reports/innovus_power_vectorless.rpt -hierarchy all
+env CDS_WORKAREA is set to /home/student/Final-Project-EV
+Using Power View: setup_view.
+
+Begin Power Analysis
+
+             0V	    VSS
+           0.9V	    VDD
+Begin Processing Timing Library for Power Calculation
+
+Begin Processing Timing Library for Power Calculation
+
+
+
+Begin Processing Power Net/Grid for Power Calculation
+
+Ended Processing Power Net/Grid for Power Calculation: (cpu=0:00:00, real=0:00:00, mem(process/total/peak)=1568.59MB/3072.68MB/1602.13MB)
+
+Begin Processing Timing Window Data for Power Calculation
+
+** WARN:  (VOLTUS_POWR-1608):   Found conflicting clock definitions for the same clock 'clk' in the SDC file.
+  Retaining the last specified frequency of 100MHz.
+
+Ended Processing Timing Window Data for Power Calculation: (cpu=0:00:00, real=0:00:00, mem(process/total/peak)=1568.59MB/3072.68MB/1602.13MB)
+
+Begin Processing User Attributes
+
+Ended Processing User Attributes: (cpu=0:00:00, real=0:00:00, mem(process/total/peak)=1568.59MB/3072.68MB/1602.13MB)
+
+Begin Processing Signal Activity
+
+
+Starting Activity Propagation
+2026-Oct-21 18:42:14 (2026-Oct-21 13:12:14 GMT)
+2026-Oct-21 18:42:14 (2026-Oct-21 13:12:14 GMT): 10%
+2026-Oct-21 18:42:14 (2026-Oct-21 13:12:14 GMT): 20%
+2026-Oct-21 18:42:14 (2026-Oct-21 13:12:14 GMT): 30%
+
+Finished Activity Propagation
+2026-Oct-21 18:42:14 (2026-Oct-21 13:12:14 GMT)
+Ended Processing Signal Activity: (cpu=0:00:00, real=0:00:00, mem(process/total/peak)=1568.59MB/3072.68MB/1602.13MB)
+
+Begin Power Computation
+
+      ----------------------------------------------------------
+      # of cell(s) missing both power/leakage table: 0
+      # of cell(s) missing power table: 0
+      # of cell(s) missing leakage table: 0
+      ----------------------------------------------------------
+
+
+
+Starting Calculating power
+2026-Oct-21 18:42:14 (2026-Oct-21 13:12:14 GMT)
+ ... Calculating switching power
+2026-Oct-21 18:42:14 (2026-Oct-21 13:12:14 GMT): 10%
+2026-Oct-21 18:42:14 (2026-Oct-21 13:12:14 GMT): 20%
+2026-Oct-21 18:42:14 (2026-Oct-21 13:12:14 GMT): 30%
+2026-Oct-21 18:42:14 (2026-Oct-21 13:12:14 GMT): 40%
+2026-Oct-21 18:42:14 (2026-Oct-21 13:12:14 GMT): 50%
+ ... Calculating internal and leakage power
+2026-Oct-21 18:42:14 (2026-Oct-21 13:12:14 GMT): 60%
+2026-Oct-21 18:42:14 (2026-Oct-21 13:12:14 GMT): 70%
+2026-Oct-21 18:42:14 (2026-Oct-21 13:12:14 GMT): 80%
+2026-Oct-21 18:42:14 (2026-Oct-21 13:12:14 GMT): 90%
+
+Finished Calculating power
+2026-Oct-21 18:42:14 (2026-Oct-21 13:12:14 GMT)
+      # of MSMV cell(s) missing power_level: 0
+Ended Power Computation: (cpu=0:00:00, real=0:00:00, mem(process/total/peak)=1568.59MB/3072.68MB/1602.13MB)
+
+Begin Processing User Attributes
+
+Ended Processing User Attributes: (cpu=0:00:00, real=0:00:00, mem(process/total/peak)=1568.59MB/3072.68MB/1602.13MB)
+
+Ended Power Analysis: (cpu=0:00:00, real=0:00:00, mem(process/total/peak)=1568.59MB/3072.68MB/1602.13MB)
+
+Begin Boundary Leakage Calculation
+Ended Boundary Leakage Calculation: (cpu=0:00:00, real=0:00:00,
+mem(process/total/peak)=1568.59MB/3072.68MB/1602.13MB)
+Begin Static Power Report Generation
+*
+
+
+
+Total Power
+-----------------------------------------------------------------------------------------
+Total Internal Power:        5.21776591 	   62.6525%
+Total Switching Power:       2.78314217 	   33.4187%
+Total Leakage Power:         0.32720249 	    3.9289%
+Total Power:                 8.32811057
+-----------------------------------------------------------------------------------------
+** INFO:  (VOLTUS_POWR-3465): There are 0 decaps and 0 fillers in the design
+
+Ended Static Power Report Generation: (cpu=0:00:00, real=0:00:00,
+mem(process/total/peak)=1568.59MB/3072.68MB/1602.13MB)
+
+
+Output file is
+/home/student/Final-Project-EV/cadence/reports/innovus_power_vectorless.rpt.
+
+*** Memory Usage v#1 (Current mem = 1694.410M, initial mem = 483.863M) ***
+*** Message Summary: 2025 warning(s), 0 error(s)
+
+--- Ending "Innovus" (totcpu=0:00:17.4, real=0:00:19.0, mem=1694.4M) ---

@@ -82,36 +82,49 @@ Final-Project-EV/
 │
 ├── cadence/                              # Complete Cadence ASIC Flow Package
 │   ├── constraints/
-│   │   └── riscv_core_top.sdc            # 100 MHz timing constraints, clock uncertainty, false paths
+│   │   └── riscv_core_top.sdc            # 100 MHz timing constraints, clock uncertainty, I/O delays
 │   ├── scripts/
-│   │   ├── run_flow.sh                   # 1-Command master bash runner (Synthesis + P&R)
-│   │   ├── run_flow.csh                  # C-shell runner for university /home/install/cshrc environments
-│   │   ├── run_genus_syn.tcl             # Automated Common UI Genus synthesis script
-│   │   ├── run_innovus_pnr.tcl           # Innovus P&R automation script with explicit I/O pin placement
-│   │   ├── run_pnr.csh                   # Standalone C-shell Innovus P&R runner (batch or GUI)
+│   │   ├── run_flow.sh                   # Master bash runner (Synthesis + P&R)
+│   │   ├── run_flow.csh                  # Master C-shell runner for /home/install/cshrc environments
+│   │   ├── run_genus_syn.tcl             # Genus synthesis script with redundancy preservation
+│   │   ├── run_innovus_pnr.tcl           # Innovus P&R automation script (Floorplan, CTS, NanoRoute, Verification)
+│   │   ├── run_pnr.csh                   # Standalone C-shell Innovus P&R runner
+│   │   ├── run_power_analysis.tcl        # Voltus/Innovus power analysis (Vectorless + Vectored SPEF)
+│   │   ├── run_gls.csh                   # Post-route Gate-Level Simulation runner with SDF timing
+│   │   ├── run_gls_gui.csh               # Launch SimVision for interactive post-route GLS
+│   │   ├── run_sim_gui.csh               # Launch SimVision for interactive RTL simulation
+│   │   ├── check_redundancy.py           # Automated gate validator for discrete redundancy preservation
+│   │   ├── format_area_report.py         # Script generating hierarchical area breakdown tables
 │   │   ├── view_layout.csh               # 1-Click GUI script to restore and inspect routed layout
-│   │   ├── run_sim_gui.csh               # Launch Cadence SimVision for interactive RTL simulation
-│   │   ├── run_gls_gui.csh               # Launch SimVision for post-route Gate-Level Simulation
-│   │   └── viewDefinition.tcl            # MMMC multi-corner timing view configuration
+│   │   └── viewDefinition.tcl            # MMMC multi-corner timing configuration (slow setup, fast hold)
 │   ├── netlist/                          # Generated Netlists & Physical Design Databases
 │   │   ├── riscv_core_top_syn.v          # Synthesized gate-level structural Verilog netlist
 │   │   ├── riscv_core_top_syn.sdc        # Synthesized timing constraints for layout
 │   │   ├── riscv_core_top_pr.v           # Post-route physical gate-level netlist
-│   │   ├── riscv_core_top_routed.def     # Post-route complete physical layout DEF file (229 placed pins)
-│   │   ├── riscv_core_top.gds            # Streamed GDSII Silicon Mask Layout (Tapeout Deliverable, 14.1 MB)
-│   │   ├── riscv_core_top.enc            # Top-level Innovus design database file
-│   │   └── riscv_core_top.enc.dat/       # Innovus floorplan, cell placement, CTS, and routing data
+│   │   ├── riscv_core_top_routed.def     # Post-route physical layout DEF file (229 placed boundary pins)
+│   │   ├── riscv_core_top.gds            # Streamed GDSII Layout (-units 2000, 14.1 MB)
+│   │   ├── riscv_core_top.spef           # Post-route extracted RC parasitics (slow corner)
+│   │   ├── riscv_core_top_setup.sdf      # Post-route setup SDF timing delays
+│   │   ├── riscv_core_top_hold.sdf       # Post-route hold SDF timing delays
+│   │   └── riscv_core_top.enc            # Innovus design restoration script
 │   ├── reports/                          # Complete QoR Signoff Reports
 │   │   ├── qor_summary.rpt               # Genus Quality of Results summary
 │   │   ├── area_report.rpt               # Genus standard cell area breakdown
-│   │   ├── timing_report.rpt             # Genus static timing analysis report (WNS = 0.0 ps)
-│   │   ├── gates_report.rpt              # Detailed gate type and pin distribution
-│   │   ├── power_report.rpt              # Genus leakage and dynamic power breakdown
+│   │   ├── timing_report.rpt             # Genus static timing analysis report
+│   │   ├── power_report.rpt              # Genus power breakdown
 │   │   ├── innovus_area.rpt              # Post-route Innovus standard cell and module area report
-│   │   ├── innovus_power.rpt             # Post-route power dissipation analysis (1.27 mW)
+│   │   ├── innovus_power_vectorless.rpt  # Post-route vectorless power report (0.2 activity @ 100 MHz)
+│   │   ├── innovus_power_vectored.rpt    # Post-route vectored power report (stress test VCD + SPEF)
 │   │   ├── innovus_drc.rpt               # Post-route DRC verification (0 violations)
-│   │   ├── innovus_connectivity.rpt      # Post-route LVS/connectivity verification (0 open nets)
+│   │   ├── innovus_connectivity.rpt      # Post-route connectivity verification (0 open nets, 0 shorts)
+│   │   ├── innovus_antenna.rpt           # Post-route process antenna verification (0 violations)
 │   │   └── innovus_timing/               # Detailed postRoute timing slack and transition reports
+│   ├── logs/                             # Final Tool Execution Logs
+│   │   ├── genus_syn.log                 # Genus synthesis log (42 warnings, 0 errors)
+│   │   ├── innovus_pnr.log               # Innovus P&R log (DRC clean, connectivity clean)
+│   │   ├── innovus_power.log             # Voltus power analysis execution log
+│   │   ├── gls_fault_injection.log       # Gate-level fault injection simulation log (5/5 passed)
+│   │   └── gls_workload.log              # Gate-level stress workload simulation log
 │   └── README_CADENCE_FLOW.md            # Detailed tool command and configuration reference
 │
 ├── docs/                                 # Visual Documentation & Deliverables
@@ -141,66 +154,143 @@ Final-Project-EV/
 
 ---
 
-## 3. 📊 Verified Quality-of-Results (QoR) & Physical Signoff Metrics
+## 3. 📊 Verified Quality-of-Results (QoR) & Physical Implementation Metrics
 
-All deliverables on this branch are fully generated and verified using **Cadence Genus 21.14** and **Cadence Innovus 21.15** against the **TSMC/GPDK 90nm Digital Standard Cell Library** (`slow.lib`, `gsclib090_translated.lef`):
+All deliverables on this branch are generated, timed, and verified using **Cadence Genus 21.14**, **Cadence Innovus 21.15**, and **Cadence Xcelium 21.09** against the **GPDK 90nm Digital Standard Cell Library** (`slow.lib` for setup, `fast.lib` for hold, `gsclib090_translated.lef`). All numbers below are drawn directly from committed tool reports.
 
-| Metric | Cadence Genus Synthesis | Cadence Innovus Post-Route P&R | Signoff Status |
+### 3.1 Old Baseline vs. Verified Physical Implementation Comparison
+
+The table below contrasts the unverified baseline on the previous `cadence` branch against the verified, hardware-redundant implementation on `cadence-fixes`:
+
+| Architectural / Physical Metric | Previous `cadence` Baseline | Verified Implementation (`cadence-fixes`) | Status & Impact |
+| :--- | :---: | :---: | :--- |
+| **ALU Redundancy** | Defeated (ALU 2 merged into ALU 1) | **3 Discrete Preserved ALUs** (`u_alu_0`, `u_alu_1`, `u_alu_2`) | **FIXED:** Verified by `check_redundancy.py` |
+| **Control Unit DMR** | Optimized away (`cu_mismatch = 1'b0`) | **Active DMR Checker** (`u_control_unit_checker`) | **FIXED:** Active comparator logic & clamping |
+| **Fault Injection Overhead** | `fi_*` ports & muxes in ASIC datapath | **Zero ASIC Overhead** (Isolated in `` `ifdef FAULT_INJECT ``) | **ISOLATED:** Pure production ASIC netlist |
+| **Setup Timing Slack (Reg2Reg WNS)**| `+0.082 ns` | **`+0.304 ns`** (Slack = +0.304 ns) | **PASSED:** 100 MHz target fully met |
+| **Setup Timing Slack (All-Paths WNS)**| `-0.008 ns` (Violating path to `tmr_fatal_mismatch`) | **`-0.000 ns`** (0 violating paths, 0.000 ns TNS) | **PASSED:** Status telemetry pins registered |
+| **Hold Timing Slack (WNS)** | Not checked (No hold report, single corner) | **`+0.004 ns`** (`fast.lib`, 1.1V, 0°C) | **PASSED:** Multi-corner MMMC signoff |
+| **Signal Integrity (SI)** | SI disabled (`-SIAware false`) | **SI Enabled** (`-SIAware true`, `-routeWithSiDriven true`) | **HARDENED:** Cross-talk noise prevention |
+| **Power Routing** | Core rings only (No power stripes) | **M4/M5 power stripes** added | **HARDENED:** Uniform IR-drop distribution |
+| **Physical Fill Cells** | 0 fillers (`addFiller` not run) | **6,833 fillers** (`FILL1`..`FILL32`) | **COMPLIANT:** 100% active silicon density |
+| **DRC Verification** | 0 violations | **0 violations** (`innovus_drc.rpt`) | **PASSED** |
+| **Connectivity Verification** | Clean | **0 open nets / 0 shorts** (`innovus_connectivity.rpt`) | **PASSED:** `verify_connectivity` clean |
+| **Process Antenna Verification** | Not verified | **0 antenna violations** (`innovus_antenna.rpt`) | **PASSED:** 20 antenna routing iterations |
+| **Clock Tree Skew (CCOPT)** | Falsely claimed <150 ps without log | **23 ps skew** across 865 clock sinks | **VERIFIED:** CCOPT balanced clock tree |
+| **Standard Logic Cell Count** | Inconsistent: 11,093 vs 11,463 | **9,607 logic cells** (16,440 total with fillers) | **VERIFIED:** Matches `innovus_area.rpt` |
+| **Standard Cell Logic Area** | 45,699 &mu;m&sup2; (actual) / 71,664 &mu;m&sup2; (claimed) | **63,930.80 &mu;m&sup2;** (Core Density: 76.018%) | **VERIFIED:** Matches `innovus_area.rpt` |
+| **Power Dissipation (Vectorless @ 100 MHz)**| 6.80 mW (actual) / 1.27 mW (claimed) | **8.328 mW** (0.2 activity + extracted SPEF) | **VERIFIED:** `innovus_power_vectorless.rpt` |
+| **Power Dissipation (Vectored Workload)**| Not measured | **4.399 mW** (Real workload VCD + extracted SPEF) | **VERIFIED:** `innovus_power_vectored.rpt` |
+| **Post-Route GLS** | Runner missing (`run_gls_gui.csh` 404) | **Automated runner with SDF back-annotation**; 5/5 pass | **VERIFIED:** `cadence/scripts/run_gls.csh` |
+
+---
+
+### 3.2 Verified Synthesis & Physical P&R Signoff Metrics
+
+| Metric | Cadence Genus Synthesis | Cadence Innovus Post-Route P&R | Flow Signoff Status |
 | :--- | :---: | :---: | :---: |
-| **Clock Frequency** | 100 MHz (10.0 ns period) | 100 MHz (10.0 ns period) | **MET TARGET** |
-| **Setup Timing Slack (WNS)** | **`+0.00 ns`** (0 violating paths) | **`+0.138 ns`** (Positive slack) | **PASSED (0 Violations)** |
-| **Total Negative Slack (TNS)** | **`0.00 ns`** | **`0.00 ns`** | **PASSED** |
-| **Total Standard Cell Count** | 11,093 cells | 11,463 instances (with CTS buffers) | **OPTIMIZED** |
-| - *Sequential Instances* | 852 flip-flops | 852 flip-flops | Preserved |
-| - *Combinational Instances* | 10,241 gates | 10,611 gates | Optimized |
-| **Total Standard Cell Area** | **68,019.58 &mu;m&sup2;** | **71,664.81 &mu;m&sup2;** | **MET BUDGET** |
-| - *Register File (SEC-DED ECC)* | 42,222.15 &mu;m&sup2; | 42,222.15 &mu;m&sup2; (58.9% of core) | Hardened |
-| - *Triplicated ALUs + TMR Voter* | 13,854.30 &mu;m&sup2; | 14,602.12 &mu;m&sup2; (20.4% of core) | Hardened |
-| - *TMR Program Counter + Voter* | 5,762.28 &mu;m&sup2; | 5,762.28 &mu;m&sup2; (8.0% of core) | Hardened |
-| - *Decode / Control / Writeback* | 6,180.85 &mu;m&sup2; | 9,077.56 &mu;m&sup2; (12.7% of core) | Hardened |
-| **Power Dissipation (@ 100 MHz)** | 1.18 mW | **1.27 mW** (Leakage + Dynamic) | **LOW POWER** |
+| **Clock Frequency** | 100 MHz (9.2 ns synth period) | 100 MHz (10.0 ns period) | **MET TARGET** |
+| **Setup Timing Slack (WNS)** | `0.00 ns` (at 9.2 ns target) | **`-0.000 ns`** all-paths / **`+0.304 ns`** Reg2Reg | **PASSED (0 Violations)** |
+| **Hold Timing Slack (WNS)** | N/A (Single corner) | **`+0.004 ns`** (`fast.lib`, 1.1V, 0°C) | **PASSED (0 Violations)** |
+| **Total Negative Slack (TNS)** | `0.00 ns` | **`0.00 ns`** (Setup & Hold) | **PASSED** |
+| **Standard Logic Cell Count** | 8,801 cells | **9,607 cells** (16,440 cells with fillers) | **PRESERVED** |
+| - *Sequential Instances* | 885 flip-flops | 885 flip-flops | Preserved |
+| - *Combinational Instances* | 7,916 gates | 8,722 gates | Optimized & Buffered |
+| - *Physical Fill Cells* | N/A | 6,833 cells (`FILL1`..`FILL32`) | Added |
+| **Standard Cell Area** | **58,827.78 &mu;m&sup2;** | **63,930.80 &mu;m&sup2;** (Core Density: 76.018%) | **MET BUDGET** |
+| **Power (@ 100 MHz, SPEF)** | 4.651 mW (Genus vectorless) | **8.328 mW** (Vectorless) / **4.399 mW** (Vectored VCD) | **VOLTUS / SPEF** |
 | **Placed Top-Level I/O Pins** | 229 logical ports | **229 / 229 Placed (0 unplaced)** | **100% CONSTRAINED** |
 | **Design Rule Check (DRC)** | N/A | **0 Violations found** (`innovus_drc.rpt`) | **PASSED** |
-| **Connectivity & LVS** | N/A | **0 Open Nets / 0 Shorts** | **PASSED** |
+| **Connectivity Check** | N/A | **0 Open Nets / 0 Shorts** (`innovus_connectivity.rpt`) | **PASSED** |
+| **Process Antenna Check** | N/A | **0 Antenna Violations** (`innovus_antenna.rpt`) | **PASSED** |
+
+> [!NOTE]
+> Physical verification was executed using Innovus native `verify_drc`, `verify_connectivity`, and `verifyProcessAntenna` within the 90nm GPDK environment. Foundry signoff DRC/LVS decks are not part of the academic PDK.
+
+---
+
+### 3.3 Hierarchical Area Breakdown (Innovus Post-Route)
+
+Generated directly from `cadence/reports/innovus_area.rpt` via `cadence/scripts/format_area_report.py`:
+
+| Hierarchy / Subsystem | Module | Cell Count | Total Area (&mu;m&sup2;) | Area Share (%) |
+| :--- | :--- | :---: | :---: | :---: |
+| **riscv_core_top** | - | 9,607 | 63,930.80 | 100.0% |
+| **u_id_ex_stage** | `id_ex_stage` | 8,627 | 56,182.42 | 87.9% |
+| &nbsp;&nbsp;└── **u_regfile** | `regfile` (SEC-DED ECC 16x39-bit) | 3,325 | 28,435.22 | 44.5% |
+| &nbsp;&nbsp;└── **u_alu_0** | `alu_0` (ALU Replica 0) | 1,268 | 6,175.55 | 9.7% |
+| &nbsp;&nbsp;└── **u_alu_1** | `alu_1` (ALU Replica 1) | 1,293 | 6,245.18 | 9.8% |
+| &nbsp;&nbsp;└── **u_alu_2** | `alu_2` (ALU Replica 2) | 1,267 | 6,197.50 | 9.7% |
+| &nbsp;&nbsp;└── **u_adaptive_redundancy_controller** | `adaptive_redundancy_controller` | 378 | 1,856.68 | 2.9% |
+| &nbsp;&nbsp;&nbsp;&nbsp;└── **u_tmr_voter** | `tmr_voter` (32-bit majority voter) | 269 | 1,138.38 | 1.8% |
+| &nbsp;&nbsp;&nbsp;&nbsp;└── **u_cg_ex1 / u_cg_ex2** | `clock_gater` (Simplex clock gating) | 4 | 37.84 | 0.1% |
+| &nbsp;&nbsp;└── **u_control_unit** | `control_unit` (Primary Decoder) | 41 | 168.03 | 0.3% |
+| &nbsp;&nbsp;└── **u_control_unit_checker** | `control_unit_checker` (DMR Shadow) | 40 | 165.00 | 0.3% |
+| &nbsp;&nbsp;└── **u_hazard_unit** | `hazard_unit` (Forwarding & Stalls) | 17 | 102.94 | 0.2% |
+| **u_if_stage** | `if_stage` | 722 | 6,180.85 | 9.7% |
+| &nbsp;&nbsp;└── **u_pc_voter** | `tmr_voter` (32-bit PC voter) | 248 | 1,241.32 | 1.9% |
+| **u_wb_stage** | `wb_stage` | 212 | 1,107.35 | 1.7% |
 
 ---
 
 ## 4. 🛡️ Critical Redundancy Preservation Rules (Anti-Pruning)
 
-Because this core uses **hardware structural redundancy** (TMR and DMR) for fault tolerance, default synthesis optimization algorithms assume identical parallel logic cones are redundant and prune them to minimize area.
+Because this core employs **hardware structural redundancy** (TMR ALUs, TMR PC registers, and DMR Control Unit) for fault tolerance, default synthesis optimization algorithms assume identical parallel logic cones are redundant and prune them to minimize area.
 
-To prevent Genus from merging or optimizing away the redundant hardware, the following protection mechanisms are implemented:
+To guarantee that redundant hardware is physically preserved through synthesis and place-and-route, three complementary mechanisms are enforced:
 
-1. **RTL Attributes:**
-   - [`rtl/if_stage.sv`](rtl/if_stage.sv): `(* dont_touch = "true", preserve = "true" *)` on PC registers (`pc_reg_a`, `pc_reg_b`, `pc_reg_c`).
-   - [`rtl/id_ex_stage.sv`](rtl/id_ex_stage.sv): `(* dont_touch = "true", preserve = "true" *)` on triplicated ALUs (`u_alu_0`, `u_alu_1`, `u_alu_2`) and DMR decoder (`u_control_unit_checker`).
+### 4.1 Structural Wrapper Modules (RTL Isolation)
+To prevent Genus from collapsing identical submodule hierarchies into a single definition:
+- Redundant ALUs are instantiated through unique wrapper module definitions: `alu_0`, `alu_1`, `alu_2` in [`rtl/alu.sv`](rtl/alu.sv).
+- The shadow control unit is instantiated through `control_unit_checker` in [`rtl/control_unit.sv`](rtl/control_unit.sv).
 
-2. **Synthesis TCL Constraints ([`cadence/scripts/run_genus_syn.tcl`](cadence/scripts/run_genus_syn.tcl)):**
-   ```tcl
-   # 1. Prevent Genus from merging the 3 TMR PC register replicas
-   set_db [get_db registers -if {.name =~ *pc_reg_*}] .preserve true
+### 4.2 Synthesis Constraints ([`cadence/scripts/run_genus_syn.tcl`](cadence/scripts/run_genus_syn.tcl))
+```tcl
+# 1. Preserve discrete ALU instances and module boundaries
+set_db [get_db instances */u_alu_0] .preserve true
+set_db [get_db instances */u_alu_1] .preserve true
+set_db [get_db instances */u_alu_2] .preserve true
+set_db [get_db modules alu_0*] .preserve true
+set_db [get_db modules alu_1*] .preserve true
+set_db [get_db modules alu_2*] .preserve true
 
-   # 2. Prevent Genus from merging the DMR Control Unit checker
-   set_db [get_db instances */u_control_unit] .preserve true
-   set_db [get_db instances */u_control_unit_checker] .preserve true
+# 2. Preserve primary Control Unit and DMR shadow checker
+set_db [get_db instances */u_control_unit] .preserve true
+set_db [get_db instances */u_control_unit_checker] .preserve true
+set_db [get_db modules control_unit_checker*] .preserve true
 
-   # 3. Prevent Genus from merging the triplicated ALUs
-   set_db [get_db instances */u_alu_0] .preserve true
-   set_db [get_db instances */u_alu_1] .preserve true
-   set_db [get_db instances */u_alu_2] .preserve true
+# 3. Preserve TMR Program Counter register replicas (32 flops each)
+set_db [get_db registers -if {.name =~ *pc_reg_*}] .preserve true
 
-   # 4. Disable datapath sharing on ECC XOR trees to avoid timing degradation
-   set_db /designs/riscv_core_top .dp_max_sharing 0
-   ```
+# 4. Preserve voter, ECC register file, and disable datapath sharing
+set_db [get_db modules *tmr_voter*] .preserve true
+set_db [get_db modules *regfile*] .preserve true
+set_db /designs/riscv_core_top .dp_max_sharing 0
+```
+
+### 4.3 Automated Redundancy Gate Validation ([`cadence/scripts/check_redundancy.py`](cadence/scripts/check_redundancy.py))
+A strict Python validation script (stdlib only, executable with `python3 -I`) gates every build and verifies the netlist directly:
+```bash
+python3 -I cadence/scripts/check_redundancy.py cadence/netlist/riscv_core_top_syn.v
+python3 -I cadence/scripts/check_redundancy.py cadence/netlist/riscv_core_top_pr.v
+```
+**Gate Requirements (Exits non-zero on violation):**
+1. Exactly 3 separate ALU instances named `u_alu_0`, `u_alu_1`, `u_alu_2`.
+2. No cell driving `alu_result_N_fi` or `alu_result_N` takes another ALU's output as input (zero cross-driving).
+3. `u_control_unit_checker` instance and `chk_*` comparator nets are present.
+4. `cu_mismatch` is active comparator logic (not tied to constant 0 or 1).
+5. `pc_reg_a`, `pc_reg_b`, and `pc_reg_c` each contain exactly 32 distinct flip-flops (96 total).
+
+Both the post-synthesis (`riscv_core_top_syn.v`) and post-route (`riscv_core_top_pr.v`) netlists pass all 5 checks 100%.
 
 ---
 
 ## 5. 🏛️ Physical Implementation & Routed Silicon Layout (Cadence Innovus)
 
-The physical layout flow is fully automated via Cadence Innovus 21.15 using the GPDK 90nm standard cell technology library.
+The physical layout flow is fully automated via Cadence Innovus 21.15 using the GPDK 90nm standard cell technology library (`gsclib090`).
 
 ### 5.1 Routed Silicon Layout & Live Innovus GUI
-Below is the physical layout of the **RV32E Fault-Tolerant Processor Core** after 90nm standard cell placement, Clock Tree Synthesis (ccopt), and NanoRoute detailed routing:
+Below is the physical layout of the **RV32E Fault-Tolerant Processor Core** after 90nm standard cell placement, Clock Tree Synthesis (CCOPT), NanoRoute detailed routing, and fill cell insertion:
 
 ![Cadence Innovus 21.15 Routed Layout](docs/images/innovus_gui_screenshot.png)
 
@@ -212,17 +302,19 @@ Below is the physical layout of the **RV32E Fault-Tolerant Processor Core** afte
 
 ---
 
-### 5.2 Floorplanning & I/O Pin Placement Architecture
-During floorplanning, all top-level I/O pins are physically assigned to the core boundary to ensure proper padframe integration, clean signal integrity, and 0 unplaced pins:
+### 5.2 Floorplanning & Power Distribution Architecture
+During floorplanning, all top-level I/O pins are physically assigned to the core boundary to ensure clean signal integrity, padframe routability, and 0 unplaced pins:
 
-- **Core Utilization & Aspect Ratio:** 70% target utilization, square core ($1.0$ aspect ratio), $15\,\mu\text{m}$ core-to-die boundary margins.
-- **Final Routed Core Density:** **73.74%**.
+- **Core & Die Dimensions:** Core area $290\,\mu\text{m} \times 290\,\mu\text{m}$ ($84,100\,\mu\text{m}^2$), Die area $320\,\mu\text{m} \times 320\,\mu\text{m}$ ($102,400\,\mu\text{m}^2$).
+- **Core Utilization (Density):** **76.018%** standard cell logic density.
 - **Input Pins (86 total):** Assigned to the **LEFT** boundary on **Metal3** (horizontal routing connects directly into the pipeline stages).
 - **Output Pins (143 total):** Assigned to the **RIGHT** boundary on **Metal3** (horizontal routing directly extracts pipeline and memory outputs).
 - **Total Placed Pins:** **229 / 229 Pins Placed (0 unplaced)** in [`cadence/netlist/riscv_core_top_routed.def`](cadence/netlist/riscv_core_top_routed.def).
 - **Power Grid (VDD & VSS):**
-  - Core power rings on **Metal5** (left/right vertical edges) and **Metal6** (top/bottom horizontal edges), width $2.0\,\mu\text{m}$, spacing $1.0\,\mu\text{m}$.
+  - Core power rings on **Metal5** (vertical) and **Metal6** (horizontal), width $2.0\,\mu\text{m}$, spacing $1.0\,\mu\text{m}$.
+  - Power stripes on **Metal4** (vertical) and **Metal5** (horizontal) to ensure robust IR-drop distribution across all standard cell rows.
   - Standard cell followpins on **Metal1** connected via `sroute`.
+- **Physical Fill Cells:** **6,833 fill cells** (`FILL1`, `FILL2`, `FILL4`, `FILL8`, `FILL16`, `FILL32`) inserted across empty row sites to ensure 100% active silicon density.
 
 ---
 
@@ -231,51 +323,67 @@ During floorplanning, all top-level I/O pins are physically assigned to the core
 | Metric / Check | Value / Result | Report Reference |
 | :--- | :--- | :--- |
 | **Design Rule Check (DRC)** | **0 Violations** | [`cadence/reports/innovus_drc.rpt`](cadence/reports/innovus_drc.rpt) |
-| **Connectivity (LVS)** | **0 Violations / Clean** | [`cadence/reports/innovus_connectivity.rpt`](cadence/reports/innovus_connectivity.rpt) |
+| **Connectivity Verification** | **0 Open Nets / 0 Shorts** | [`cadence/reports/innovus_connectivity.rpt`](cadence/reports/innovus_connectivity.rpt) |
+| **Process Antenna Check** | **0 Antenna Violations** | [`cadence/reports/innovus_antenna.rpt`](cadence/reports/innovus_antenna.rpt) |
 | **Placed I/O Pins** | **229 / 229 Placed (100%)** | [`cadence/netlist/riscv_core_top_routed.def`](cadence/netlist/riscv_core_top_routed.def) |
-| **Standard Cell Count** | **11,093 Cells** | [`cadence/reports/innovus_area.rpt`](cadence/reports/innovus_area.rpt) |
-| **Total Wire Length** | **277.4 mm** | Post-Route Timing Summary |
-| **Clock Tree Skew** | **< 150 ps (Target Skew Met)** | [`cadence/reports/innovus_timing/`](cadence/reports/innovus_timing/) |
-| **Post-Route GLS** | **100% Passed (4/4 Tests)** | [`cadence/scripts/run_gls_gui.csh`](cadence/scripts/run_gls_gui.csh) |
+| **Total Placed Cell Count** | **16,440 Cells** (9,607 logic + 6,833 fillers) | [`cadence/reports/innovus_area.rpt`](cadence/reports/innovus_area.rpt) |
+| **Clock Tree Skew (CCOPT)** | **23 ps** (Target: 160 ps, 865 clock sinks) | [`cadence/logs/innovus_pnr.log`](cadence/logs/innovus_pnr.log) |
+| **Clock Insertion Delay** | Min: 0.195 ns, Max: 0.218 ns | [`cadence/logs/innovus_pnr.log`](cadence/logs/innovus_pnr.log) |
+| **Post-Route GLS** | **100% Passed (5/5 Fault Tests + Stress Workload)**| [`cadence/scripts/run_gls.csh`](cadence/scripts/run_gls.csh) |
 
 ---
 
-### 5.4 🏭 Silicon Mask GDSII Stream-Out & Physical Signoff Inspection
-The final physical layout was streamed out into industry-standard **GDSII** format ([`cadence/netlist/riscv_core_top.gds`](cadence/netlist/riscv_core_top.gds)) with full standard cell and filler geometries merged using the TSMC 90nm layer mapping file (`soce_gds.map`). The tapeout GDSII stream was inspected and verified using **Cadence Pegasus / PVS Design Review**:
+### 5.4 GDSII Stream-Out & Physical Layout Verification
+The final physical layout was streamed out into industry-standard **GDSII** format ([`cadence/netlist/riscv_core_top.gds`](cadence/netlist/riscv_core_top.gds)) with full standard cell and filler geometries merged using the GPDK 90nm layer mapping file (`gds2_soce.map`):
 
 - **Streamed File Size:** **14.1 MB** (`cadence/netlist/riscv_core_top.gds`)
-- **Total Physical Mask Elements:** **184,389** geometric polygons/paths across 28 layers
-- **Total Cell References:** **102,974** standard cell placements
-- **I/O Pin Physical Labels:** 229 pin geometries verified on Metal3 (Layer 11[3])
-- **Silicon Die Extents:** $344.07\,\mu\text{m} \times 341.68\,\mu\text{m}$ ($0.117\,\text{mm}^2$ total die footprint)
+- **Database Units:** **2000 per micron** (`streamOut -units 2000` exactly matching LEF `DATABASE MICRONS 2000`)
+- **Physical Mask Verification:** Inspected and verified using **Cadence Pegasus / PVS Design Review**
+- **Total Standard Cell References:** 16,440 cell placements (including 6,833 fillers)
+- **Die Footprint:** $320\,\mu\text{m} \times 320\,\mu\text{m}$ ($0.102\,\text{mm}^2$)
 
-#### Cadence Pegasus Design Review GDSII Silicon Mask Inspection
+#### Cadence Pegasus Design Review GDSII Physical Layout Inspection
 ![Cadence Pegasus Design Review GDSII Layout](docs/images/cadence_gdsii_layout.png)
 
 ---
 
-## 6. 🧪 Post-Route Gate-Level Simulation (GLS)
+## 6. 🧪 Post-Route Gate-Level Simulation (GLS) with SDF Back-Annotation
 
-The post-route Verilog netlist ([`cadence/netlist/riscv_core_top_pr.v`](cadence/netlist/riscv_core_top_pr.v)) is fully verified against the 90nm standard cell behavioral models (`/home/install/FOUNDRY/digital/90nm/dig/vlog/slow.v`):
+The post-route Verilog netlist ([`cadence/netlist/riscv_core_top_pr.v`](cadence/netlist/riscv_core_top_pr.v)) is verified using **Cadence Xcelium 21.09** with full standard delay format back-annotation from [`cadence/netlist/riscv_core_top_setup.sdf`](cadence/netlist/riscv_core_top_setup.sdf) (Slow Corner 0.9V, 125°C).
 
+### 6.1 Running GLS
+A dedicated shell script ([`cadence/scripts/run_gls.csh`](cadence/scripts/run_gls.csh)) automates batch gate-level simulation:
 ```bash
-# Run GLS in batch mode
-cd /home/student/Final-Project-EV
-xrun -64bit -access +rwc -sv -noparamerr \
-     /home/install/FOUNDRY/digital/90nm/dig/vlog/slow.v \
-     cadence/netlist/riscv_core_top_pr.v \
-     tb/tb_riscv_core_top.sv
+# Run both fault injection suite and workload stress test
+csh -f cadence/scripts/run_gls.csh all
 
-# Or launch GLS in Cadence SimVision GUI
-./cadence/scripts/run_gls_gui.csh
+# Or run fault tests only
+csh -f cadence/scripts/run_gls.csh fault
+
+# Or run real workload stress test only
+csh -f cadence/scripts/run_gls.csh workload
 ```
 
-### Verification Results:
-- **[Test 1] Single Bit Flip Injection in Reg[5]:** SEC detected and auto-corrected in hardware.
-- **[Test 2] Double Bit Flip Injection in Reg[6]:** DED detected and trap asserted (`reg_ded_err`).
-- **[Test 3] ALU Fault Injection in TMR Mode:** Triplicated ALU majority voter successfully masked fault and asserted `tmr_fault_detected`.
-- **[Test 4] ALU Fault Injection in Simplex Mode:** Simplex low-power mode bypassed voting and correctly propagated result without voter overhead.
-- **Overall Result:** `RESULT: TEST PASSED` across all post-route functional checks.
+### 6.2 Gate-Level Fault Injection Verification Suite ([`tb/tb_gls_fault_injection.sv`](tb/tb_gls_fault_injection.sv))
+Because port-level fault injection cannot expose internal netlist logic sharing or merged ALU gates, the gate-level fault testbench injects faults directly onto internal netlist hierarchical wires using SystemVerilog `force` and `release`:
+
+- **[Test 1] ALU 0 Internal Bit Flip:** Forced bit flip on `u_id_ex_stage.u_alu_0.result[0]` during an `ADD` instruction.
+  - *Result:* TMR majority voter masks the corrupt output, correct result (40) is propagated, `mismatch_detected` asserts, `fatal_mismatch` remains 0. **PASSED**.
+- **[Test 2] ALU 1 Internal Bit Flip:** Forced bit flip on `u_id_ex_stage.u_alu_1.result[0]` during an `ADD` instruction.
+  - *Result:* TMR majority voter masks the corrupt output, correct result (40) is propagated, `mismatch_detected` asserts, `fatal_mismatch` remains 0. **PASSED**.
+- **[Test 3] ALU 2 Internal Bit Flip:** Forced bit flip on `u_id_ex_stage.u_alu_2.result[0]` during an `ADD` instruction.
+  - *Result:* TMR majority voter masks the corrupt output, correct result (40) is propagated, `mismatch_detected` asserts, `fatal_mismatch` remains 0. **PASSED**.
+- **[Test 4] DMR Control Unit Decoder Mismatch:** Forced bit flip on shadow checker net `chk_reg_write` during instruction decode.
+  - *Result:* Real-time XOR comparator detects mismatch, `cu_mismatch` asserts, pipeline immediately traps. **PASSED**.
+- **[Test 5] DMR Memory Protection Clamping:** Forced illegal assertion of `ctrl_mem_write` during an `ADD` operation.
+  - *Result:* `cu_mismatch` asserts, datapath hardware clamping forces `dmem_we = 0` to prevent memory corruption, and core traps. **PASSED**.
+
+### 6.3 Real Workload Post-Route Execution ([`tb/tb_compliance_run.sv`](tb/tb_compliance_run.sv))
+A real instruction stress workload ([`tests/stress_test_bytes.hex`](tests/stress_test_bytes.hex), 2,428 instructions) was simulated against the post-route netlist with SDF timing back-annotation:
+- **Simulation Duration:** 24,335 ns (2,428 clock cycles @ 100 MHz).
+- **Net Switching Coverage:** 100% (9,680 of 9,680 nets toggled).
+- **Activity VCD Generated:** [`cadence/reports/workload.vcd`](cadence/reports/workload.vcd) used for high-accuracy Voltus vectored power analysis (**4.399 mW**).
+- **Functional Result:** 0 timing violations, 0 functional errors, simulation completed cleanly.
 
 ---
 
@@ -325,6 +433,11 @@ This launches Cadence Innovus GUI, restores the post-route database (`cadence/ne
 
 | Task | Shell Command |
 | :--- | :--- |
+| **Validate Redundancy Gate (Post-Route)** | `python3 -I cadence/scripts/check_redundancy.py cadence/netlist/riscv_core_top_pr.v` |
+| **Validate Redundancy Gate (Post-Synth)** | `python3 -I cadence/scripts/check_redundancy.py cadence/netlist/riscv_core_top_syn.v` |
+| **Format Hierarchical Area Report** | `python3 -I cadence/scripts/format_area_report.py cadence/reports/innovus_area.rpt` |
+| **Run Full GLS Suite (Batch + SDF)** | `csh -f cadence/scripts/run_gls.csh all` |
+| **Run Post-Route Power Analysis (Voltus)**| `innovus -batch -files cadence/scripts/run_power_analysis.tcl` |
 | **View Routed Layout in Innovus GUI** | `cd cadence && ./scripts/view_layout.csh` |
 | **Run Full Innovus P&R Flow (Batch)** | `cd cadence && ./scripts/run_pnr.csh` |
 | **Run Full Innovus P&R Flow (GUI)** | `cd cadence && ./scripts/run_pnr.csh -gui` |
@@ -333,6 +446,7 @@ This launches Cadence Innovus GUI, restores the post-route database (`cadence/ne
 | **Run Genus Synthesis (Batch)** | `cd cadence && ./scripts/run_flow.csh` |
 | **Inspect DRC Report** | `cat cadence/reports/innovus_drc.rpt` |
 | **Inspect Connectivity Report** | `cat cadence/reports/innovus_connectivity.rpt` |
+| **Inspect Antenna Report** | `cat cadence/reports/innovus_antenna.rpt` |
 
 ---
 

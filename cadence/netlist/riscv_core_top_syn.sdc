@@ -1,6 +1,6 @@
 # ####################################################################
 
-#  Created by Genus(TM) Synthesis Solution 21.14-s082_1 on Wed Oct 14 11:22:36 IST 2026
+#  Created by Genus(TM) Synthesis Solution 21.14-s082_1 on Wed Oct 21 17:57:10 IST 2026
 
 # ####################################################################
 
@@ -157,29 +157,9 @@ set_load -pin_load 0.05 [get_ports tmr_fatal_mismatch]
 set_load -pin_load 0.05 [get_ports pc_tmr_mismatch]
 set_load -pin_load 0.05 [get_ports pc_tmr_fatal_mismatch]
 set_load -pin_load 0.05 [get_ports cu_mismatch]
-set_false_path -from [list \
-  [get_ports rst_n]  \
-  [get_ports tmr_mode_pin]  \
-  [get_ports {fi_alu_bit[0]}]  \
-  [get_ports {fi_alu_bit[1]}]  \
-  [get_ports {fi_alu_bit[2]}]  \
-  [get_ports {fi_alu_bit[3]}]  \
-  [get_ports {fi_alu_bit[4]}]  \
-  [get_ports {fi_alu_sel[0]}]  \
-  [get_ports {fi_alu_sel[1]}]  \
-  [get_ports fi_alu_en]  \
-  [get_ports {fi_reg_bit[0]}]  \
-  [get_ports {fi_reg_bit[1]}]  \
-  [get_ports {fi_reg_bit[2]}]  \
-  [get_ports {fi_reg_bit[3]}]  \
-  [get_ports {fi_reg_bit[4]}]  \
-  [get_ports {fi_reg_bit[5]}]  \
-  [get_ports {fi_reg_addr[0]}]  \
-  [get_ports {fi_reg_addr[1]}]  \
-  [get_ports {fi_reg_addr[2]}]  \
-  [get_ports {fi_reg_addr[3]}]  \
-  [get_ports fi_reg_en] ]
+set_false_path -from [get_ports tmr_mode_pin]
 set_clock_gating_check -setup 0.0 
+set_input_delay -clock [get_clocks clk] -add_delay -max 2.0 [get_ports rst_n]
 set_input_delay -clock [get_clocks clk] -add_delay -max 2.0 [get_ports {imem_rdata[31]}]
 set_input_delay -clock [get_clocks clk] -add_delay -max 2.0 [get_ports {imem_rdata[30]}]
 set_input_delay -clock [get_clocks clk] -add_delay -max 2.0 [get_ports {imem_rdata[29]}]
@@ -244,6 +224,7 @@ set_input_delay -clock [get_clocks clk] -add_delay -max 2.0 [get_ports {dmem_rda
 set_input_delay -clock [get_clocks clk] -add_delay -max 2.0 [get_ports {dmem_rdata[2]}]
 set_input_delay -clock [get_clocks clk] -add_delay -max 2.0 [get_ports {dmem_rdata[1]}]
 set_input_delay -clock [get_clocks clk] -add_delay -max 2.0 [get_ports {dmem_rdata[0]}]
+set_input_delay -clock [get_clocks clk] -add_delay -min 0.5 [get_ports rst_n]
 set_input_delay -clock [get_clocks clk] -add_delay -min 0.5 [get_ports {imem_rdata[31]}]
 set_input_delay -clock [get_clocks clk] -add_delay -min 0.5 [get_ports {imem_rdata[30]}]
 set_input_delay -clock [get_clocks clk] -add_delay -min 0.5 [get_ports {imem_rdata[29]}]
@@ -594,6 +575,100 @@ set_output_delay -clock [get_clocks clk] -add_delay -min 0.5 [get_ports tmr_fata
 set_output_delay -clock [get_clocks clk] -add_delay -min 0.5 [get_ports pc_tmr_mismatch]
 set_output_delay -clock [get_clocks clk] -add_delay -min 0.5 [get_ports pc_tmr_fatal_mismatch]
 set_output_delay -clock [get_clocks clk] -add_delay -min 0.5 [get_ports cu_mismatch]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports rst_n]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[31]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[30]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[29]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[28]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[27]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[26]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[25]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[24]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[23]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[22]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[21]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[20]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[19]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[18]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[17]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[16]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[15]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[14]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[13]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[12]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[11]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[10]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[9]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[8]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[7]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[6]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[5]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[4]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[3]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[2]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[1]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {imem_rdata[0]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[31]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[30]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[29]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[28]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[27]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[26]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[25]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[24]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[23]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[22]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[21]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[20]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[19]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[18]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[17]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[16]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[15]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[14]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[13]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[12]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[11]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[10]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[9]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[8]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[7]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[6]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[5]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[4]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[3]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[2]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[1]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports {dmem_rdata[0]}]
+set_driving_cell -lib_cell BUFX2 -library slow -pin "Y" [get_ports tmr_mode_pin]
 set_wire_load_mode "enclosed"
+set_dont_touch [get_cells u_id_ex_stage/u_adaptive_redundancy_controller]
+set_dont_touch [get_cells u_id_ex_stage/u_adaptive_redundancy_controller/u_cg_ex1]
+set_dont_touch [get_cells u_id_ex_stage/u_adaptive_redundancy_controller/u_cg_ex2]
+set_dont_touch [get_cells u_id_ex_stage/u_adaptive_redundancy_controller/u_tmr_voter]
+set_dont_touch [get_cells u_id_ex_stage/u_alu_0]
+set_dont_touch [get_cells u_id_ex_stage/u_alu_0/u_core]
+set_dont_touch [get_cells u_id_ex_stage/u_alu_1]
+set_dont_touch [get_cells u_id_ex_stage/u_alu_1/u_core]
+set_dont_touch [get_cells u_id_ex_stage/u_alu_2]
+set_dont_touch [get_cells u_id_ex_stage/u_alu_2/u_core]
+set_dont_touch [get_cells u_id_ex_stage/u_control_unit]
+set_dont_touch [get_cells u_id_ex_stage/u_control_unit_checker]
+set_dont_touch [get_cells u_id_ex_stage/u_control_unit_checker/u_core]
+set_dont_touch [get_cells u_if_stage/u_pc_voter]
+set_dont_touch [get_nets {u_id_ex_stage/chk_alu_op[0]}]
+set_dont_touch [get_nets {u_id_ex_stage/chk_alu_op[1]}]
+set_dont_touch [get_nets {u_id_ex_stage/chk_alu_op[2]}]
+set_dont_touch [get_nets {u_id_ex_stage/chk_alu_op[3]}]
+set_dont_touch [get_nets u_id_ex_stage/chk_alu_src_a]
+set_dont_touch [get_nets u_id_ex_stage/chk_alu_src_b]
+set_dont_touch [get_nets u_id_ex_stage/chk_is_branch]
+set_dont_touch [get_nets u_id_ex_stage/chk_is_jal]
+set_dont_touch [get_nets u_id_ex_stage/chk_is_jalr]
+set_dont_touch [get_nets u_id_ex_stage/chk_mem_read]
+set_dont_touch [get_nets u_id_ex_stage/chk_mem_write]
+set_dont_touch [get_nets u_id_ex_stage/chk_reg_write]
+set_dont_touch [get_nets u_id_ex_stage/chk_trap]
+set_dont_touch [get_nets {u_id_ex_stage/chk_wb_sel[1]}]
 set_clock_uncertainty -setup 0.25 [get_clocks clk]
 set_clock_uncertainty -hold 0.1 [get_clocks clk]

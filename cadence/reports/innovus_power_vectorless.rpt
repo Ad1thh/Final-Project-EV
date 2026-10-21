@@ -1,0 +1,141 @@
+*----------------------------------------------------------------------------------------
+*	Innovus 21.15-s110_1 (64bit) 09/23/2022 13:08 (Linux 3.10.0-693.el7.x86_64)
+*	
+*
+* 	Date & Time:	2026-Oct-21 18:42:14 (2026-Oct-21 13:12:14 GMT)
+*
+*----------------------------------------------------------------------------------------
+*
+*	Design: riscv_core_top
+*
+*	Liberty Libraries used: 
+*	        setup_view: /home/student/Final-Project-EV/cadence/netlist/riscv_core_top.enc.dat/libs/mmmc/slow.lib
+*
+*	Power Domain used: 
+*              Rail:        VDD      Voltage:        0.9 
+*
+*       Power View : setup_view
+*
+*       User-Defined Activity : N.A.
+*
+*       Activity File: N.A.
+*
+*       Hierarchical Global Activity: N.A.
+*
+*       Global Activity: N.A.
+*
+*       Sequential Element Activity: 0.200000
+*
+*       Primary Input Activity: 0.200000
+*
+*       Default icg ratio: N.A.
+*
+*       Global Comb ClockGate Ratio: N.A.
+*
+*	Power Units = 1mW
+*
+*	Time Units = 1e-09 secs 
+*
+*       report_power -outfile /home/student/Final-Project-EV/cadence/reports/innovus_power_vectorless.rpt -hierarchy all
+*
+-----------------------------------------------------------------------------------------
+
+
+Total Power 
+-----------------------------------------------------------------------------------------
+Total Internal Power:        5.21776591 	   62.6525%
+Total Switching Power:       2.78314217 	   33.4187%
+Total Leakage Power:         0.32720249 	    3.9289%
+Total Power:                 8.32811057 
+-----------------------------------------------------------------------------------------
+
+
+Group                           Internal   Switching     Leakage       Total  Percentage 
+                                Power      Power         Power         Power  (%)        
+-----------------------------------------------------------------------------------------
+Sequential                         2.131     0.08269      0.1184       2.333       28.01 
+Macro                                  0           0           0           0           0 
+IO                                     0           0           0           0           0 
+Combinational                      2.975       2.528      0.2071       5.709       68.55 
+Clock (Combinational)             0.1116      0.1729    0.001778      0.2863       3.438 
+Clock (Sequential)                     0           0           0           0           0 
+-----------------------------------------------------------------------------------------
+Total                              5.218       2.783      0.3272       8.328         100 
+-----------------------------------------------------------------------------------------
+
+
+Clock                           Internal   Switching     Leakage       Total  Percentage 
+                                Power      Power         Power         Power  (%)        
+-----------------------------------------------------------------------------------------
+clk                               0.1116      0.1729    0.001778      0.2863       3.438 
+-----------------------------------------------------------------------------------------
+Total (excluding duplicates)      0.1116      0.1729    0.001778      0.2863       3.438 
+-----------------------------------------------------------------------------------------
+Clock: clk
+Clock Period: 0.010000 usec 
+Clock Toggle Rate:   200.0000 Mhz 
+Clock Static Probability:  0.5000
+
+
+
+Rail                  Voltage   Internal   Switching     Leakage       Total  Percentage 
+                                Power      Power         Power         Power  (%)        
+-----------------------------------------------------------------------------------------
+VDD                       0.9      5.218       2.783      0.3272       8.328         100 
+
+
+Total Power 
+-----------------------------------------------------------------------------------------
+Total Internal Power:        5.21776591 	   62.6525%
+Total Switching Power:       2.78314217 	   33.4187%
+Total Leakage Power:         0.32720249 	    3.9289%
+Total Power:                 8.32811057 
+-----------------------------------------------------------------------------------------
+
+
+Hierarchy                       Internal   Switching     Leakage       Total  Percentage 
+                                Power      Power         Power         Power  (%)        
+-----------------------------------------------------------------------------------------
+u_id_ex_stage                      4.702       2.495      0.2876       7.485       89.87  
+u_if_stage                         0.396     0.08859     0.03226      0.5168       6.206  
+u_wb_stage                       0.01966     0.05181    0.004283     0.07575      0.9095  
+u_id_ex_stage/u_adaptive_redundancy_controller
+                                  0.2441      0.4048    0.009672      0.6585       7.907  
+u_id_ex_stage/u_regfile            1.983      0.4568      0.1651       2.605       31.28  
+u_id_ex_stage/u_alu_0             0.6779      0.4646     0.02417       1.167       14.01  
+u_id_ex_stage/u_alu_1             0.5799      0.3928     0.02512      0.9978       11.98  
+u_id_ex_stage/u_alu_2             0.5677      0.3762     0.02541      0.9693       11.64  
+u_id_ex_stage/u_control_unit
+                                0.001461    0.001286   0.0006658    0.003413     0.04098  
+u_id_ex_stage/u_control_unit_checker
+                                0.001417    0.000998   0.0006912    0.003106      0.0373  
+u_id_ex_stage/u_hazard_unit
+                                0.001639   0.0009327   0.0006221    0.003194     0.03835  
+u_if_stage/u_pc_voter            0.01738    0.008925    0.005919     0.03223      0.3869  
+u_id_ex_stage/u_adaptive_redundancy_controller/u_cg_ex1
+                                0.001474   2.086e-05   0.0001095    0.001604     0.01926  
+u_id_ex_stage/u_adaptive_redundancy_controller/u_cg_ex2
+                                0.001473   1.773e-05   0.0001095    0.001601     0.01922  
+u_id_ex_stage/u_adaptive_redundancy_controller/u_tmr_voter
+                                  0.1442     0.08223    0.004339      0.2308       2.771  
+u_id_ex_stage/u_alu_0/u_core
+                                  0.6779      0.4646     0.02417       1.167       14.01  
+u_id_ex_stage/u_alu_1/u_core
+                                  0.5799      0.3928     0.02512      0.9978       11.98  
+u_id_ex_stage/u_alu_2/u_core
+                                  0.5677      0.3762     0.02541      0.9693       11.64  
+u_id_ex_stage/u_control_unit_checker/u_core
+                                0.001417    0.000998   0.0006912    0.003106      0.0373  
+
+
+-----------------------------------------------------------------------------------------
+*	Power Distribution Summary: 
+*                Highest Average Power:       CTS_ccl_a_buf_00006 (CLKBUFX16):          0.03466 
+*                Highest Leakage Power: u_id_ex_stage/FE_OFC60_alu_in_b_ex1_3 (BUFX20):         0.000367 
+*          Total Cap:      1.06783e-10 F
+*          Total instances in design:  9607
+*          Total instances in design with no power:     0
+*          Total instances in design with no activity:     0
+*          Total Fillers and Decap:     0
+-----------------------------------------------------------------------------------------
+

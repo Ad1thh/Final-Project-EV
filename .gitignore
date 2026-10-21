@@ -53,6 +53,8 @@ xrun.history
 xrun.key
 xrun.log*
 .simvision/
+*.history
+*.sdf.X
 
 # Cadence EDA temporary files
 genus.cmd*
@@ -72,3 +74,20 @@ timingReports/
 cadence/timingReports/
 fv/
 cadence/fv/
+
+# Cadence Innovus database directories (recreated by scripts)
+cadence/netlist/*.enc.dat/
+*.antenna.lef
+*.ptiavg
+*.ptifiles
+*.cellstat
+*.togglestats
+*.setpower
+*.pinfo
+*.tstamp
+all.pgnets
+voltus_*
+
+# Preserve committed final run logs
+!cadence/logs/
+!cadence/logs/*.log

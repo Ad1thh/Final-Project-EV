@@ -52,6 +52,7 @@ echo " Working directory: $CADENCE_DIR"
 echo "======================================================================"
 
 mkdir -p reports netlist
+rm -f reports/genus_syn.log* reports/genus_syn.cmd*
 
 # Set batch flag so run_genus_syn.tcl exits cleanly upon completion
 setenv RUN_FLOW_BATCH 1
@@ -59,12 +60,14 @@ setenv RUN_FLOW_BATCH 1
 echo "--> Launching Cadence Genus in batch mode..."
 genus -batch -f scripts/run_genus_syn.tcl -log reports/genus_syn.log
 set GENUS_STATUS = $status
-if ( $GENUS_STATUS != 0 ) then
+set ERROR_COUNT = `grep -c -E "^Error   :" reports/genus_syn.log`
+if ( $GENUS_STATUS != 0 || $ERROR_COUNT > 0 ) then
     echo "======================================================================"
-    echo " ERROR: Cadence Genus synthesis failed (exit code $GENUS_STATUS)."
+    echo " ERROR: Cadence Genus synthesis failed ($ERROR_COUNT errors, exit code $GENUS_STATUS)."
     echo " Please inspect the log: $CADENCE_DIR/reports/genus_syn.log"
     echo "======================================================================"
-    exit $GENUS_STATUS
+    grep -E "^Error   :" reports/genus_syn.log | head -n 10
+    exit 1
 endif
 
 echo "======================================================================"

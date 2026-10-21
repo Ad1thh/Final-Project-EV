@@ -36,23 +36,40 @@ file mkdir $REPORT_DIR
 file mkdir "${REPORT_DIR}/innovus_timing"
 
 # ------------------------------------------------------------------------------
-# 2. MULTI-MODE MULTI-CORNER (MMMC) SETUP
+# 2. MULTI-MODE MULTI-CORNER (MMMC) SETUP & PDK PATH CONFIGURATION
 # ------------------------------------------------------------------------------
-set PDK_LIB_DIR    "/home/install/FOUNDRY/digital/90nm/dig/lib"
-set PDK_LEF_FILE   "/home/install/FOUNDRY/digital/90nm/dig/lef/gsclib090_translated.lef"
-set PDK_CAP_TABLE  "/home/install/FOUNDRY/digital/90nm/dig/captable/gpdk090.lef.extended.CapTbl"
-set PDK_TIMING_LIB "${PDK_LIB_DIR}/slow.lib"
+if {[info exists env(PDK_LIB_DIR)]} {
+    set PDK_LIB_DIR $env(PDK_LIB_DIR)
+} else {
+    set PDK_LIB_DIR "/home/install/FOUNDRY/digital/90nm/dig/lib"
+}
+
+if {[info exists env(PDK_LEF_FILE)]} {
+    set PDK_LEF_FILE $env(PDK_LEF_FILE)
+} else {
+    set PDK_LEF_FILE "/home/install/FOUNDRY/digital/90nm/dig/lef/gsclib090_translated.lef"
+}
+
+if {[info exists env(PDK_CAP_TABLE)]} {
+    set PDK_CAP_TABLE $env(PDK_CAP_TABLE)
+} else {
+    set PDK_CAP_TABLE "/home/install/FOUNDRY/digital/90nm/dig/captable/gpdk090.lef.extended.CapTbl"
+}
+
+if {[info exists env(PDK_GDS_MAP)]} {
+    set GDS_MAP_FILE $env(PDK_GDS_MAP)
+} else {
+    set GDS_MAP_FILE "/home/install/FOUNDRY/analog/90nm/soce/soce_gds.map"
+}
+
+if {[info exists env(PDK_GDS_DIR)]} {
+    set GDS_DIR $env(PDK_GDS_DIR)
+} else {
+    set GDS_DIR "/home/install/FOUNDRY/digital/90nm/dig/gds"
+}
 
 set MMMC_FILE "${CADENCE_ROOT}/scripts/viewDefinition.tcl"
-set mmmc_fp [open $MMMC_FILE "w"]
-puts $mmmc_fp "create_library_set -name slow_libs -timing \[list ${PDK_TIMING_LIB}\]"
-puts $mmmc_fp "create_rc_corner -name default_rc -cap_table ${PDK_CAP_TABLE} -T 125.0"
-puts $mmmc_fp "create_delay_corner -name slow_corner -library_set slow_libs -rc_corner default_rc"
-puts $mmmc_fp "create_constraint_mode -name func_mode -sdc_files \[list ${SDC_FILE}\]"
-puts $mmmc_fp "create_analysis_view -name slow_view -constraint_mode func_mode -delay_corner slow_corner"
-puts $mmmc_fp "set_analysis_view -setup \[list slow_view\] -hold \[list slow_view\]"
-close $mmmc_fp
-puts "--> Generated MMMC View Definition: ${MMMC_FILE}"
+puts "--> Using MMMC View Definition: ${MMMC_FILE}"
 
 # ------------------------------------------------------------------------------
 # 3. DESIGN INITIALIZATION
@@ -66,6 +83,7 @@ set init_gnd_net   "VSS"
 
 puts "--> Loading Design & Technology Libraries into Innovus..."
 init_design
+setDesignMode -process 90
 
 # ------------------------------------------------------------------------------
 # 4. FLOORPLANNING & POWER NETWORK SETUP
@@ -88,8 +106,15 @@ globalNetConnect VSS -type pgpin -pin VSS -all
 globalNetConnect VDD -type tiehi -all
 globalNetConnect VSS -type tielo -all
 
-puts "--> Step 4.3: Constructing Power Ring & Standard Cell Followpins..."
-addRing -nets {VDD VSS} -type core_rings -width 2.0 -spacing 1.0 -layer {top Metal6 bottom Metal6 left Metal5 right Metal5}
+puts "--> Step 4.3: Constructing Power Ring, Stripes & Followpins..."
+# Core Ring: Horizontal segments on Metal5, Vertical segments on Metal6
+addRing -nets {VDD VSS} -type core_rings -width 2.0 -spacing 1.0 -layer {top Metal5 bottom Metal5 left Metal6 right Metal6}
+
+# Power Stripes: Consistent with LEF layer directions (Metal4 Vertical, Metal5 Horizontal)
+addStripe -nets {VDD VSS} -layer Metal4 -direction vertical   -width 1.5 -spacing 1.0 -set_to_set_distance 40.0 -start_offset 15.0
+addStripe -nets {VDD VSS} -layer Metal5 -direction horizontal -width 1.5 -spacing 1.0 -set_to_set_distance 40.0 -start_offset 15.0
+
+# Connect standard cell power pins
 sroute -connect {corePin} -nets {VDD VSS}
 
 # ------------------------------------------------------------------------------
@@ -103,64 +128,101 @@ place_opt_design
 # ------------------------------------------------------------------------------
 puts "--> Step 6: Performing Clock Tree Synthesis (ccopt_design)..."
 create_ccopt_clock_tree_spec
+set_ccopt_property buffer_cells {CLKBUFX12 CLKBUFX16 CLKBUFX2 CLKBUFX20 CLKBUFX3 CLKBUFX4 CLKBUFX6 CLKBUFX8 BUFX12 BUFX16 BUFX2 BUFX20 BUFX3 BUFX4 BUFX6 BUFX8}
+set_ccopt_property inverter_cells {CLKINVX1 CLKINVX12 CLKINVX16 CLKINVX2 CLKINVX20 CLKINVX3 CLKINVX4 CLKINVX6 CLKINVX8 INVX1 INVX12 INVX16 INVX2 INVX20 INVX3 INVX4 INVX6 INVX8 INVXL}
 set_ccopt_property target_max_trans 0.400
 set_ccopt_property target_skew 0.150
 ccopt_design
 
 # ------------------------------------------------------------------------------
-# 7. DETAILED NANOROUTE
+# 7. DETAILED NANOROUTE (SI-Driven)
 # ------------------------------------------------------------------------------
-puts "--> Step 7: Executing Detailed NanoRoute (routeDesign)..."
-setNanoRouteMode -quiet -routeWithSiDriven false -routeWithTimingDriven true
+puts "--> Step 7: Executing Detailed NanoRoute with SI enabled (routeDesign)..."
+setNanoRouteMode -quiet -routeWithSiDriven true -routeWithTimingDriven true
 routeDesign
 
 # ------------------------------------------------------------------------------
-# 8. POST-ROUTE OPTIMIZATION & PHYSICAL VERIFICATION
+# 8. POST-ROUTE OPTIMIZATION (SETUP & HOLD)
 # ------------------------------------------------------------------------------
-puts "--> Step 8: Post-Route Optimization & Design Rule Checks..."
-setDelayCalMode -SIAware false
-setOptMode -postRouteSetupRecovery false
-if {[catch {optDesign -postRoute} err]} {
-    puts "--> Note on optDesign -postRoute: $err"
-}
+puts "--> Step 8: Post-Route Optimization (Setup & Hold)..."
+setAnalysisMode -analysisType onChipVariation -cppr both
+setDelayCalMode -SIAware true
+setOptMode -postRouteSetupRecovery true
+setOptMode -postRouteHoldRecovery true
 
-puts "--> Running Design Rule Check (DRC)..."
+puts "    Running optDesign -postRoute (Setup)..."
+optDesign -postRoute
+
+puts "    Running optDesign -postRoute -hold (Hold)..."
+optDesign -postRoute -hold
+
+# ------------------------------------------------------------------------------
+# 9. POST-ROUTE TIMING SIGNOFF (SETUP & HOLD)
+# ------------------------------------------------------------------------------
+puts "--> Step 9: Post-Route Timing Signoff..."
+timeDesign -postRoute -prefix postRoute_setup -outDir "${REPORT_DIR}/innovus_timing"
+timeDesign -postRoute -hold -prefix postRoute_hold -outDir "${REPORT_DIR}/innovus_timing"
+
+# ------------------------------------------------------------------------------
+# 10. PHYSICAL CELL INSERTION (FILLER CELLS)
+# ------------------------------------------------------------------------------
+puts "--> Step 10: Adding Standard Cell Fillers..."
+addFiller -cell {FILL64 FILL32 FILL16 FILL8 FILL4 FILL2 FILL1} -prefix FILLER
+
+# ------------------------------------------------------------------------------
+# 11. PHYSICAL VERIFICATION (DRC, LVS/CONNECTIVITY, ANTENNA) BEFORE STREAMOUT
+# ------------------------------------------------------------------------------
+puts "--> Step 11: Executing Physical Design Verification..."
+puts "    Running Design Rule Check (DRC)..."
 verify_drc -limit 1000 -report "${REPORT_DIR}/innovus_drc.rpt"
 
-puts "--> Running Connectivity Verification..."
+puts "    Running Connectivity Verification..."
 verify_connectivity -type all -report "${REPORT_DIR}/innovus_connectivity.rpt"
 
-# ------------------------------------------------------------------------------
-# 9. EXPORT PHYSICAL DESIGN DELIVERABLES
-# ------------------------------------------------------------------------------
-puts "--> Step 9: Exporting Layout Deliverables..."
+puts "    Running Process Antenna Verification..."
+verifyProcessAntenna -report "${REPORT_DIR}/innovus_antenna.rpt"
 
-# 9.1 Gate-level routed Verilog Netlist
+# ------------------------------------------------------------------------------
+# 12. RC EXTRACTION & SDF EXPORT
+# ------------------------------------------------------------------------------
+puts "--> Step 12: Extracting Post-Route Parasitics & SDF..."
+extractRC
+rcOut -spef "${NETLIST_DIR}/riscv_core_top.spef"
+puts "    \[OK\] Exported Post-Route SPEF: ${NETLIST_DIR}/riscv_core_top.spef"
+
+write_sdf -view setup_view -version 3.0 "${NETLIST_DIR}/riscv_core_top_setup.sdf"
+write_sdf -view hold_view  -version 3.0 "${NETLIST_DIR}/riscv_core_top_hold.sdf"
+puts "    \[OK\] Exported Setup & Hold SDF: ${NETLIST_DIR}/riscv_core_top_*.sdf"
+
+# ------------------------------------------------------------------------------
+# 13. EXPORT PHYSICAL DESIGN DELIVERABLES
+# ------------------------------------------------------------------------------
+puts "--> Step 13: Exporting Layout Deliverables..."
+
+# 13.1 Gate-level routed Verilog Netlist
 saveNetlist "${NETLIST_DIR}/riscv_core_top_pr.v"
 puts "    \[OK\] Exported Routed Netlist: ${NETLIST_DIR}/riscv_core_top_pr.v"
 
-# 9.2 Complete DEF Layout (for GDSII stream-out and DRC tools)
+# 13.2 Complete DEF Layout (units 2000 matching LEF)
 defOut -floorplan -netlist -routing "${NETLIST_DIR}/riscv_core_top_routed.def"
 puts "    \[OK\] Exported Layout DEF: ${NETLIST_DIR}/riscv_core_top_routed.def"
 
-# 9.3 Post-Route Timing Signoff Report
-timeDesign -postRoute -prefix postRoute -outDir "${REPORT_DIR}/innovus_timing"
-
-# 9.4 Final Area & Power Reports
+# 13.3 Final Area & Power Reports
 redirect "${REPORT_DIR}/innovus_area.rpt" { report_area -detail }
 redirect "${REPORT_DIR}/innovus_power.rpt" { report_power }
 puts "    \[OK\] Exported Area & Power Reports to ${REPORT_DIR}/"
 
-# 9.5 Innovus Encrypted Database
+# 13.4 Innovus Encrypted Database
 saveDesign "${NETLIST_DIR}/riscv_core_top.enc"
 puts "    \[OK\] Saved Innovus Database: ${NETLIST_DIR}/riscv_core_top.enc"
 
-# 9.6 Stream Out Final GDSII Silicon Mask Layout
-set GDS_MAP_FILE "/home/install/FOUNDRY/analog/90nm/soce/soce_gds.map"
-set GDS_CELL_FILES [glob -nocomplain "/home/install/FOUNDRY/digital/90nm/dig/gds/*.gds"]
+# 13.5 Stream Out Final GDSII Silicon Mask Layout (units 2000 matches LEF DATABASE MICRONS)
+set GDS_CELL_FILES [glob -nocomplain "${GDS_DIR}/*.gds"]
 if {[file exists $GDS_MAP_FILE] && [llength $GDS_CELL_FILES] > 0} {
     streamOut "${NETLIST_DIR}/riscv_core_top.gds" -mapFile $GDS_MAP_FILE -merge $GDS_CELL_FILES -units 2000 -mode ALL
     puts "    \[OK\] Exported Silicon GDSII Layout: ${NETLIST_DIR}/riscv_core_top.gds"
+} else {
+    puts "    \[WARN\] GDS map or cell files not found, skipping streamOut."
 }
 
 puts "======================================================================"

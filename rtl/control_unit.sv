@@ -136,3 +136,43 @@ OPCODE_I_TYPE: begin
     end
 
 endmodule
+
+// ============================================================================
+// Discrete Module Wrapper for Dual Modular Redundancy (DMR) Checker Preservation
+// Prevents Cadence Genus from merging identical control unit decoder instances.
+// ============================================================================
+(* dont_touch = "true" *)
+module control_unit_checker (
+    input  logic [6:0] opcode,
+    input  logic [2:0] funct3,
+    input  logic [6:0] funct7,
+    
+    output logic       reg_write,
+    output logic       mem_read,
+    output logic       mem_write,
+    output alu_op_e    alu_op,
+    output logic       alu_src_a,
+    output logic       alu_src_b,
+    output wb_sel_e    wb_sel,
+    output logic       is_branch,
+    output logic       is_jal,
+    output logic       is_jalr,
+    output logic       trap
+);
+    control_unit u_core (
+        .opcode    (opcode),
+        .funct3    (funct3),
+        .funct7    (funct7),
+        .reg_write (reg_write),
+        .mem_read  (mem_read),
+        .mem_write (mem_write),
+        .alu_op    (alu_op),
+        .alu_src_a (alu_src_a),
+        .alu_src_b (alu_src_b),
+        .wb_sel    (wb_sel),
+        .is_branch (is_branch),
+        .is_jal    (is_jal),
+        .is_jalr   (is_jalr),
+        .trap      (trap)
+    );
+endmodule

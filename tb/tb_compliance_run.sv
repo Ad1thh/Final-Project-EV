@@ -43,8 +43,10 @@ module tb_compliance_run;
         .dmem_wmask(dmem_wmask), .dmem_we(dmem_we), .dmem_rdata(dmem_rdata),
         .pc_debug(pc_debug), .trap(trap),
         .tmr_mode_pin(tmr_mode_pin),
+        `ifdef FAULT_INJECT
         .fi_reg_en(fi_reg_en), .fi_reg_addr(fi_reg_addr), .fi_reg_bit(fi_reg_bit),
         .fi_alu_en(fi_alu_en), .fi_alu_sel(fi_alu_sel), .fi_alu_bit(fi_alu_bit),
+        `endif
         .ecc_sec_1(ecc_sec_1), .ecc_ded_1(ecc_ded_1),
         .ecc_sec_2(ecc_sec_2), .ecc_ded_2(ecc_ded_2),
         .tmr_mismatch(tmr_mismatch),
@@ -66,6 +68,18 @@ module tb_compliance_run;
     string hex_file;
 
     initial begin
+        `ifdef SDF_ANNOTATE
+        $display("[GLS] Annotating SDF: cadence/netlist/riscv_core_top_setup.sdf");
+        $sdf_annotate("cadence/netlist/riscv_core_top_setup.sdf", dut, , "cadence/reports/sdf_annot.log", "MAXIMUM");
+        `endif
+        `ifdef DUMP_VCD
+        $display("[VCD] Dumping activity to cadence/reports/workload.vcd");
+        $dumpfile("cadence/reports/workload.vcd");
+        $dumpvars(0, dut);
+        `endif
+    end
+
+    initial begin
         for (int i = 0; i < 65536; i++) memory[i] = 8'h00;
 
         if ($value$plusargs("HEX=%s", hex_file)) begin
@@ -77,15 +91,19 @@ module tb_compliance_run;
         end
 
         rst_n = 1'b0;
-        #20;
+        #50;
         rst_n = 1'b1;
 
-        wait (trap == 1'b1);
-        #20;
-
-        $display("[3.1] Trap received at PC=0x%08h", pc_debug);
-        $display("[3.1] RESULT: TEST PASSED — fuzzer reached ebreak without pipeline failure");
-        $finish;
+        // Sample trap synchronously at clock falling edge (fully settled cycle)
+        forever @(negedge clk) begin
+            if (trap == 1'b1) begin
+                @(posedge clk);
+                #20;
+                $display("[3.1] Trap received at PC=0x%08h", pc_debug);
+                $display("[3.1] RESULT: TEST PASSED — fuzzer reached ebreak without pipeline failure");
+                $finish;
+            end
+        end
     end
 
 endmodule
